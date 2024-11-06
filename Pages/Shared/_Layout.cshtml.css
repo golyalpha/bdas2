@@ -30,6 +30,12 @@ button.accept-policy {
   line-height: inherit;
 }*/
 
+.nav-item button {
+  font-size: 1rem;
+  line-height: inherit;
+  border: none;
+}
+
 .footer {
   position: absolute;
   bottom: 0;
