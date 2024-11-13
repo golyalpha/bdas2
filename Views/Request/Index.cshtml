@@ -1,0 +1,26 @@
+@{
+    ViewData["Title"] = "Requests";
+}
+
+<div class="container mt-4">
+    <h2 class="text-center mb-4">Requests</h2>
+    <table class="table table-dark table-striped reservations-table">
+        <thead>
+            <tr>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Organizer</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var request in Model)
+            {
+                <tr>
+                    <td>@request.Start.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@request.End.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@request.Organiser.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
