@@ -4,6 +4,6 @@ public class Location
 {
     public int Id { get; set; }
     public required string Name { get; set; }
-    public required DateTime AvailabilityStart  { get; set; }
-    public required DateTime AvailabilityEnd { get; set; }
+    public required TimeOnly AvailabilityStart  { get; set; }
+    public required TimeOnly AvailabilityEnd { get; set; }
 }

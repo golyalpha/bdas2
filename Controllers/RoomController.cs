@@ -23,8 +23,8 @@ public class RoomController : Controller
                     {
                         Id = 1,
                         Name = "Building 1",
-                        AvailabilityStart = DateTime.Now.AddHours(-1),
-                        AvailabilityEnd = DateTime.Now,
+                        AvailabilityStart = TimeOnly.FromDateTime(DateTime.Now.AddHours(-1)),
+                        AvailabilityEnd = TimeOnly.FromDateTime(DateTime.Now),
                     }
                 },
                 new Room{
@@ -36,8 +36,8 @@ public class RoomController : Controller
                     {
                         Id = 2,
                         Name = "Building 2",
-                        AvailabilityStart = DateTime.Now.AddHours(-2),
-                        AvailabilityEnd = DateTime.Now.AddHours(-1),
+                        AvailabilityStart = TimeOnly.FromDateTime(DateTime.Now.AddHours(-2)),
+                        AvailabilityEnd = TimeOnly.FromDateTime(DateTime.Now.AddHours(-1)),
                     }
                 },
                 new Room{
@@ -49,8 +49,8 @@ public class RoomController : Controller
                     {
                         Id = 3,
                         Name = "Building 3",
-                        AvailabilityStart = DateTime.Now.AddHours(-3),
-                        AvailabilityEnd = DateTime.Now.AddHours(-2),
+                        AvailabilityStart = TimeOnly.FromDateTime(DateTime.Now.AddHours(-3)),
+                        AvailabilityEnd = TimeOnly.FromDateTime(DateTime.Now.AddHours(-2)),
                     }
                 }
             };
