@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using WebApp.Models;
 
 namespace WebApp.Controllers;
 
@@ -16,9 +17,18 @@ public class UserController : Controller
         return View();
     }
 
-    public IActionResult Login()
-    {
+    [HttpGet]
+    public IActionResult Login() {
         return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Login(LoginViewModel request) {
+        if (ModelState.IsValid) {
+            return RedirectToAction("Index");
+        }
+        return View(request);
     }
 
     public IActionResult Register()
