@@ -10,51 +10,64 @@ public class RoomController : Controller
         _logger = logger;
     }
 
+    // Index: Zobrazí seznam místností
     public IActionResult Index()
     {
-        var rooms = new List<Room>
-            {
-                new Room{
-                    Id = 1,
-                    Name = "Room 1",
-                    Capacity = 10,
-                    Type = "Meeting",
-                    Location = new Location
-                    {
-                        Id = 1,
-                        Name = "Building 1",
-                        AvailabilityStart = TimeOnly.FromDateTime(DateTime.Now.AddHours(-1)),
-                        AvailabilityEnd = TimeOnly.FromDateTime(DateTime.Now),
-                    }
-                },
-                new Room{
-                    Id = 2,
-                    Name = "Room 2",
-                    Capacity = 20,
-                    Type = "Meeting",
-                    Location = new Location
-                    {
-                        Id = 2,
-                        Name = "Building 2",
-                        AvailabilityStart = TimeOnly.FromDateTime(DateTime.Now.AddHours(-2)),
-                        AvailabilityEnd = TimeOnly.FromDateTime(DateTime.Now.AddHours(-1)),
-                    }
-                },
-                new Room{
-                    Id = 3,
-                    Name = "Room 3",
-                    Capacity = 30,
-                    Type = "Presentation",
-                    Location = new Location
-                    {
-                        Id = 3,
-                        Name = "Building 3",
-                        AvailabilityStart = TimeOnly.FromDateTime(DateTime.Now.AddHours(-3)),
-                        AvailabilityEnd = TimeOnly.FromDateTime(DateTime.Now.AddHours(-2)),
-                    }
-                }
-            };
+        var rooms = Room.ListRooms(); // Získání seznamu místností
+        return View(rooms);
+    }
 
-            return View(rooms);
+    // GET: Room/Create
+    [HttpGet]
+    public IActionResult Create()
+    {
+        return View(); // Zobrazí formuláø Create.cshtml
+    }
+
+    // POST: Room/Create
+    [HttpPost]
+    public IActionResult Create(Room room)
+    {
+        if (ModelState.IsValid)
+        {
+            // Logika pro pøidání nové místnosti
+            _logger.LogInformation("New room created successfully.");
+            return RedirectToAction("Index");
+        }
+        return View(room);
+    }
+
+    // GET: Room/Edit/5
+    [HttpGet]
+    public IActionResult Edit(int id)
+    {
+        var room = Room.GetRoom(id); // Získání konkrétní místnosti podle ID
+        if (room == null)
+        {
+            return NotFound();
+        }
+        return View(room); // Zobrazí formuláø Edit.cshtml s pøedvyplnìnými hodnotami
+    }
+
+    // POST: Room/Update
+    [HttpPost]
+    public IActionResult Update(Room updatedRoom)
+    {
+        if (ModelState.IsValid)
+        {
+            var existingRoom = Room.GetRoom(updatedRoom.Id);
+            if (existingRoom != null)
+            {
+                // Aktualizace dat existující místnosti
+                existingRoom.Name = updatedRoom.Name;
+                existingRoom.Capacity = updatedRoom.Capacity;
+                existingRoom.Type = updatedRoom.Type;
+                existingRoom.Location = updatedRoom.Location;
+
+                _logger.LogInformation("Room updated successfully.");
+                return RedirectToAction("Index");
+            }
+        }
+        return View("Edit", updatedRoom); // V pøípadì chyby se vrátí na editovací stránku
     }
 }

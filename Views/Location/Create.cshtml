@@ -1,0 +1,27 @@
+﻿@model WebApp.Models.Location
+
+@{
+    ViewData["Title"] = "Create Location";
+}
+
+<div class="container mt-5">
+    <h2>Create Location</h2>
+    <form id="createLocationForm" method="post" action="/Location/Create">
+        <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="Name" class="form-control" required />
+        </div>
+        <div class="form-group">
+            <label for="availabilityStart">Availability Start</label>
+            <input type="time" id="availabilityStart" name="AvailabilityStart" class="form-control" required />
+        </div>
+        <div class="form-group">
+            <label for="availabilityEnd">Availability End</label>
+            <input type="time" id="availabilityEnd" name="AvailabilityEnd" class="form-control" required />
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+    <div>
+        <a href="/Location/Index" class="btn btn-link">Back to List</a>
+    </div>
+</div>
