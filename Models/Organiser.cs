@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Oracle.ManagedDataAccess.Client;
 using WebApp.Util;
 
@@ -45,7 +44,7 @@ public class Organiser
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_organizer, name, email FROM CREDENTIALS_V";
+            cmd.CommandText = "SELECT id_organizer, name, email FROM ORGANIZERS_V";
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {

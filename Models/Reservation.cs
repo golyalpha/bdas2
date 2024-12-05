@@ -18,7 +18,7 @@ public class Reservation
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_reservation, start, end, id_room, id_room_request, id_organizer FROM RESERVATION_V WHERE id_reservation = :1";
+            cmd.CommandText = "SELECT id_reservation, start, end, id_room, id_room_request, id_organizer FROM RESERVATIONS_V WHERE id_reservation = :1";
             cmd.Parameters.Add(Id);
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())

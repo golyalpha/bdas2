@@ -17,7 +17,7 @@ public class Room
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_room, id_location, name, capacity, type, vc_ready, podium_size FROM ROOM_V WHERE id_room = :1";
+            cmd.CommandText = "SELECT id_room, id_location, name, capacity, type, vc_ready, podium_size FROM ROOMS_V WHERE id_room = :1";
             cmd.Parameters.Add(Id);
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
@@ -69,7 +69,7 @@ public class Room
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_room, id_location, name, capacity, type, vc_ready, podium_size FROM ROOM_V"; 
+            cmd.CommandText = "SELECT id_room, id_location, name, capacity, 'type', vc_ready, podium_size FROM ROOMS_V"; 
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {
