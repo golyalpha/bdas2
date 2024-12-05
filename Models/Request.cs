@@ -20,13 +20,12 @@ public class Request
     public int MinimumCapacity { get; set; }
     public String Type { get; set; }
     public Location Location { get; set; }
-    public required Organiser Organiser { get; set; }
 
     [Required]
     public Organiser Organiser { get; set; }
 
     // Mock metoda pro naètení konkrétní žádosti (simulace)
-    public static Request GetRequest(int id)
+    public static Request GetRequest(int Id)
     {
         using (OracleConnection conn = DBManager.GetConnection())
         {

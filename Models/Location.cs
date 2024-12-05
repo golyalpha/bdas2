@@ -39,7 +39,7 @@ public class Location
         }
     }
 
-    public static List<Location> GetLocations()
+    public static List<Location> ListLocations()
     {
         List<Location> list = new List<Location>();
         using (OracleConnection conn = DBManager.GetConnection())

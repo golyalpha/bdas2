@@ -38,7 +38,7 @@ public class Organiser
         }
     }
 
-    public static List<Organiser> GetOrganisers()
+    public static List<Organiser> ListOrganisers()
     {
         List<Organiser> list = new List<Organiser>();
         using (OracleConnection conn = DBManager.GetConnection())
