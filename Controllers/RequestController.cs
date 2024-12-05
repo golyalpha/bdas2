@@ -12,45 +12,60 @@ public class RequestController : Controller
 
     public IActionResult Index()
     {
-        var requests = new List<Request>
-            {
-                new Request{
-                    Id = 1, 
-                    Start = DateTime.Now.AddHours(-1), 
-                    End = DateTime.Now,
-                    Organiser = new Organiser
-                    {
-                        Id = 1,
-                        Name = "John Doe",
-                        Email = "john@doe.com"
-                    }
-                },
-                new Request 
-                {
-                    Id = 2, 
-                    Start = DateTime.Now.AddHours(-2), 
-                    End = DateTime.Now.AddHours(-1),
-                    Organiser = new Organiser
-                    {
-                        Id = 1,
-                        Name = "John Doe",
-                        Email = "john@doe.com"
-                    }
-                },
-                new Request 
-                {
-                    Id = 3, 
-                    Start = DateTime.Now.AddHours(-3), 
-                    End = DateTime.Now.AddHours(-2),
-                    Organiser = new Organiser
-                    {
-                        Id = 1,
-                        Name = "John Doe",
-                        Email = "john@doe.com"
-                    }
-                }
-            };
+        var requests = WebApp.Models.Request.ListRequests(); // Získání seznamu žádostí pro zobrazení v indexu
+        return View(requests);
+    }
 
-            return View(requests);
+    // GET: Request/Create
+    [HttpGet]
+    public IActionResult Create()
+    {
+        return View(); // Zobrazí formuláø Create.cshtml
+    }
+
+    // POST: Request/Create
+    [HttpPost]
+    public IActionResult Create(Request request)
+    {
+        if (ModelState.IsValid)
+        {
+            // Logika pro pøidání nové žádosti (napøíklad ukládání do databáze)
+            _logger.LogInformation("New request created successfully.");
+            return RedirectToAction("Index");
+        }
+        return View(request);
+    }
+
+    // GET: Request/Edit/5
+    [HttpGet]
+    public IActionResult Edit(int id)
+    {
+        var request = WebApp.Models.Request.GetRequest(id); // Získání konkrétní žádosti podle ID
+        if (request == null)
+        {
+            return NotFound();
+        }
+        return View(request); // Zobrazí formuláø Edit.cshtml s pøedvyplnìnými hodnotami
+    }
+
+    // POST: Request/Update
+    [HttpPost]
+    public IActionResult Update(Request updatedRequest)
+    {
+        if (ModelState.IsValid)
+        {
+            var existingRequest = WebApp.Models.Request.GetRequest(updatedRequest.Id);
+            if (existingRequest != null)
+            {
+                // Aktualizace dat existující žádosti
+                existingRequest.Start = updatedRequest.Start;
+                existingRequest.End = updatedRequest.End;
+                existingRequest.Organiser = updatedRequest.Organiser;
+
+                _logger.LogInformation("Request updated successfully.");
+                return RedirectToAction("Index");
+            }
+        }
+        return View("Edit", updatedRequest); // V pøípadì chyby se vrátí na editovací stránku
     }
 }

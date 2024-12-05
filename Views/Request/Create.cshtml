@@ -1,0 +1,31 @@
+﻿@model WebApp.Models.Request
+
+@{
+    ViewData["Title"] = "Create Request";
+}
+
+<div class="container mt-5">
+    <h2>Create Request</h2>
+    <form id="createRequestForm" method="post" action="/Request/Create">
+        <div class="form-group">
+            <label for="start">Start Time</label>
+            <input type="datetime-local" id="start" name="start" class="form-control" required />
+        </div>
+        <div class="form-group">
+            <label for="end">End Time</label>
+            <input type="datetime-local" id="end" name="end" class="form-control" required />
+        </div>
+        <div class="form-group">
+            <label for="organiserName">Organiser Name</label>
+            <input type="text" id="organiserName" name="organiserName" class="form-control" required />
+        </div>
+        <div class="form-group">
+            <label for="organiserEmail">Organiser Email</label>
+            <input type="email" id="organiserEmail" name="organiserEmail" class="form-control" required />
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+    <div>
+        <a href="/Request/Index" class="btn btn-link">Back to List</a>
+    </div>
+</div>

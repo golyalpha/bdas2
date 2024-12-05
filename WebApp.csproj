@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Views\Reservations\**" />
+    <Content Remove="Views\Reservations\**" />
+    <EmbeddedResource Remove="Views\Reservations\**" />
+    <None Remove="Views\Reservations\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Oracle.ManagedDataAccess" Version="23.6.1" />
   </ItemGroup>
 

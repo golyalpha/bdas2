@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 using Oracle.ManagedDataAccess.Client;
 using WebApp.Util;
 
@@ -6,7 +8,13 @@ namespace WebApp.Models;
 public class Request
 {
     public int Id { get; set; }
+
+    [Required(ErrorMessage = "Start Time is required")]
+    [Display(Name = "Start Time")]
     public DateTime Start { get; set; }
+
+    [Required(ErrorMessage = "End Time is required")]
+    [Display(Name = "End Time")]
     public DateTime End { get; set; }
     public TimeSpan Length { get; set; }
     public int MinimumCapacity { get; set; }
@@ -14,7 +22,11 @@ public class Request
     public Location Location { get; set; }
     public required Organiser Organiser { get; set; }
 
-    public static Request GetRequest(int Id)
+    [Required]
+    public Organiser Organiser { get; set; }
+
+    // Mock metoda pro naètení konkrétní žádosti (simulace)
+    public static Request GetRequest(int id)
     {
         using (OracleConnection conn = DBManager.GetConnection())
         {
