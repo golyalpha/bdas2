@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Authorization.Infrastructure;
+using Oracle.ManagedDataAccess.Client;
+using WebApp.Util;
 
 namespace WebApp.Models;
 
@@ -10,11 +12,54 @@ public class Organiser
 
     public static Organiser GetOrganiser(int Id)
     {
-        throw new NotImplementedException();
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            OracleCommand cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT id_organizer, name, email FROM ORGANIZERS_V WHERE id_organizer = :1";
+            cmd.Parameters.Add(Id);
+            cmd.CommandType = System.Data.CommandType.Text;
+            using (OracleDataReader reader = cmd.ExecuteReader())
+            {
+                if (!reader.Read())
+                {
+                    throw new KeyNotFoundException();
+                }
+                Organiser org = new Organiser
+                {
+                    Id = reader.GetInt32(0),
+                    Name = reader.GetString(1),
+                    Email = reader.GetString(2),
+                };
+                reader.Close();
+                conn.Close();
+                return org;
+            }
+        }
     }
 
-    public static List<Organiser> ListOrganisers()
+    public static List<Organiser> GetOrganisers()
     {
-        throw new NotImplementedException();
+        List<Organiser> list = new List<Organiser>();
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            OracleCommand cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT id_organizer, name, email FROM CREDENTIALS_V";
+            cmd.CommandType = System.Data.CommandType.Text;
+            using (OracleDataReader reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    list.Add(new Organiser
+                    {
+                        Id = reader.GetInt32(0),
+                        Name = reader.GetString(1),
+                        Email = reader.GetString(2),
+                    });
+                }
+            }
+        }
+        return list;
     }
 }

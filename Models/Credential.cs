@@ -20,7 +20,10 @@ public class Credential
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {
-                reader.Read();
+                if (!reader.Read())
+                {
+                    throw new KeyNotFoundException();
+                }
                 Credential cred = new Credential
                 {
                     Id = reader.GetInt32(0),
@@ -55,7 +58,6 @@ public class Credential
                 }
             }
         }
-        
         return list;
     }
 
