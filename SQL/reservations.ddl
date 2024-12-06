@@ -201,10 +201,10 @@ CREATE TABLE organizers (
     id_organizer_substitute NUMBER
 );
 
-CREATE UNIQUE INDEX organizer__idx ON
-    organizers (
-        id_organizer_substitute
-    ASC );
+
+ALTER TABLE organizers
+    ADD CONSTRAINT organizers_organizers_fk FOREIGN KEY ( id_organizer )
+        REFERENCES organizers ( id_organizer );
 
 ALTER TABLE organizers ADD CONSTRAINT organizers_pk PRIMARY KEY ( id_organizer );
 
