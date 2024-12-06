@@ -23,8 +23,40 @@ public class Request
 
     [Required]
     public Organiser Organiser { get; set; }
+    public void Persist()
+    {
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            OracleCommand cmd = conn.CreateCommand();
+            cmd.CommandType = System.Data.CommandType.StoredProcedure;
+            cmd.CommandText = "edit_reservation_request";
+            cmd.Parameters.Add("id", Id);
+            cmd.Parameters.Add("reservation_start", Start);
+            cmd.Parameters.Add("reservation_end", End);
+            cmd.Parameters.Add("reservation_length", Length);
+            cmd.Parameters.Add("minimum_capacity", MinimumCapacity);
+            cmd.Parameters.Add("type", Type);
+            cmd.Parameters.Add("location_id", Location.Id);
+            cmd.Parameters.Add("organiser_id", Organiser.Id);
+            if (Type == "PRESENTATION_RREQUEST")
+            {
+                PresentationRequest request = (PresentationRequest)this;
+                cmd.Parameters.Add("podium_size", request.PodiumSize);
+            }
+            if (Type == "MEETING_RREQUEST")
+            {
+                MeetingRequest request = (MeetingRequest)this;
+                cmd.Parameters.Add("vc_ready", request.VideoCallReady);
+            }
+            int rows = cmd.ExecuteNonQuery();
+            if (rows == 0)
+            {
+                throw new ApplicationException("Persisting entity failed, no rows were updated.");
+            }
+        }
+    }
 
-    // Mock metoda pro naètení konkrétní žádosti (simulace)
     public static Request GetRequest(int Id)
     {
         using (OracleConnection conn = DBManager.GetConnection())
@@ -89,7 +121,7 @@ public class Request
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_organizer, id_location, id_room_request, min_capacity, reservation_start, reservation_length, reservation_end, type, vc_ready, podium_size FROM ROOM_REQUESTS_V";
+            cmd.CommandText = "SELECT id_organizer, id_location, id_room_request, min_capacity, reservation_start, reservation_length, reservation_end, 'type', vc_ready, podium_size FROM ROOM_REQUESTS_V";
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {

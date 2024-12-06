@@ -29,7 +29,6 @@ public class LocationController : Controller
     {
         if (ModelState.IsValid)
         {
-            // Logika pro pøidání nové lokace
             _logger.LogInformation("New location created successfully.");
             return RedirectToAction("Index");
         }

@@ -45,6 +45,29 @@ public class Reservation
 
     public static List<Reservation> ListReservations()
     {
-        throw new NotImplementedException();
+        List<Reservation> list = new();
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            OracleCommand cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT id_reservation, start, end, id_room, id_room_request, id_organizer FROM RESERVATIONS_V";
+            cmd.CommandType = System.Data.CommandType.Text;
+            using (OracleDataReader reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    list.Add(new Reservation
+                    {
+                        Id = reader.GetInt32(0),
+                        Start = reader.GetDateTime(1),
+                        End = reader.GetDateTime(2),
+                        Room = Room.GetRoom(reader.GetInt32(3)),
+                        Request = Request.GetRequest(reader.GetInt32(4)),
+                        Organiser = Organiser.GetOrganiser(reader.GetInt32(5))
+                    });
+                }
+            }
+        }
+        return list;
     }
 }

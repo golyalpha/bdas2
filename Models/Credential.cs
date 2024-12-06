@@ -1,6 +1,7 @@
 namespace WebApp.Models;
 using Oracle.ManagedDataAccess.Client; // ODP.NET Oracle managed provider
 using Oracle.ManagedDataAccess.Types;
+using System.Xml.Linq;
 using WebApp.Util;
 
 public class Credential
@@ -8,6 +9,25 @@ public class Credential
     public int Id { get; set; }
     public required string CredentialType { get; set; }
     public required string Data { get; set; }
+
+    public void Persist()
+    {
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            OracleCommand cmd = conn.CreateCommand();
+            cmd.CommandType = System.Data.CommandType.StoredProcedure;
+            cmd.CommandText = "edit_credential";
+            cmd.Parameters.Add(Id);
+            cmd.Parameters.Add(CredentialType);
+            cmd.Parameters.Add(Data);
+            int rows = cmd.ExecuteNonQuery();
+            if (rows == 0)
+            {
+                throw new ApplicationException("Persisting entity failed, no rows were updated.");
+            }
+        }
+    }
 
     public static Credential GetCredential(int Id)
     {
