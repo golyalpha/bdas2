@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Mvc;
 using Oracle.ManagedDataAccess.Client;
+using System.ComponentModel.DataAnnotations;
 using WebApp.Util;
 
 namespace WebApp.Models;
@@ -6,10 +8,15 @@ namespace WebApp.Models;
 public class Organiser
 {
     public int? Id { get; set; }
-    public required string Name { get; set; }
-    public required string Email { get; set; }
 
-    public required Role Role { get; set; }
+    [Required]
+    public string Name { get; set; }
+
+    [Required]
+    public string Email { get; set; }
+
+    [Required]
+    public Role Role { get; set; }
 
     public void Persist()
     {
@@ -77,8 +84,8 @@ public class Organiser
                     {
                         Id = reader.GetInt32(0),
                         Name = reader.GetString(1),
-                        Email = reader.GetString(2),
-                        Role = Role.GetRole(reader.GetInt32(3))
+                        Email = reader.GetString(2)
+                        //Role = Role.GetRole(reader.GetInt32(3))
                     });
                 }
             }

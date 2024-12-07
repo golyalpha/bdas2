@@ -491,7 +491,7 @@ CREATE OR REPLACE VIEW ROLES_V ( ID_ROLE
     ROLES 
 ;
 
-CREATE OR REPLACE VIEW ROOM_REQUESTS_V ( id_organizer, id_location, id_room_request, min_capacity, reservation_start, reservation_end, reservation_length, vc_ready, podium_size ) AS
+CREATE OR REPLACE VIEW ROOM_REQUESTS_V ( id_organizer, id_location, id_room_request, min_capacity, reservation_start, reservation_end, reservation_length, type, vc_ready, podium_size ) AS
 SELECT
     organizers.id_organizer,
     locations.id_location,
@@ -500,6 +500,7 @@ SELECT
     room_requests.reservation_start,
     room_requests.reservation_end,
     room_requests.reservation_length,
+    room_requests.type,
     meeting_rrequests.vc_ready,
     presentation_rrequests.podium_size
 FROM
@@ -510,11 +511,12 @@ FROM
     presentation_rrequests 
 ;
 
-CREATE OR REPLACE VIEW ROOMS_V ( id_room, name, capacity, id_location, availability_start, availability_end, vc_ready, podium_size ) AS
+CREATE OR REPLACE VIEW ROOMS_V ( id_room, name, capacity, type, id_location, availability_start, availability_end, vc_ready, podium_size ) AS
 SELECT
     rooms.id_room,
     rooms.name,
     rooms.capacity,
+    rooms.type,
     locations.id_location,
     locations.availability_start,
     locations.availability_end,

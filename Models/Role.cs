@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Mvc;
 using Oracle.ManagedDataAccess.Client;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
 using WebApp.Util;
 
@@ -7,7 +9,9 @@ namespace WebApp.Models;
 public class Role
 {
     public int Id { get; set; }
-    public required string Name { get; set; }
+
+    [Required]
+    public string Name { get; set; }
 
     public void Persist()
     {

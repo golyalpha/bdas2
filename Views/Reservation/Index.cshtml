@@ -5,8 +5,10 @@
 }
 
 <div class="container mt-5">
-    <h2>Reservations List</h2>
-    <a href="/Reservation/Create" class="btn btn-primary mb-3">Add New Reservation</a>
+    <h2>@ViewData["Title"]</h2>
+
+    <a asp-controller="Reservation" asp-action="Create" class="btn btn-primary">Add New Reservation</a>
+
     <table class="table table-striped">
         <thead>
             <tr>

@@ -1,13 +1,13 @@
+@model IEnumerable<WebApp.Models.Request>
+
 @{
     ViewData["Title"] = "Requests";
 }
 
-<div class="container mt-4">
-    <h2 class="text-center mb-4">Requests</h2>
+<div class="container mt-5">
+    <h2>@ViewData["Title"]</h2>
 
-    <p>
-        <a asp-controller="Request" asp-action="Create" class="btn btn-primary">Create New Request</a>
-    </p>
+    <a asp-controller="Request" asp-action="Create" class="btn btn-primary">Create New Request</a>
 
     <table class="table table-dark table-striped">
         <thead>
@@ -15,6 +15,7 @@
                 <th>Start Time</th>
                 <th>End Time</th>
                 <th>Organizer</th>
+                <th>Type</th>
             </tr>
         </thead>
         <tbody>
@@ -24,6 +25,7 @@
                     <td>@request.Start.ToString("yyyy-MM-dd HH:mm")</td>
                     <td>@request.End.ToString("yyyy-MM-dd HH:mm")</td>
                     <td>@request.Organiser.Name</td>
+                    <td>@request.Type</td>
                     <td>
                         <a href="/Request/Edit?id=@request.Id" class="btn btn-warning">Edit</a>
                     </td>

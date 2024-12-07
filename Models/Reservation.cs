@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Mvc;
 using Oracle.ManagedDataAccess.Client;
+using System.ComponentModel.DataAnnotations;
 using WebApp.Util;
 
 namespace WebApp.Models;
@@ -6,11 +8,21 @@ namespace WebApp.Models;
 public class Reservation
 {
     public int Id { get; set; }
-    public required DateTime Start { get; set; }
-    public required DateTime End { get; set; }
-    public required Room Room { get; set; }
-    public required Request Request { get; set; }
-    public required Organiser Organiser { get; set; }
+
+    [Required]
+    public DateTime Start { get; set; }
+
+    [Required]
+    public DateTime End { get; set; }
+
+    [Required]
+    public Room Room { get; set; }
+
+    [Required]
+    public Request Request { get; set; }
+
+    [Required]
+    public Organiser Organiser { get; set; }
 
     public static Reservation GetReservation(int Id)
     {
@@ -50,7 +62,7 @@ public class Reservation
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_reservation, start, end, id_room, id_room_request, id_organizer FROM RESERVATIONS_V";
+            cmd.CommandText = "SELECT * FROM RESERVATIONS_V";
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {
