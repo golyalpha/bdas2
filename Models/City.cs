@@ -20,9 +20,9 @@ namespace WebApp.Models
                 OracleCommand cmd = conn.CreateCommand();
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.CommandText = "edit_city";
-                cmd.Parameters.Add(Id);
-                cmd.Parameters.Add(Name);
-                cmd.Parameters.Add(Country.Id);
+                cmd.Parameters.Add("id_city", Id);
+                cmd.Parameters.Add("name", Name);
+                cmd.Parameters.Add("id_country", Country.Id);
                 int rows = cmd.ExecuteNonQuery();
                 if (rows == 0)
                 {

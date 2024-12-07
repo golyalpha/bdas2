@@ -64,8 +64,8 @@ public class Request
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_organizer, id_location, id_room_request, min_capacity, reservation_start, reservation_length, reservation_end, type, vc_ready, podium_size FROM ROOM_REQUESTS_V WHERE id_room_request = :1";
-            cmd.Parameters.Add(Id);
+            cmd.CommandText = "SELECT id_organizer, id_location, id_room_request, min_capacity, reservation_start, reservation_length, reservation_end, type, vc_ready, podium_size FROM ROOM_REQUESTS_V WHERE id_room_request = :id";
+            cmd.Parameters.Add("id", Id);
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {

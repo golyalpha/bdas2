@@ -18,9 +18,9 @@ public class Credential
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
             cmd.CommandText = "edit_credential";
-            cmd.Parameters.Add(Id);
-            cmd.Parameters.Add(CredentialType);
-            cmd.Parameters.Add(Data);
+            cmd.Parameters.Add("id_credential", Id);
+            cmd.Parameters.Add("credential_type", CredentialType);
+            cmd.Parameters.Add("data", Data);
             int rows = cmd.ExecuteNonQuery();
             if (rows == 0)
             {

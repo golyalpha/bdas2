@@ -19,24 +19,30 @@
         <div class="form-group">
             @Html.LabelFor(m => m.Location.AvailabilityStart)
             <div>
-                @Html.TextBoxFor(m => m.Location.AvailabilityStart)
+                <input type="time"
+                       name="@Html.NameFor(m => m.Location.AvailabilityStart)"
+                       value="@Html.ValueFor(m => m.Location.AvailabilityStart)"
+                       id="@Html.IdFor(m => m.Location.AvailabilityStart)"/>
                 @Html.ValidationMessageFor(m => m.Location.AvailabilityStart, "", new { @class = "text-danger" })
             </div>
         </div>
         <div class="form-group">
             @Html.LabelFor(m => m.Location.AvailabilityEnd)
             <div>
-                @Html.TextBoxFor(m => m.Location.AvailabilityEnd)
+                <input type="time"
+                       name="@Html.NameFor(m => m.Location.AvailabilityEnd)"
+                       value="@Html.ValueFor(m => m.Location.AvailabilityEnd)"
+                       id="@Html.IdFor(m => m.Location.AvailabilityEnd)" />
                 @Html.ValidationMessageFor(m => m.Location.AvailabilityEnd, "", new { @class = "text-danger" })
             </div>
         </div>
         <div class="form-group">
-            @Html.LabelFor(m => m.Location.City)
+            @Html.LabelFor(m => m.CityId)
             <div>
-                <select id="@Html.IdFor(m => m.Location.City)" name="@Html.NameFor(m => m.Location.City)">
+                <select id="@Html.IdFor(m => m.CityId)" name="@Html.NameFor(m => m.CityId)">
                     @foreach (var city in Model.Cities)
                     {
-                        <option value="@city.Id">@city.Name, @city.Country.Name</option>
+                        <option value="@city.Id.ToString()">@city.Name, @city.Country.Name</option>
                     }
                 </select>
             </div>

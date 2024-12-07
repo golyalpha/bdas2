@@ -12,11 +12,7 @@ public class LocationController : Controller
 
     public IActionResult Index()
     {
-        var locations = WebApp.Models.Location.ListLocations(); // Získání seznamu žádostí pro zobrazení v indexu
-        foreach (var item in locations)
-        {
-            System.Console.Out.WriteLine(item);
-        }
+        var locations = WebApp.Models.Location.ListLocations();
         return View(locations);
     }
 
@@ -33,6 +29,7 @@ public class LocationController : Controller
     {
         if (ModelState.IsValid)
         {
+            System.Console.Out.WriteLine(locationViewModel.CityId);
             locationViewModel.Location.City = City.GetCity(locationViewModel.CityId);
             locationViewModel.Location.Persist();
             _logger.LogInformation("New location created successfully.");

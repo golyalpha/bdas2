@@ -1,4 +1,5 @@
 using Oracle.ManagedDataAccess.Client;
+using System.ComponentModel.DataAnnotations;
 using WebApp.Util;
 
 namespace WebApp.Models;
@@ -6,24 +7,33 @@ namespace WebApp.Models;
 public class Location
 {
     public int Id { get; set; }
+    [Required]
     public required string Name { get; set; }
+    [Required]
+    [Display(Name = "Availability Start")]
     public required TimeOnly AvailabilityStart  { get; set; }
+    [Required]
+    [Display(Name = "Availability End")]
     public required TimeOnly AvailabilityEnd { get; set; }
-    public City City { get; set; }
+    public City? City { get; set; }
 
     public void Persist()
     {
+        if (City == null)
+        {
+            throw new InvalidOperationException("City is required for location.");
+        }
         using (OracleConnection conn = DBManager.GetConnection())
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
             cmd.CommandText = "edit_location";
-            cmd.Parameters.Add(Id);
-            cmd.Parameters.Add(Name);
-            cmd.Parameters.Add(AvailabilityStart);
-            cmd.Parameters.Add(AvailabilityEnd);
-            cmd.Parameters.Add(City.Id);
+            cmd.Parameters.Add("location_id", Id);
+            cmd.Parameters.Add("name", Name);
+            cmd.Parameters.Add("availability_start", AvailabilityStart);
+            cmd.Parameters.Add("availability_end", AvailabilityEnd);
+            cmd.Parameters.Add("id_city", City.Id);
             int rows = cmd.ExecuteNonQuery();
             if (rows == 0)
             {
@@ -38,8 +48,8 @@ public class Location
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT ID_LOCATION, name, availability_start, availability_end, id_city FROM LOCATIONS_V WHERE ID_LOCATION = :1";
-            cmd.Parameters.Add(Id);
+            cmd.CommandText = "SELECT ID_LOCATION, name, availability_start, availability_end, id_city FROM LOCATIONS_V WHERE ID_LOCATION = :id";
+            cmd.Parameters.Add("id", Id);
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {

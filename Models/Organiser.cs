@@ -26,10 +26,10 @@ public class Organiser
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
             cmd.CommandText = "edit_organizer";
-            cmd.Parameters.Add(Id);
-            cmd.Parameters.Add(Name);
-            cmd.Parameters.Add(Email);
-            cmd.Parameters.Add(Role.Id);
+            cmd.Parameters.Add("id_organizer", Id);
+            cmd.Parameters.Add("name", Name);
+            cmd.Parameters.Add("email", Email);
+            cmd.Parameters.Add("id_role", Role.Id);
             int rows = cmd.ExecuteNonQuery();
             if (rows == 0)
             {
@@ -44,8 +44,8 @@ public class Organiser
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_organizer, name, email, role_id FROM ORGANIZERS_V WHERE id_organizer = :1";
-            cmd.Parameters.Add(Id);
+            cmd.CommandText = "SELECT id_organizer, name, email, role_id FROM ORGANIZERS_V WHERE id_organizer = :id";
+            cmd.Parameters.Add("id", Id);
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {

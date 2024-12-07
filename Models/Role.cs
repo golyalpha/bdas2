@@ -21,8 +21,8 @@ public class Role
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.CommandText = "edit_role";
-            cmd.Parameters.Add(Id);
-            cmd.Parameters.Add(Name);
+            cmd.Parameters.Add("id_role", Id);
+            cmd.Parameters.Add("name", Name);
             int rows = cmd.ExecuteNonQuery();
             if (rows == 0)
             {
@@ -37,8 +37,8 @@ public class Role
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_role, name FROM ROLES_V WHERE id_role = :1";
-            cmd.Parameters.Add(Id);
+            cmd.CommandText = "SELECT id_role, name FROM ROLES_V WHERE id_role = :id";
+            cmd.Parameters.Add("id", Id);
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {
