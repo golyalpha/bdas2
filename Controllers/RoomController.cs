@@ -13,7 +13,7 @@ public class RoomController : Controller
     // Index: Zobrazí seznam místností
     public IActionResult Index()
     {
-        var rooms = Room.ListRooms(); // Získání seznamu místností
+        var rooms = WebApp.Models.Room.ListRooms(); // Získání seznamu místností
         return View(rooms);
     }
 

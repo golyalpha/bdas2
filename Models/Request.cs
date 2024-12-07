@@ -23,6 +23,7 @@ public class Request
 
     [Required]
     public Organiser Organiser { get; set; }
+
     public void Persist()
     {
         using (OracleConnection conn = DBManager.GetConnection())
@@ -121,7 +122,7 @@ public class Request
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_organizer, id_location, id_room_request, min_capacity, reservation_start, reservation_length, reservation_end, 'type', vc_ready, podium_size FROM ROOM_REQUESTS_V";
+            cmd.CommandText = "SELECT * FROM ROOM_REQUESTS_V";
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {
@@ -136,8 +137,8 @@ public class Request
                             Id = reader.GetInt32(2),
                             MinimumCapacity = reader.GetInt32(3),
                             Start = reader.GetDateTime(4),
-                            Length = reader.GetTimeSpan(5),
-                            End = reader.GetDateTime(6),
+                            End = reader.GetDateTime(5),
+                            Length = reader.GetTimeSpan(6),
                             Type = reader.GetString(7),
                             PodiumSize = reader.GetInt32(9),
                             Location = Location.GetLocation(reader.GetInt32(1)),
@@ -151,8 +152,8 @@ public class Request
                             Id = reader.GetInt32(2),
                             MinimumCapacity = reader.GetInt32(3),
                             Start = reader.GetDateTime(4),
-                            Length = reader.GetTimeSpan(5),
-                            End = reader.GetDateTime(6),
+                            End = reader.GetDateTime(5),
+                            Length = reader.GetTimeSpan(6),
                             Type = reader.GetString(7),
                             VideoCallReady = reader.GetBoolean(8),
                             Location = Location.GetLocation(reader.GetInt32(1)),
@@ -163,7 +164,7 @@ public class Request
                     {
                         continue;
                     }
-                    list.Add(request);
+                    list.Add(request);                
                 }
             }
         }

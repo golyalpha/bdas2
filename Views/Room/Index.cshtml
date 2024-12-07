@@ -5,8 +5,9 @@
 }
 
 <div class="container mt-5">
-    <h2>Rooms List</h2>
-    <a href="/Room/Create" class="btn btn-primary mb-3">Add New Room</a>
+    <h2>@ViewData["Title"]</h2>
+    <a asp-controller="Room" asp-action="Create" class="btn btn-primary">Add New Room</a>
+
     <table class="table table-striped">
         <thead>
             <tr>

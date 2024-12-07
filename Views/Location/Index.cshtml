@@ -3,7 +3,10 @@
 }
 
 <div class="container mt-4">
-    <h2 class="text-center mb-4">Locations</h2>
+    <h2>@ViewData["Title"]</h2>
+
+    <a asp-controller="Location" asp-action="Create" class="btn btn-primary">Add new Location</a>
+    
     <table class="table table-dark table-striped">
         <thead>
             <tr>

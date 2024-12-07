@@ -147,8 +147,8 @@ public class Location
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT ID_LOCATION, name, availabilityStart, availabilityEnd FROM LOCATIONS_V WHERE ID_LOCATION = :1";
-            cmd.Parameters.Add(Id);
+            cmd.Parameters.Add(new OracleParameter(":1", OracleDbType.Int32) { Value = Id });
+            cmd.CommandText = "SELECT ID_LOCATION, name, availability_start, availability_end FROM LOCATIONS_V WHERE ID_LOCATION = :1";
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {
@@ -179,7 +179,7 @@ public class Location
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT ID_LOCATION, name, availability_start, availability_end FROM LOCATIONS_V ";
+            cmd.CommandText = "SELECT ID_LOCATION, name, availability_start, availability_end FROM LOCATIONS_V";
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {

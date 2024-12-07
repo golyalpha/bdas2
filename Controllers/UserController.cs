@@ -14,7 +14,8 @@ public class UserController : Controller
 
     public IActionResult Index()
     {
-        return View();
+        var users = WebApp.Models.Organiser.ListOrganisers();
+        return View(users);
     }
 
     [HttpGet]
