@@ -1,26 +1,52 @@
-﻿@model WebApp.Models.Location
+﻿@model WebApp.Models.LocationViewModel
 
 @{
-    ViewData["Title"] = "Create Location";
+    ViewData["Title"] = "Location Details";
 }
 
 <div class="container mt-5">
-    <h2>Create Location</h2>
-    <form id="createLocationForm" method="post" action="/Location/Create">
+    <h2>Location Details</h2>
+    @using (Html.BeginForm("Create", "Location", FormMethod.Post, new { role = "form" }))
+    {
+        @Html.AntiForgeryToken()
         <div class="form-group">
-            <label for="name">Name</label>
-            <input type="text" id="name" name="Name" class="form-control" required />
+            @Html.LabelFor(m => m.Location.Name)
+            <div>
+                @Html.TextBoxFor(m => m.Location.Name)
+                @Html.ValidationMessageFor(m => m.Location.Name, "", new { @class = "text-danger" })
+            </div>
         </div>
         <div class="form-group">
-            <label for="availabilityStart">Availability Start</label>
-            <input type="time" id="availabilityStart" name="AvailabilityStart" class="form-control" required />
+            @Html.LabelFor(m => m.Location.AvailabilityStart)
+            <div>
+                @Html.TextBoxFor(m => m.Location.AvailabilityStart)
+                @Html.ValidationMessageFor(m => m.Location.AvailabilityStart, "", new { @class = "text-danger" })
+            </div>
         </div>
         <div class="form-group">
-            <label for="availabilityEnd">Availability End</label>
-            <input type="time" id="availabilityEnd" name="AvailabilityEnd" class="form-control" required />
+            @Html.LabelFor(m => m.Location.AvailabilityEnd)
+            <div>
+                @Html.TextBoxFor(m => m.Location.AvailabilityEnd)
+                @Html.ValidationMessageFor(m => m.Location.AvailabilityEnd, "", new { @class = "text-danger" })
+            </div>
         </div>
-        <button type="submit" class="btn btn-primary">Save</button>
-    </form>
+        <div class="form-group">
+            @Html.LabelFor(m => m.Location.City)
+            <div>
+                <select id="@Html.IdFor(m => m.Location.City)" name="@Html.NameFor(m => m.Location.City)">
+                    @foreach (var city in Model.Cities)
+                    {
+                        <option value="@city.Id">@city.Name, @city.Country.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <div>
+                <input type="submit" value="Submit" />
+            </div>
+        </div>
+    }
     <div>
         <a href="/Location/Index" class="btn btn-link">Back to List</a>
     </div>

@@ -12,7 +12,11 @@ public class LocationController : Controller
 
     public IActionResult Index()
     {
-        var locations  = WebApp.Models.Location.ListLocations(); // Získání seznamu žádostí pro zobrazení v indexu
+        var locations = WebApp.Models.Location.ListLocations(); // Získání seznamu žádostí pro zobrazení v indexu
+        foreach (var item in locations)
+        {
+            System.Console.Out.WriteLine(item);
+        }
         return View(locations);
     }
 
@@ -20,19 +24,21 @@ public class LocationController : Controller
     [HttpGet]
     public IActionResult Create()
     {
-        return View();
+        return View(new LocationViewModel());
     }
 
     // POST: Location/Create
     [HttpPost]
-    public IActionResult Create(Location location)
+    public IActionResult Create(LocationViewModel locationViewModel)
     {
         if (ModelState.IsValid)
         {
+            locationViewModel.Location.City = City.GetCity(locationViewModel.CityId);
+            locationViewModel.Location.Persist();
             _logger.LogInformation("New location created successfully.");
             return RedirectToAction("Index");
         }
-        return View(location);
+        return View(locationViewModel);
     }
 
     // GET: Location/Edit/5

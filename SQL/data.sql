@@ -14,9 +14,9 @@ INSERT INTO roles (id_role, name) VALUES (2, 'User');
 INSERT INTO roles (id_role, name) VALUES (3, 'Guest');
 
 -- Organizers
-INSERT INTO organizers (id_organizer, name, email, id_role) VALUES (1, 'John Doe', 'john.doe@example.com', 1, 1);
+INSERT INTO organizers (id_organizer, name, email, id_role) VALUES (1, 'John Doe', 'john.doe@example.com', 1);
 INSERT INTO organizers (id_organizer, name, email, id_role, id_organizer_substitute) VALUES (2, 'Jane Smith', 'jane.smith@example.com', 2, 1);
-INSERT INTO organizers (id_organizer, name, email, id_role, id_organizer_substitute) VALUES (3, 'Peter Parker', 'peter.parker@example.com', 3, 2);
+INSERT INTO organizers (id_organizer, name, email, id_role, id_organizer_substitute) VALUES (3, 'Peter Parker', 'peter.parker@example.com', 3, 1);
 
 
 -- Locations
@@ -81,3 +81,5 @@ INSERT INTO images (id_image, data, id_organizer, id_location, id_room)
 VALUES (2, EMPTY_BLOB(), 2, 2, 2);
 INSERT INTO images (id_image, data, id_organizer, id_location, id_room) 
 VALUES (3, EMPTY_BLOB(), 3, 3, 3);
+
+COMMIT;

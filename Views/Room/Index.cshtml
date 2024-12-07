@@ -5,8 +5,12 @@
 }
 
 <div class="container mt-5">
-    <h2>Rooms List</h2>
-    <a href="/Room/Create" class="btn btn-primary mb-3">Add New Room</a>
+    <h2 class="text-center mb-4">Rooms</h2>
+
+    <p>
+        <a asp-controller="Room" asp-action="Create" class="btn btn-primary">Create New Room</a>
+    </p>
+
     <table class="table table-striped">
         <thead>
             <tr>
