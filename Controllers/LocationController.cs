@@ -12,31 +12,62 @@ public class LocationController : Controller
 
     public IActionResult Index()
     {
-        var locations = new List<Location>
-            {
-                new Location 
-                {
-                    Id = 1,
-                    Name = "Building 1",
-                    AvailabilityStart = TimeOnly.FromDateTime(DateTime.Now.AddHours(-1)),
-                    AvailabilityEnd = TimeOnly.FromDateTime(DateTime.Now),
-                },
-                new Location 
-                {
-                    Id = 2,
-                    Name = "Building 2",
-                    AvailabilityStart = TimeOnly.FromDateTime(DateTime.Now.AddHours(-2)),
-                    AvailabilityEnd = TimeOnly.FromDateTime(DateTime.Now.AddHours(-1)),
-                },
-                new Location 
-                {
-                    Id = 3,
-                    Name = "Building 3",
-                    AvailabilityStart = TimeOnly.FromDateTime(DateTime.Now.AddHours(-3)),
-                    AvailabilityEnd = TimeOnly.FromDateTime(DateTime.Now.AddHours(-2)),
-                }
-            };
+        var locations = WebApp.Models.Location.ListLocations();
+        return View(locations);
+    }
 
-            return View(locations);
+    // GET: Location/Create
+    [HttpGet]
+    public IActionResult Create()
+    {
+        return View(new LocationViewModel());
+    }
+
+    // POST: Location/Create
+    [HttpPost]
+    public IActionResult Create(LocationViewModel locationViewModel)
+    {
+        if (ModelState.IsValid)
+        {
+            System.Console.Out.WriteLine(locationViewModel.CityId);
+            locationViewModel.Location.City = City.GetCity(locationViewModel.CityId);
+            locationViewModel.Location.Persist();
+            _logger.LogInformation("New location created successfully.");
+            return RedirectToAction("Index");
+        }
+        return View(locationViewModel);
+    }
+
+    // GET: Location/Edit/5
+    [HttpGet]
+    public IActionResult Edit(int id)
+    {
+        var location = Location.GetLocation(id); // Získání konkrétní lokace podle ID
+        if (location == null)
+        {
+            return NotFound();
+        }
+        return View(location); // Zobrazí formuláø Edit.cshtml s pøedvyplnìnými hodnotami
+    }
+
+    // POST: Location/Update
+    [HttpPost]
+    public IActionResult Update(Location updatedLocation)
+    {
+        if (ModelState.IsValid)
+        {
+            var existingLocation = Location.GetLocation(updatedLocation.Id);
+            if (existingLocation != null)
+            {
+                // Aktualizace dat existující lokace
+                existingLocation.Name = updatedLocation.Name;
+                existingLocation.AvailabilityStart = updatedLocation.AvailabilityStart;
+                existingLocation.AvailabilityEnd = updatedLocation.AvailabilityEnd;
+
+                _logger.LogInformation("Location updated successfully.");
+                return RedirectToAction("Index");
+            }
+        }
+        return View("Edit", updatedLocation); // V pøípadì chyby se vrátí na editovací stránku
     }
 }

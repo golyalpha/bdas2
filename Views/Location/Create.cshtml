@@ -1,0 +1,59 @@
+﻿@model WebApp.Models.LocationViewModel
+
+@{
+    ViewData["Title"] = "Location Details";
+}
+
+<div class="container mt-5">
+    <h2>Location Details</h2>
+    @using (Html.BeginForm("Create", "Location", FormMethod.Post, new { role = "form" }))
+    {
+        @Html.AntiForgeryToken()
+        <div class="form-group">
+            @Html.LabelFor(m => m.Location.Name)
+            <div>
+                @Html.TextBoxFor(m => m.Location.Name)
+                @Html.ValidationMessageFor(m => m.Location.Name, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.LabelFor(m => m.Location.AvailabilityStart)
+            <div>
+                <input type="time"
+                       name="@Html.NameFor(m => m.Location.AvailabilityStart)"
+                       value="@Html.ValueFor(m => m.Location.AvailabilityStart)"
+                       id="@Html.IdFor(m => m.Location.AvailabilityStart)"/>
+                @Html.ValidationMessageFor(m => m.Location.AvailabilityStart, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.LabelFor(m => m.Location.AvailabilityEnd)
+            <div>
+                <input type="time"
+                       name="@Html.NameFor(m => m.Location.AvailabilityEnd)"
+                       value="@Html.ValueFor(m => m.Location.AvailabilityEnd)"
+                       id="@Html.IdFor(m => m.Location.AvailabilityEnd)" />
+                @Html.ValidationMessageFor(m => m.Location.AvailabilityEnd, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.LabelFor(m => m.CityId)
+            <div>
+                <select id="@Html.IdFor(m => m.CityId)" name="@Html.NameFor(m => m.CityId)">
+                    @foreach (var city in Model.Cities)
+                    {
+                        <option value="@city.Id.ToString()">@city.Name, @city.Country.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <div>
+                <input type="submit" value="Submit" />
+            </div>
+        </div>
+    }
+    <div>
+        <a href="/Location/Index" class="btn btn-link">Back to List</a>
+    </div>
+</div>
