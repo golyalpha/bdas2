@@ -225,7 +225,7 @@ ALTER TABLE presentation_rrequests ADD CONSTRAINT presentation_rrequest_pk PRIMA
 CREATE TABLE reservations (
     id_reservation  NUMBER NOT NULL,
     "start"         DATE NOT NULL,
-    end             DATE NOT NULL,
+    "end"             DATE NOT NULL,
     id_room         NUMBER NOT NULL,
     id_room_request NUMBER NOT NULL,
     id_organizer    NUMBER NOT NULL
@@ -467,14 +467,14 @@ CREATE OR REPLACE VIEW ORGANIZERS_V ( ID_ORGANIZER
 
 CREATE OR REPLACE VIEW RESERVATIONS_V ( ID_RESERVATION
    , "start"
-   , end
+   , "end"
    , ID_ROOM
    , ID_ROOM_REQUEST
    , ID_ORGANIZER )
  AS SELECT
     ID_RESERVATION
    , "start"
-   , end
+   , "end"
    , ID_ROOM
    , ID_ROOM_REQUEST
    , ID_ORGANIZER

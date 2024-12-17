@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 
 using Oracle.ManagedDataAccess.Client;
@@ -16,7 +17,7 @@ public class Request
     [Required(ErrorMessage = "End Time is required")]
     [Display(Name = "End Time")]
     public DateTime End { get; set; }
-    public TimeSpan Length { get; set; }
+    public DateTime Length { get; set; }
     public int MinimumCapacity { get; set; }
     public String Type { get; set; }
     public Location Location { get; set; }
@@ -58,7 +59,7 @@ public class Request
         }
     }
 
-    public static Request GetRequest(int Id)
+    public static object GetRequest(int Id)
     {
         using (OracleConnection conn = DBManager.GetConnection())
         {
@@ -69,19 +70,20 @@ public class Request
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {
-                Request? request = null;
+                object? request = null;
+
                 if (!reader.Read())
                 {
                     throw new KeyNotFoundException();
                 }
-                if (reader.GetString(5) == "PRESENTATION_RREQUEST")
+                if (reader.GetString(7) == "PRESENTATION_RREQUEST")
                 {
                     request = new PresentationRequest
                     {
                         Id = reader.GetInt32(2),
                         MinimumCapacity = reader.GetInt32(3),
                         Start = reader.GetDateTime(4),
-                        Length = reader.GetTimeSpan(5),
+                        Length = reader.GetDateTime(5),
                         End = reader.GetDateTime(6),
                         Type = reader.GetString(7),
                         PodiumSize = reader.GetInt32(9),
@@ -89,14 +91,14 @@ public class Request
                         Organiser = Organiser.GetOrganiser(reader.GetInt32(0))
                     };
                 }
-                if (reader.GetString(5) == "MEETING_RREQUEST")
+                if (reader.GetString(7) == "MEETING_RREQUEST")
                 {
                     request = new MeetingRequest
                     {
                         Id = reader.GetInt32(2),
                         MinimumCapacity = reader.GetInt32(3),
                         Start = reader.GetDateTime(4),
-                        Length = reader.GetTimeSpan(5),
+                        Length = reader.GetDateTime(5),
                         End = reader.GetDateTime(6),
                         Type = reader.GetString(7),
                         VideoCallReady = reader.GetBoolean(8),
@@ -129,8 +131,9 @@ public class Request
                 while (reader.Read())
                 {
                     Request? request = null;
-                    reader.Read();
-                    if (reader.GetString(5) == "PRESENTATION_RREQUEST")
+
+                    // Pøekontrolujeme typ požadavku
+                    if (reader.GetString(7) == "PRESENTATION_RREQUEST")
                     {
                         request = new PresentationRequest
                         {
@@ -138,14 +141,14 @@ public class Request
                             MinimumCapacity = reader.GetInt32(3),
                             Start = reader.GetDateTime(4),
                             End = reader.GetDateTime(5),
-                            Length = reader.GetTimeSpan(6),
+                            Length = reader.GetDateTime(6), // Convert INTERVAL to TimeSpan
                             Type = reader.GetString(7),
                             PodiumSize = reader.GetInt32(9),
                             Location = Location.GetLocation(reader.GetInt32(1)),
                             Organiser = Organiser.GetOrganiser(reader.GetInt32(0))
                         };
                     }
-                    if (reader.GetString(5) == "MEETING_RREQUEST")
+                    if (reader.GetString(7) == "MEETING_RREQUEST")
                     {
                         request = new MeetingRequest
                         {
@@ -153,21 +156,37 @@ public class Request
                             MinimumCapacity = reader.GetInt32(3),
                             Start = reader.GetDateTime(4),
                             End = reader.GetDateTime(5),
-                            Length = reader.GetTimeSpan(6),
+                            Length = reader.GetDateTime(6), // Convert INTERVAL to TimeSpan
                             Type = reader.GetString(7),
-                            VideoCallReady = reader.GetBoolean(8),
+                            VideoCallReady = reader.GetString(8) == "Y", // Convert CHAR(1) to Boolean
                             Location = Location.GetLocation(reader.GetInt32(1)),
                             Organiser = Organiser.GetOrganiser(reader.GetInt32(0))
                         };
                     }
-                    if (request == null)
+                    if (request != null)
                     {
-                        continue;
+                        list.Add(request);
                     }
-                    list.Add(request);                
                 }
             }
         }
         return list;
     }
+
+    private static TimeSpan ParseOracleInterval(string intervalString)
+        {
+            // Pøíklad oèekávaného formátu: +000 03:12:00 (dny, hodiny:minuty:sekundy)
+            if (string.IsNullOrEmpty(intervalString))
+                return TimeSpan.Zero;
+
+            var parts = intervalString.Split(' ');
+            int days = int.Parse(parts[0]); // Dny
+            var timeParts = parts[1].Split(':');
+            int hours = int.Parse(timeParts[0]);
+            int minutes = int.Parse(timeParts[1]);
+            int seconds = int.Parse(timeParts[2]);
+
+            return new TimeSpan(days, hours, minutes, seconds);
+        }
+
 }

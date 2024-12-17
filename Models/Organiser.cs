@@ -44,7 +44,7 @@ public class Organiser
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_organizer, name, email, role_id FROM ORGANIZERS_V WHERE id_organizer = :id";
+            cmd.CommandText = "SELECT id_organizer, name, email, id_role FROM ORGANIZERS_V WHERE id_organizer = :id";
             cmd.Parameters.Add("id", Id);
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
@@ -74,7 +74,7 @@ public class Organiser
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_organizer, name, email FROM ORGANIZERS_V";
+            cmd.CommandText = "SELECT id_organizer, name, email, id_role FROM ORGANIZERS_V";
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {
@@ -84,8 +84,8 @@ public class Organiser
                     {
                         Id = reader.GetInt32(0),
                         Name = reader.GetString(1),
-                        Email = reader.GetString(2)
-                        //Role = Role.GetRole(reader.GetInt32(3))
+                        Email = reader.GetString(2),
+                        Role = Role.GetRole(reader.GetInt32(3))
                     });
                 }
             }

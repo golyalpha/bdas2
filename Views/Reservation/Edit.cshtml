@@ -9,13 +9,11 @@
     <form id="editReservationForm" method="post" action="/Reservation/Update">
         <div class="form-group">
             <label for="start">Start Time</label>
-            <input type="datetime-local" id="start" name="Start" class="form-control" required
-                   value="@(Model.Start.ToString("yyyy-MM-ddTHH:mm"))" />
+            <input type="datetime-local" id="start" name="Start" class="form-control" required value="@(Model.Start.ToString("yyyy-MM-ddTHH:mm"))" />
         </div>
         <div class="form-group">
             <label for="end">End Time</label>
-            <input type="datetime-local" id="end" name="End" class="form-control" required
-                   value="@(Model.End.ToString("yyyy-MM-ddTHH:mm"))" />
+            <input type="datetime-local" id="end" name="End" class="form-control" required value="@(Model.End.ToString("yyyy-MM-ddTHH:mm"))" />
         </div>
         <div class="form-group">
             <label for="room">Room</label>

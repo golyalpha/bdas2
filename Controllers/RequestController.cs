@@ -54,7 +54,7 @@ public class RequestController : Controller
     {
         if (ModelState.IsValid)
         {
-            var existingRequest = WebApp.Models.Request.GetRequest(updatedRequest.Id);
+            var existingRequest = (Request)WebApp.Models.Request.GetRequest(updatedRequest.Id);
             if (existingRequest != null)
             {
                 // Aktualizace dat existující žádosti

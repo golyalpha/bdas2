@@ -93,20 +93,20 @@ public class Room
         }
     }
 
-    public static List<Room> ListRooms()
+    public static List<object> ListRooms()
     {
-        List<Room> list = new List<Room>();
+        List<object> list = new List<object>();
         using (OracleConnection conn = DBManager.GetConnection())
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_room, id_location, name, capacity, 'type', vc_ready, podium_size FROM ROOMS_V"; 
+            cmd.CommandText = "SELECT id_room, id_location, name, capacity, type, vc_ready, podium_size FROM ROOMS_V"; 
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {
                 while (reader.Read())
                 {
-                    Room? room = null;
+                    object? room = null;
                     reader.Read();
                     if (reader.GetString(4) == "PRESENTATION_ROOM")
                     {
@@ -134,7 +134,7 @@ public class Room
                     }
                     if (room == null)
                     {
-                        continue;
+                        throw new InvalidDataException();
                     }
                     list.Add(room);
                 }

@@ -14,8 +14,10 @@
             <tr>
                 <th>Start Time</th>
                 <th>End Time</th>
+                <th>Length</th>
                 <th>Organizer</th>
                 <th>Type</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -24,6 +26,7 @@
                 <tr>
                     <td>@request.Start.ToString("yyyy-MM-dd HH:mm")</td>
                     <td>@request.End.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@request.Length.ToString("H:mm")</td>
                     <td>@request.Organiser.Name</td>
                     <td>@request.Type</td>
                     <td>

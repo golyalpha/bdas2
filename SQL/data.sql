@@ -55,9 +55,9 @@ INSERT INTO presentation_rrequests (id_room_request, podium_size) VALUES (2, 10)
 
 
 -- Reservations
-INSERT INTO reservations (id_reservation, "start", end, id_room, id_room_request, id_organizer) 
+INSERT INTO reservations (id_reservation, "start", "end", id_room, id_room_request, id_organizer) 
 VALUES (1, TO_DATE('2024-12-09 10:00', 'YYYY-MM-DD HH24:MI'), TO_DATE('2024-12-09 12:00', 'YYYY-MM-DD HH24:MI'), 1, 1, 1);
-INSERT INTO reservations (id_reservation, "start", end, id_room, id_room_request, id_organizer) 
+INSERT INTO reservations (id_reservation, "start", "end", id_room, id_room_request, id_organizer) 
 VALUES (2, TO_DATE('2024-12-10 13:00', 'YYYY-MM-DD HH24:MI'), TO_DATE('2024-12-10 15:00', 'YYYY-MM-DD HH24:MI'), 2, 2, 2);
 
 -- Notifications

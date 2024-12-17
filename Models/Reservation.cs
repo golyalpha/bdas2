@@ -30,30 +30,30 @@ public class Reservation
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_reservation, start, end, id_room, id_room_request, id_organizer FROM RESERVATIONS_V WHERE id_reservation = :id";
+            cmd.CommandText = "SELECT id_reservation, \"start\", \"end\", id_room, id_room_request, id_organizer FROM RESERVATIONS_V WHERE id_reservation = :id";
             cmd.Parameters.Add("id", Id);
             cmd.CommandType = System.Data.CommandType.Text;
+
             using (OracleDataReader reader = cmd.ExecuteReader())
             {
                 if (!reader.Read())
                 {
                     throw new KeyNotFoundException();
                 }
-                Reservation org = new Reservation
+                Reservation reservation = new Reservation
                 {
                     Id = reader.GetInt32(0),
                     Start = reader.GetDateTime(1),
                     End = reader.GetDateTime(2),
-                    Room = Room.GetRoom(reader.GetInt32(4)),
-                    Request = Request.GetRequest(reader.GetInt32(5)),
-                    Organiser = Organiser.GetOrganiser(reader.GetInt32(6))
+                    Room = Room.GetRoom(reader.GetInt32(3)),
+                    Request = (Request)Request.GetRequest(reader.GetInt32(4)),
+                    Organiser = Organiser.GetOrganiser(reader.GetInt32(5))
                 };
-                reader.Close();
-                conn.Close();
-                return org;
+                return reservation;
             }
         }
     }
+
 
     public static List<Reservation> ListReservations()
     {
@@ -74,7 +74,7 @@ public class Reservation
                         Start = reader.GetDateTime(1),
                         End = reader.GetDateTime(2),
                         Room = Room.GetRoom(reader.GetInt32(3)),
-                        Request = Request.GetRequest(reader.GetInt32(4)),
+                        Request = (Request)Request.GetRequest(reader.GetInt32(4)),
                         Organiser = Organiser.GetOrganiser(reader.GetInt32(5))
                     });
                 }

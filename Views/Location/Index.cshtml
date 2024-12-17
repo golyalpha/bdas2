@@ -1,3 +1,6 @@
+@model IEnumerable<WebApp.Models.Location>
+
+
 @{
     ViewData["Title"] = "Locations";
 }
@@ -15,6 +18,7 @@
                 <th>Availability End</th>
                 <th>City</th>
                 <th>Country</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -26,6 +30,9 @@
                     <td>@location.AvailabilityEnd.ToString("HH:mm")</td>
                     <td>@location.City.Name</td>
                     <td>@location.City.Country.Name</td>
+                    <td>
+                        <a href="/Location/Edit?id=@location.Id" class="btn btn-warning">Edit</a>
+                    </td>
                 </tr>
             }
         </tbody>
