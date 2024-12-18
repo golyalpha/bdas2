@@ -81,4 +81,43 @@ public class UserController : Controller
         return View();
     }
 
+    [AllowAnonymous]
+    [HttpPost]
+    public IActionResult Register(RegisterViewModel request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(request);
+        }
+
+        try
+        {
+            var user = Organiser.FindOrganiser(request.Email);
+            ModelState.AddModelError("Email", "Email already taken");
+            return View(request);
+        }
+        catch (KeyNotFoundException) { }
+
+        var role = Role.ListRoles().Where(r => r.Name == "Guest").First();
+        var organiser = new Organiser
+        {
+            Email = request.Email,
+            Name = request.Name,
+            Role = role
+        };
+        organiser.Persist();
+        organiser = Organiser.FindOrganiser(request.Email);  // Gotta grab the ID from DB
+        if (organiser is null || organiser.Id is null) {
+            throw new InvalidOperationException(); // This should absolutely never have a chance of happening
+        }
+        var credential = new Credential
+        {
+            CredentialType = "PASSWORD",
+            Data = request.Password,
+            IdOrganizer = (int)organiser.Id
+        };
+        credential.Persist();
+        return RedirectToAction("Login");
+    }
+
 }

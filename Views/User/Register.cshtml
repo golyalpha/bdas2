@@ -1,0 +1,41 @@
+@using WebApp.Models
+@model RegisterViewModel
+@{
+    ViewData["Title"] = "Register";
+}
+
+<div class="text-center">
+    @using (Html.BeginForm("Register", "User", FormMethod.Post, new { role = "form" }))
+    {
+        @Html.AntiForgeryToken()
+        <div class="form-group">
+            @Html.LabelFor(m => m.Name)
+            <div>
+                @Html.TextBoxFor(m => m.Name)
+                @Html.ValidationMessageFor(m => m.Name, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.LabelFor(m => m.Email)
+            <div>
+                @Html.TextBoxFor(m => m.Email)
+                @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group">
+            @Html.LabelFor(m => m.Password)
+            <div>
+                @Html.PasswordFor(m => m.Password)
+                @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
+            </div>
+        </div>
+        <div class="form-group">
+            <div>
+                <input type="submit" value="Register" />
+            </div>
+        </div>
+        <p>
+            @Html.ActionLink("Already have an account?", "Log In")
+        </p>
+    }
+</div>
