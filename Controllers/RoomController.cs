@@ -13,7 +13,7 @@ public class RoomController : Controller
     // Index: Zobrazí seznam místností
     public IActionResult Index()
     {
-        var objects = WebApp.Models.Room.ListRooms(); // Získání seznamu místností
+        var objects = WebApp.Models.Room.ListRooms();
         var rooms = new List<Room>();
         foreach (var obj in objects)
         {
@@ -29,17 +29,53 @@ public class RoomController : Controller
         return View(); // Zobrazí formuláø Create.cshtml
     }
 
-    // POST: Room/Create
     [HttpPost]
-    public IActionResult Create(Room room)
+    public IActionResult Create(IFormCollection form)
     {
-        if (ModelState.IsValid)
+        try
         {
-            // Logika pro pøidání nové místnosti
-            _logger.LogInformation("New room created successfully.");
+            // Naèti spoleèné atributy
+            string name = form["Name"];
+            int capacity = int.Parse(form["Capacity"]);
+            string type = form["Type"];
+            int locationId = int.Parse(form["Location.Id"]);
+            int organiserId = int.Parse(form["Organiser.Id"]);
+
+            if (type == "MEETING_ROOM")
+            {
+                string vcReady = form["VideoCallReady"];
+                var meetingRoom = new MeetingRoom
+                {
+                    Name = name,
+                    Capacity = capacity,
+                    Type = type,
+                    Location = new Location { Id = locationId },
+                    Organiser = new Organiser { Id = organiserId },
+                    VideoCallReady = (vcReady == "Y")
+                };
+                meetingRoom.Create();
+            }
+            else if (type == "PRESENTATION_ROOM")
+            {
+                int podiumSize = int.TryParse(form["PodiumSize"], out var size) ? size : 0;
+                var presentationRoom = new PresentationRoom
+                {
+                    Name = name,
+                    Capacity = capacity,
+                    Type = type,
+                    Location = new Location { Id = locationId },
+                    Organiser = new Organiser { Id = organiserId },
+                    PodiumSize = podiumSize
+                };
+                presentationRoom.Create();
+            }
             return RedirectToAction("Index");
         }
-        return View(room);
+        catch (Exception ex)
+        {
+            ModelState.AddModelError("", $"Error: {ex.Message}");
+            return View();
+        }
     }
 
     // GET: Room/Edit/5

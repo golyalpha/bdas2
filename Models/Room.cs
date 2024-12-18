@@ -1,15 +1,28 @@
+using Microsoft.AspNetCore.Mvc;
 using Oracle.ManagedDataAccess.Client;
+using System.ComponentModel.DataAnnotations;
 using WebApp.Util;
-
 namespace WebApp.Models;
 
 public class Room
 {
     public int Id { get; set; }
-    public required string Name { get; set; }
-    public required int Capacity { get; set; }
-    public required string Type { get; set; }
-    public required Location Location { get; set; }
+
+    [Required]
+    public string Name { get; set; }
+    
+    [Required]
+    public int Capacity { get; set; }
+    [Required]
+    public string Type { get; set; }
+    
+    [Required]
+    
+    public Location Location { get; set; }
+    [Required]
+    public Organiser Organiser { get; set; }
+
+
 
     public void Persist()
     {
@@ -41,14 +54,13 @@ public class Room
             }
         }
     }
-
     public static Room GetRoom(int Id)
     {
         using (OracleConnection conn = DBManager.GetConnection())
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_room, id_location, name, capacity, type, vc_ready, podium_size FROM ROOMS_V WHERE id_room = :id";
+            cmd.CommandText = "SELECT id_room, id_location, name, capacity, type, vc_ready, podium_size, id_organizer FROM ROOMS_V WHERE id_room = :id";
             cmd.Parameters.Add("id", Id);
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
@@ -66,8 +78,9 @@ public class Room
                         Name = reader.GetString(2),
                         Capacity = reader.GetInt32(3),
                         Type = reader.GetString(4),
-                        PodiumSize = reader.GetBoolean(6),
+                        PodiumSize = reader.GetInt32(6),
                         Location = Location.GetLocation(reader.GetInt32(0)),
+                        Organiser = Organiser.GetOrganiser(reader.GetInt32(7))
                     };
                 }
                 if (reader.GetString(4) == "MEETING_ROOM")
@@ -80,6 +93,7 @@ public class Room
                         Type = reader.GetString(4),
                         VideoCallReady = reader.GetBoolean(5),
                         Location = Location.GetLocation(reader.GetInt32(0)),
+                        Organiser = Organiser.GetOrganiser(reader.GetInt32(7))
                     };
                 }
                 if (room == null)
@@ -100,36 +114,38 @@ public class Room
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_room, id_location, name, capacity, type, vc_ready, podium_size FROM ROOMS_V"; 
+            cmd.CommandText = "SELECT id_room, id_location, name, capacity, type, vc_ready, podium_size, id_organizer FROM ROOMS_V"; 
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {
                 while (reader.Read())
                 {
                     object? room = null;
-                    reader.Read();
+                    //reader.Read();
                     if (reader.GetString(4) == "PRESENTATION_ROOM")
                     {
                         room = new PresentationRoom
                         {
-                            Id = reader.GetInt32(1),
+                            Id = reader.GetInt32(0),
                             Name = reader.GetString(2),
                             Capacity = reader.GetInt32(3),
                             Type = reader.GetString(4),
-                            PodiumSize = reader.GetBoolean(6),
-                            Location = Location.GetLocation(reader.GetInt32(0)),
+                            PodiumSize = reader.GetInt32(6),
+                            Location = Location.GetLocation(reader.GetInt32(1)),
+                            Organiser = Organiser.GetOrganiser(reader.GetInt32(7))
                         };
                     }
                     if (reader.GetString(4) == "MEETING_ROOM")
                     {
                         room = new MeetingRoom
                         {
-                            Id = reader.GetInt32(1),
+                            Id = reader.GetInt32(0),
                             Name = reader.GetString(2),
                             Capacity = reader.GetInt32(3),
                             Type = reader.GetString(4),
                             VideoCallReady = reader.GetBoolean(5),
-                            Location = Location.GetLocation(reader.GetInt32(0)),
+                            Location = Location.GetLocation(reader.GetInt32(1)),
+                            Organiser = Organiser.GetOrganiser(reader.GetInt32(7))
                         };
                     }
                     if (room == null)
@@ -141,5 +157,46 @@ public class Room
             }
         }
         return list;
+    }
+
+    public void Create()
+    {
+        throw new Exception("Not implemented");
+    }
+
+
+    public void Update()
+    {
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            OracleCommand cmd = conn.CreateCommand();
+            cmd.CommandType = System.Data.CommandType.StoredProcedure;
+            cmd.CommandText = "reservations_pkg.update_room";
+
+            cmd.Parameters.Add("p_id_room", Id);    
+            cmd.Parameters.Add("p_name", Name);
+            cmd.Parameters.Add("p_capacity", Capacity);
+            cmd.Parameters.Add("p_type", Type);
+            cmd.Parameters.Add("p_id_location", Location.Id);
+            cmd.Parameters.Add("p_id_organizer", Organiser.Id);
+
+
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    public static void Delete(int roomId)
+    {
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            OracleCommand cmd = conn.CreateCommand();
+            cmd.CommandType = System.Data.CommandType.StoredProcedure;
+            cmd.CommandText = "reservations_pkg.delete_room";
+            cmd.Parameters.Add("p_id_room", roomId);
+
+            cmd.ExecuteNonQuery();
+        }
     }
 }

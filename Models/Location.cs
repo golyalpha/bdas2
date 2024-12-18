@@ -7,14 +7,18 @@ namespace WebApp.Models;
 public class Location
 {
     public int Id { get; set; }
+    
+    
     [Required]
-    public required string Name { get; set; }
+    public string Name { get; set; }
+   
     [Required]
     [Display(Name = "Availability Start")]
-    public required TimeOnly AvailabilityStart  { get; set; }
+    public TimeOnly AvailabilityStart  { get; set; }
+   
     [Required]
     [Display(Name = "Availability End")]
-    public required TimeOnly AvailabilityEnd { get; set; }
+    public TimeOnly AvailabilityEnd { get; set; }
     public City? City { get; set; }
 
     public void Persist()
@@ -46,7 +50,7 @@ public class Location
     {
         using (OracleConnection conn = DBManager.GetConnection())
         {
-            conn.Open();
+            conn.Open();    
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandText = "SELECT ID_LOCATION, name, availability_start, availability_end, id_city FROM LOCATIONS_V WHERE ID_LOCATION = :id";
             cmd.Parameters.Add("id", Id);

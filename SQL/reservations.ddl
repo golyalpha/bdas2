@@ -273,7 +273,7 @@ CREATE TABLE rooms (
 ALTER TABLE rooms
     ADD CONSTRAINT ch_inh_room CHECK ( type IN ( 'MEETING_ROOM', 'PRESENTATION_ROOM', 'ROOM' ) );
 
-ALTER TABLE rooms ADD CONSTRAINT room_pk PRIMARY KEY ( id_room );
+ALTER TABLE rooms ADD CONSTRAINT room_pk PRIMARY KEY ( id_room ) ;
 
 ALTER TABLE rooms ADD CONSTRAINT rooms_name_un UNIQUE ( name );
 
@@ -287,7 +287,7 @@ ALTER TABLE credentials
 
 ALTER TABLE images
     ADD CONSTRAINT images_location_fk FOREIGN KEY ( id_location )
-        REFERENCES locations ( id_location );
+        REFERENCES locations ( id_location ) ON DELETE CASCADE;
 
 ALTER TABLE images
     ADD CONSTRAINT images_organizers_fk FOREIGN KEY ( id_organizer )
@@ -295,7 +295,7 @@ ALTER TABLE images
 
 ALTER TABLE images
     ADD CONSTRAINT images_room_fk FOREIGN KEY ( id_room )
-        REFERENCES rooms ( id_room );
+        REFERENCES rooms ( id_room ) ON DELETE CASCADE;
 
 ALTER TABLE locations
     ADD CONSTRAINT location_city_fk FOREIGN KEY ( id_city )
@@ -307,7 +307,7 @@ ALTER TABLE locations
 
 ALTER TABLE meeting_rooms
     ADD CONSTRAINT meeting_room_room_fk FOREIGN KEY ( id_room )
-        REFERENCES rooms ( id_room );
+        REFERENCES rooms ( id_room ) ON DELETE CASCADE;
 
 --  ERROR: FK name length exceeds maximum allowed length(30) 
 ALTER TABLE meeting_rrequests
@@ -345,7 +345,7 @@ ALTER TABLE reservations
 
 ALTER TABLE reservations
     ADD CONSTRAINT reservations_room_fk FOREIGN KEY ( id_room )
-        REFERENCES rooms ( id_room );
+        REFERENCES rooms ( id_room ) ON DELETE CASCADE;
 
 ALTER TABLE reservations
     ADD CONSTRAINT reservations_room_request_fk FOREIGN KEY ( id_room_request )
@@ -511,23 +511,36 @@ FROM
     presentation_rrequests 
 ;
 
-CREATE OR REPLACE VIEW ROOMS_V ( id_room, name, capacity, type, id_location, availability_start, availability_end, vc_ready, podium_size ) AS
+CREATE OR REPLACE VIEW ROOMS_V (
+    id_room,
+    name,
+    capacity,
+    type,
+    id_location,
+    availability_start,
+    availability_end,
+    vc_ready,
+    podium_size,
+    id_organizer
+) AS
 SELECT
-    rooms.id_room,
-    rooms.name,
-    rooms.capacity,
-    rooms.type,
-    locations.id_location,
-    locations.availability_start,
-    locations.availability_end,
-    meeting_rooms.vc_ready,
-    presentation_rooms.podium_size
+    r.id_room,
+    r.name,
+    r.capacity,
+    r.type,
+    l.id_location,
+    l.availability_start,
+    l.availability_end,
+    mr.vc_ready,
+    pr.podium_size,
+    r.id_organizer
 FROM
-         rooms
-    INNER JOIN locations ON locations.id_location = rooms.id_location,
-    meeting_rooms,
-    presentation_rooms 
+    rooms r
+    INNER JOIN locations l ON l.id_location = r.id_location
+    LEFT JOIN meeting_rooms mr ON mr.id_room = r.id_room
+    LEFT JOIN presentation_rooms pr ON pr.id_room = r.id_room
 ;
+
 
 CREATE OR REPLACE VIEW USERS_V ( ID_ORGANIZER, email, credential_type, data, name ) AS
 SELECT
