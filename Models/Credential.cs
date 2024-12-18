@@ -9,6 +9,7 @@ public class Credential
     public int Id { get; set; }
     public required string CredentialType { get; set; }
     public required string Data { get; set; }
+    public required int IdOrganizer { get; set; }
 
     public void Persist()
     {
@@ -35,7 +36,7 @@ public class Credential
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_credential, data, credential_type FROM CREDENTIALS_V WHERE id_credential = :1";
+            cmd.CommandText = "SELECT id_credential, data, credential_type, id_organizer FROM CREDENTIALS_V WHERE id_credential = :1";
             cmd.Parameters.Add(Id);
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
@@ -49,6 +50,7 @@ public class Credential
                     Id = reader.GetInt32(0),
                     Data = reader.GetString(1),
                     CredentialType = reader.GetString(2),
+                    IdOrganizer = reader.GetInt32(3)
                 };
                 reader.Close();
                 conn.Close();
@@ -63,7 +65,7 @@ public class Credential
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_credential, data, credential_type FROM CREDENTIALS_V";
+            cmd.CommandText = "SELECT id_credential, data, credential_type, id_organizer FROM CREDENTIALS_V";
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             { 
@@ -74,6 +76,7 @@ public class Credential
                         Id = reader.GetInt32(0),
                         Data = reader.GetString(1),
                         CredentialType = reader.GetString(2),
+                        IdOrganizer = reader.GetInt32(3)
                     });
                 }
             }

@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApp.Models;
 
+[Authorize]
 public class RequestController : Controller
 {
     private readonly ILogger<RequestController> _logger;

@@ -67,6 +67,35 @@ public class Organiser
         }
     }
 
+    public static Organiser FindOrganiser(string Email)
+    {
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            OracleCommand cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT id_organizer, name, email, id_role FROM ORGANIZERS_V WHERE email = :email";
+            cmd.Parameters.Add("email", Email);
+            cmd.CommandType = System.Data.CommandType.Text;
+            using (OracleDataReader reader = cmd.ExecuteReader())
+            {
+                if (!reader.Read())
+                {
+                    throw new KeyNotFoundException();
+                }
+                Organiser org = new Organiser
+                {
+                    Id = reader.GetInt32(0),
+                    Name = reader.GetString(1),
+                    Email = reader.GetString(2),
+                    Role = Role.GetRole(reader.GetInt32(3))
+                };
+                reader.Close();
+                conn.Close();
+                return org;
+            }
+        }
+    }
+
     public static List<Organiser> ListOrganisers()
     {
         List<Organiser> list = new List<Organiser>();

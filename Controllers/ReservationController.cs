@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WebApp.Models;
 
+[Authorize]
 public class ReservationController : Controller
 {
     private readonly ILogger<ReservationController> _logger;

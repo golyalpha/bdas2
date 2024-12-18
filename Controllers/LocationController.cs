@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApp.Models;
 
+[Authorize]
 public class LocationController : Controller
 {
     private readonly ILogger<LocationController> _logger;

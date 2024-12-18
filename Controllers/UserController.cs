@@ -1,8 +1,13 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using WebApp.Models;
 
 namespace WebApp.Controllers;
 
+[Authorize]
 public class UserController : Controller
 {
     private readonly ILogger<UserController> _logger;
@@ -19,19 +24,58 @@ public class UserController : Controller
     }
 
     [HttpGet]
-    public IActionResult Login() {
+    [AllowAnonymous]
+    public IActionResult Login(string ReturnUrl)
+    {
+        System.Console.WriteLine(ReturnUrl);
         return View();
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Login(LoginViewModel request) {
+    [AllowAnonymous]
+    public async Task<IActionResult> Login(LoginViewModel request) {
         if (ModelState.IsValid) {
+            Organiser user;
+            try
+            {
+                user = Organiser.FindOrganiser(request.Email);
+            }
+            catch (KeyNotFoundException)
+            {
+                ModelState.AddModelError("Email", "Invalid User");
+                return View(request);
+            }
+
+            Credential cred = Credential.ListCredentials().Where((c) => c.IdOrganizer == user.Id).Last();
+
+            if (cred.Data != request.Password)
+            {
+                ModelState.AddModelError("Password", "Invalid Password");
+                return View(request);
+            }
+
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, user.Name),
+                new Claim(ClaimTypes.Role, user.Role.Name)
+            };
+
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
             return RedirectToAction("Index");
         }
         return View(request);
     }
 
+    public async Task<IActionResult> Logout()
+    {
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return RedirectToAction("Login");
+    }
+
+
+    [AllowAnonymous]
     public IActionResult Register()
     {
         return View();
