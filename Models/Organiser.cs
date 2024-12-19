@@ -25,7 +25,7 @@ public class Organiser
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.CommandText = "edit_organizer";
+            cmd.CommandText = "reservations_pkg.edit_organizer";
             cmd.Parameters.Add("id_organizer", Id);
             cmd.Parameters.Add("name", Name);
             cmd.Parameters.Add("email", Email);

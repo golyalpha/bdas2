@@ -35,12 +35,12 @@ public class Location
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
             cmd.CommandText = "reservations_pkg.edit_location";
-            cmd.Parameters.Add("location_id", Id);
+            cmd.Parameters.Add("location_id", Id == 0 ? (object)DBNull.Value : Id);
             cmd.Parameters.Add("name", Name);
-            cmd.Parameters.Add("availability_start", AvailabilityStart);
-            cmd.Parameters.Add("availability_end", AvailabilityEnd);
+            cmd.Parameters.Add("availability_start", new DateTime(2000,1,1) + AvailabilityStart.ToTimeSpan());
+            cmd.Parameters.Add("availability_end", new DateTime(2000, 1, 1) + AvailabilityEnd.ToTimeSpan());
             cmd.Parameters.Add("id_city", City.Id);
-            cmd.Parameters.Add("id_organiser", Organiser.Id); 
+            cmd.Parameters.Add("id_organiser", 1); 
             int rows = cmd.ExecuteNonQuery();
             if (rows == 0)
             {

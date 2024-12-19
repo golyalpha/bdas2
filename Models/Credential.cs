@@ -6,7 +6,7 @@ using WebApp.Util;
 
 public class Credential
 {
-    public int Id { get; set; }
+    public int? Id { get; set; }
     public required string CredentialType { get; set; }
     public required string Data { get; set; }
     public required int IdOrganizer { get; set; }
@@ -18,10 +18,11 @@ public class Credential
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.CommandText = "edit_credential";
+            cmd.CommandText = "reservations_pkg.edit_credential";
             cmd.Parameters.Add("id_credential", Id);
             cmd.Parameters.Add("credential_type", CredentialType);
             cmd.Parameters.Add("data", Data);
+            cmd.Parameters.Add("id_organizer", IdOrganizer);
             int rows = cmd.ExecuteNonQuery();
             if (rows == 0)
             {

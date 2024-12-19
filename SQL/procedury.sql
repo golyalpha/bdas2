@@ -10,6 +10,21 @@ CREATE OR REPLACE PACKAGE reservations_pkg AS
         p_podium_size IN NUMBER DEFAULT NULL -- pro PRESENTATION_ROOM
     );
 
+    PROCEDURE edit_organizer(
+        p_id_organizer IN NUMBER DEFAULT NULL,
+        p_name IN VARCHAR2,
+        p_email IN VARCHAR2,
+        p_id_role IN NUMBER DEFAULT NULL,
+        p_id_organizer_substitute IN NUMBER DEFAULT NULL
+    );
+
+    PROCEDURE edit_credential(
+        p_id_credential IN NUMBER DEFAULT NULL,
+        p_credential_type IN CHAR,
+        p_data IN VARCHAR2,
+        p_id_organizer IN NUMBER
+    );
+
     PROCEDURE edit_reservation(
         p_id_reservation IN NUMBER DEFAULT NULL,
         p_start IN DATE,
@@ -199,6 +214,36 @@ BEGIN
     COMMIT;
 END edit_reservation;
 
+PROCEDURE edit_organizer (
+    p_id_organizer IN NUMBER DEFAULT NULL,
+    p_name IN VARCHAR2,
+    p_email IN VARCHAR2,
+    p_id_role IN NUMBER DEFAULT NULL,
+    p_id_organizer_substitute IN NUMBER DEFAULT NULL    
+    ) IS
+        v_new_id NUMBER;
+    BEGIN
+        IF p_id_organizer IS NULL THEN
+            SELECT organizers_id_organizer_seq.NEXTVAL INTO v_new_id FROM dual;
+
+            INSERT INTO organizers (id_organizer, name, email, id_role, id_organizer_substitute)
+            VALUES (v_new_id, p_name, p_email, p_id_role, p_id_organizer_substitute);
+        ELSE
+            UPDATE organizers
+            SET name = p_name,
+                email = p_email,
+                id_role = p_id_role,
+                id_organizer_substitute = p_id_organizer_substitute
+            WHERE id_organizer = p_id_organizer;
+
+            IF SQL%ROWCOUNT = 0 THEN
+                RAISE_APPLICATION_ERROR(-20001, 'No organizer found with the given ID.');
+            END IF;
+        END IF;
+
+        COMMIT;
+    END edit_organizer;
+
     -- DELETE ROOM
     PROCEDURE delete_room (
         p_id_room IN NUMBER
@@ -266,6 +311,27 @@ END edit_reservation;
         DBMS_OUTPUT.PUT_LINE('Room request deleted successfully.');
         COMMIT;
     END delete_room_request;
+
+    PROCEDURE edit_credential(
+        p_id_credential IN NUMBER DEFAULT NULL,
+        p_credential_type IN CHAR,
+        p_data IN VARCHAR2,
+        p_id_organizer IN NUMBER
+    ) IS
+        v_new_id NUMBER;
+    BEGIN
+        IF p_id_credential IS NULL THEN
+            SELECT credentials_id_credential_seq.NEXTVAL INTO v_new_id FROM dual;
+
+            INSERT INTO credentials (id_credential, credential_type, data, created_at, id_organizer)
+            VALUES (v_new_id, p_credential_type, p_data, CURRENT_TIMESTAMP, p_id_organizer);
+        ELSE
+            RAISE_APPLICATION_ERROR(-20001, 'Credentials are not mutable.');
+        END IF;
+
+        COMMIT;
+    END edit_credential;
+
 END reservations_pkg;
 /
 

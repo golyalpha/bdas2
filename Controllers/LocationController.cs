@@ -36,6 +36,17 @@ public class LocationController : Controller
             return RedirectToAction("Index");
     }
 
+    // POST: Location/Create
+    [HttpPost]
+    public IActionResult Edit(LocationViewModel locationViewModel, int id)
+    {
+        locationViewModel.Location.Id = id;
+        System.Console.Out.WriteLine(locationViewModel.CityId);
+        locationViewModel.Location.City = City.GetCity(locationViewModel.CityId);
+        locationViewModel.Location.Persist();
+        return RedirectToAction("Index");
+    }
+
     // GET: Location/Edit/5
     [HttpGet]
     public IActionResult Edit(int id)
