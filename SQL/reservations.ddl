@@ -231,10 +231,7 @@ CREATE TABLE reservations (
     id_organizer    NUMBER NOT NULL
 );
 
-CREATE UNIQUE INDEX reservation__idx ON
-    reservations (
-        id_room_request
-    ASC );
+-- CREATE UNIQUE INDEX reservation__idx ON reservations ( id_room_request ASC );
 
 ALTER TABLE reservations ADD CONSTRAINT reservations_pk PRIMARY KEY ( id_reservation );
 
@@ -279,11 +276,11 @@ ALTER TABLE rooms ADD CONSTRAINT rooms_name_un UNIQUE ( name );
 
 ALTER TABLE cities
     ADD CONSTRAINT city_country_fk FOREIGN KEY ( id_country )
-        REFERENCES countries ( id_country );
+        REFERENCES countries ( id_country ) ON DELETE CASCADE;
 
 ALTER TABLE credentials
     ADD CONSTRAINT credential_organizers_fk FOREIGN KEY ( id_organizer )
-        REFERENCES organizers ( id_organizer );
+        REFERENCES organizers ( id_organizer ) ON DELETE CASCADE;
 
 ALTER TABLE images
     ADD CONSTRAINT images_location_fk FOREIGN KEY ( id_location )
@@ -291,7 +288,7 @@ ALTER TABLE images
 
 ALTER TABLE images
     ADD CONSTRAINT images_organizers_fk FOREIGN KEY ( id_organizer )
-        REFERENCES organizers ( id_organizer );
+        REFERENCES organizers ( id_organizer ) ON DELETE CASCADE;
 
 ALTER TABLE images
     ADD CONSTRAINT images_room_fk FOREIGN KEY ( id_room )
@@ -299,11 +296,11 @@ ALTER TABLE images
 
 ALTER TABLE locations
     ADD CONSTRAINT location_city_fk FOREIGN KEY ( id_city )
-        REFERENCES cities ( id_city );
+        REFERENCES cities ( id_city ) ON DELETE CASCADE;
 
 ALTER TABLE locations
     ADD CONSTRAINT location_organizers_fk FOREIGN KEY ( id_organizer )
-        REFERENCES organizers ( id_organizer );
+        REFERENCES organizers ( id_organizer ) ON DELETE CASCADE;
 
 ALTER TABLE meeting_rooms
     ADD CONSTRAINT meeting_room_room_fk FOREIGN KEY ( id_room )
@@ -312,36 +309,36 @@ ALTER TABLE meeting_rooms
 --  ERROR: FK name length exceeds maximum allowed length(30) 
 ALTER TABLE meeting_rrequests
     ADD CONSTRAINT meeting_rrequest_room_request_fk FOREIGN KEY ( id_room_request )
-        REFERENCES room_requests ( id_room_request );
+        REFERENCES room_requests ( id_room_request ) ON DELETE CASCADE;
 
 ALTER TABLE notifications
     ADD CONSTRAINT notification_organizers_fk FOREIGN KEY ( id_organizer )
-        REFERENCES organizers ( id_organizer );
+        REFERENCES organizers ( id_organizer ) ON DELETE CASCADE;
 
 ALTER TABLE notifications
     ADD CONSTRAINT notification_room_request_fk FOREIGN KEY ( id_room_request )
-        REFERENCES room_requests ( id_room_request );
+        REFERENCES room_requests ( id_room_request ) ON DELETE CASCADE;
 
 ALTER TABLE organizers
     ADD CONSTRAINT organizers_organizers_fk FOREIGN KEY ( id_organizer_substitute )
-        REFERENCES organizers ( id_organizer );
+        REFERENCES organizers ( id_organizer ) ON DELETE CASCADE;
 
 ALTER TABLE organizers
     ADD CONSTRAINT organizers_role_fk FOREIGN KEY ( id_role )
-        REFERENCES roles ( id_role );
+        REFERENCES roles ( id_role ) ON DELETE CASCADE;
 
 ALTER TABLE presentation_rooms
     ADD CONSTRAINT presentation_room_room_fk FOREIGN KEY ( id_room )
-        REFERENCES rooms ( id_room );
+        REFERENCES rooms ( id_room ) ON DELETE CASCADE;
 
 --  ERROR: FK name length exceeds maximum allowed length(30) 
 ALTER TABLE presentation_rrequests
     ADD CONSTRAINT presentation_rrequest_room_request_fk FOREIGN KEY ( id_room_request )
-        REFERENCES room_requests ( id_room_request );
+        REFERENCES room_requests ( id_room_request ) ON DELETE CASCADE;
 
 ALTER TABLE reservations
     ADD CONSTRAINT reservations_organizers_fk FOREIGN KEY ( id_organizer )
-        REFERENCES organizers ( id_organizer );
+        REFERENCES organizers ( id_organizer ) ON DELETE CASCADE;
 
 ALTER TABLE reservations
     ADD CONSTRAINT reservations_room_fk FOREIGN KEY ( id_room )
@@ -354,19 +351,19 @@ ALTER TABLE reservations
 
 ALTER TABLE rooms
     ADD CONSTRAINT room_location_fk FOREIGN KEY ( id_location )
-        REFERENCES locations ( id_location );
+        REFERENCES locations ( id_location ) ON DELETE CASCADE;
 
 ALTER TABLE rooms
     ADD CONSTRAINT room_organizers_fk FOREIGN KEY ( id_organizer )
-        REFERENCES organizers ( id_organizer );
+        REFERENCES organizers ( id_organizer ) ON DELETE CASCADE;
 
 ALTER TABLE room_requests
     ADD CONSTRAINT room_request_location_fk FOREIGN KEY ( id_location )
-        REFERENCES locations ( id_location );
+        REFERENCES locations ( id_location ) ON DELETE CASCADE;
 
 ALTER TABLE room_requests
     ADD CONSTRAINT room_request_organizers_fk FOREIGN KEY ( id_organizer )
-        REFERENCES organizers ( id_organizer );
+        REFERENCES organizers ( id_organizer ) ON DELETE CASCADE;
 
 CREATE OR REPLACE VIEW CITIES_V ( ID_CITY
    , name

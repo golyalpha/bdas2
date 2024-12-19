@@ -6,7 +6,7 @@ public class Notification
     public required string NotificationType { get; set; }
     public required bool Delivered { get; set; }
     public required Organiser Organiser { get; set; }
-    public required Request Request { get; set; }
+    public required RoomRequest Request { get; set; }
 
     public static Notification GetNotification(int Id)
     {

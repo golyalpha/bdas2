@@ -14,9 +14,10 @@ public class RequestController : Controller
 
     public IActionResult Index()
     {
-        var requests = WebApp.Models.Request.ListRequests(); // Získání seznamu žádostí pro zobrazení v indexu
+        var requests = RoomRequest.ListRequests(); // Získání seznamu žádostí pro zobrazení v indexu
         return View(requests);
     }
+
 
     // GET: Request/Create
     [HttpGet]
@@ -27,7 +28,7 @@ public class RequestController : Controller
 
     // POST: Request/Create
     [HttpPost]
-    public IActionResult Create(Request request)
+    public IActionResult Create(RoomRequest request)
     {
         if (ModelState.IsValid)
         {
@@ -42,7 +43,7 @@ public class RequestController : Controller
     [HttpGet]
     public IActionResult Edit(int id)
     {
-        var request = WebApp.Models.Request.GetRequest(id); // Získání konkrétní žádosti podle ID
+        var request = RoomRequest.GetRequest(id); // Získání konkrétní žádosti podle ID
         if (request == null)
         {
             return NotFound();
@@ -52,11 +53,11 @@ public class RequestController : Controller
 
     // POST: Request/Update
     [HttpPost]
-    public IActionResult Update(Request updatedRequest)
+    public IActionResult Update(RoomRequest updatedRequest)
     {
         if (ModelState.IsValid)
         {
-            var existingRequest = (Request)WebApp.Models.Request.GetRequest(updatedRequest.Id);
+            var existingRequest = RoomRequest.GetRequest(updatedRequest.Id);
             if (existingRequest != null)
             {
                 // Aktualizace dat existující žádosti
@@ -69,5 +70,20 @@ public class RequestController : Controller
             }
         }
         return View("Edit", updatedRequest); // V pøípadì chyby se vrátí na editovací stránku
+    }
+
+    [HttpPost]
+    public IActionResult Delete(int id)
+    {
+        try
+        {
+            RoomRequest request = RoomRequest.GetRequest(id);
+            request.Delete();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting room.");
+        }
+        return RedirectToAction("Index");
     }
 }

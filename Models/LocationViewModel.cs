@@ -4,8 +4,8 @@ namespace WebApp.Models;
 
 public class LocationViewModel
 {
-    [Required]
     public Location? Location { get; set; }
+
     [Required]
     [Display(Name = "City")]
     public int CityId { get; set; }

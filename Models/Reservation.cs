@@ -19,7 +19,7 @@ public class Reservation
     public Room Room { get; set; }
 
     [Required]
-    public Request Request { get; set; }
+    public RoomRequest Request { get; set; }
 
     [Required]
     public Organiser Organiser { get; set; }
@@ -46,14 +46,13 @@ public class Reservation
                     Start = reader.GetDateTime(1),
                     End = reader.GetDateTime(2),
                     Room = Room.GetRoom(reader.GetInt32(3)),
-                    Request = (Request)Request.GetRequest(reader.GetInt32(4)),
+                    Request = (RoomRequest)RoomRequest.GetRequest(reader.GetInt32(4)),
                     Organiser = Organiser.GetOrganiser(reader.GetInt32(5))
                 };
                 return reservation;
             }
         }
     }
-
 
     public static List<Reservation> ListReservations()
     {
@@ -74,12 +73,46 @@ public class Reservation
                         Start = reader.GetDateTime(1),
                         End = reader.GetDateTime(2),
                         Room = Room.GetRoom(reader.GetInt32(3)),
-                        Request = (Request)Request.GetRequest(reader.GetInt32(4)),
+                        Request = (RoomRequest)RoomRequest.GetRequest(reader.GetInt32(4)),
                         Organiser = Organiser.GetOrganiser(reader.GetInt32(5))
                     });
                 }
             }
         }
         return list;
+    }
+
+    public void Delete()
+    {
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            OracleCommand cmd = conn.CreateCommand();
+            cmd.CommandType = System.Data.CommandType.StoredProcedure;
+            cmd.CommandText = "reservations_pkg.delete_reservation";
+            cmd.Parameters.Add("p_id_reservation", Id);
+
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+
+    public void Persist()
+    {
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            OracleCommand cmd = conn.CreateCommand();
+            cmd.CommandType = System.Data.CommandType.StoredProcedure;
+            cmd.CommandText = "reservations_pkg.edit_reservation";
+            cmd.Parameters.Add("p_id_reservation", Id == 0 ? (object)DBNull.Value : Id);
+            cmd.Parameters.Add("p_start", OracleDbType.Date).Value = Start;
+            cmd.Parameters.Add("p_end", OracleDbType.Date).Value = End;
+            cmd.Parameters.Add("p_id_room", Room.Id);
+            cmd.Parameters.Add("p_id_room_request", Request.Id);
+            cmd.Parameters.Add("p_id_organizer", Organiser.Id);
+
+            cmd.ExecuteNonQuery();
+        }
     }
 }

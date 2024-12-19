@@ -1,0 +1,114 @@
+﻿@model WebApp.Models.Room
+
+@{
+    ViewData["Title"] = Model.Id > 0 ? "Edit Room" : "Create Room";
+}
+
+<div class="container mt-5">
+    <h2>@ViewData["Title"]</h2>
+    <form id="roomForm" method="post" action="/Room/Persist">
+        <!-- Skrytý input pro ID -->
+        <input type="hidden" id="Id" name="Id" value="@Model.Id" />
+
+        <!-- Společné vlastnosti -->
+        <div class="form-group">
+            <label for="Name">Name</label>
+            <input type="text" id="Name" name="Name" value="@Model.Name" class="form-control" required />
+        </div>
+        <div class="form-group">
+            <label for="Capacity">Capacity</label>
+            <input type="number" id="Capacity" name="Capacity" value="@Model.Capacity" class="form-control" required min="1" />
+        </div>
+        <div class="form-group">
+            <label for="Type">Type</label>
+            <select id="Type" name="Type" class="form-control" readonly>
+                @if (Model.Type == "MEETING_ROOM")
+                {
+                    <option value="MEETING_ROOM" selected="selected">Meeting Room</option>
+                    <option value="PRESENTATION_ROOM">Presentation Room</option>
+                }
+                else
+                {
+                    <option value="MEETING_ROOM">Meeting Room</option>
+                    <option value="PRESENTATION_ROOM" selected="selected">Presentation Room</option>
+                }
+            </select>
+
+        </div>
+        <div class="form-group">
+            <label for="Location.Id">Location</label>
+            <input type="number" id="Location.Id" name="Location.Id" value="@Model.Location.Id" class="form-control" required />
+        </div>
+        <div class="form-group">
+            <label for="Organiser.Id">Organiser</label>
+            <input type="number" id="Organiser.Id" name="Organiser.Id" value="@Model.Organiser.Id" class="form-control" required />
+        </div>
+
+        <!-- Specifická pole pro Meeting Room -->
+        <div id="meetingRoomFields" style="display: none;">
+            <div class="form-group">
+                <label for="VideoCallReady">Video Call Ready</label>
+                <select id="VideoCallReady" name="VideoCallReady" class="form-control">
+                    @if (Model is WebApp.Models.MeetingRoom m)
+                    {
+                        @if (m.VideoCallReady)
+                        {
+                            <option value="Y" selected="selected">Yes</option>
+                            <option value="N">No</option>
+                        }
+                        else
+                        {
+                            <option value="Y">Yes</option>
+                            <option value="N" selected="selected">No</option>
+                        }
+                    }
+                    else
+                    {
+                        <option value="Y">Yes</option>
+                        <option value="N">No</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <!-- Specifická pole pro Presentation Room -->
+        <div id="presentationRoomFields" style="display: none;">
+            <div class="form-group">
+                <label for="PodiumSize">Podium Size</label>
+                <input type="number" id="PodiumSize" name="PodiumSize" value="@((Model as WebApp.Models.PresentationRoom)?.PodiumSize)" class="form-control" />
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+
+    <a href="/Room/Index" class="btn btn-link">Back to List</a>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const roomTypeSelect = document.getElementById("Type");
+            const meetingRoomFields = document.getElementById("meetingRoomFields");
+            const presentationRoomFields = document.getElementById("presentationRoomFields");
+
+            function toggleFields() {
+                const selectedType = roomTypeSelect.value;
+
+                if (selectedType === "MEETING_ROOM") {
+                    meetingRoomFields.style.display = "block";
+                    presentationRoomFields.style.display = "none";
+                } else if (selectedType === "PRESENTATION_ROOM") {
+                    meetingRoomFields.style.display = "none";
+                    presentationRoomFields.style.display = "block";
+                }
+            }
+
+            // Přepnutí na základě výchozí hodnoty
+            toggleFields();
+
+            // Přepnutí při změně hodnoty comboboxu
+            roomTypeSelect.addEventListener("change", toggleFields);
+        });
+    </script>
+}
