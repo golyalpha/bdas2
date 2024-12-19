@@ -3,7 +3,7 @@ using WebApp.Util;
 
 namespace WebApp.Models;
 
-public class MeetingRequest : Request
+public class MeetingRequest : RoomRequest
 {
     public required bool VideoCallReady { get; set; }
 

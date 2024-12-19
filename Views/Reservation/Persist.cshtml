@@ -1,0 +1,56 @@
+﻿@model WebApp.Models.Reservation
+
+@{
+    ViewData["Title"] = Model.Id > 0 ? "Edit Reservation" : "Create Reservation";
+}
+
+<div class="container mt-5">
+    <h2>@ViewData["Title"]</h2>
+    <form id="reservationForm" method="post" action="/Reservation/Persist">
+
+        <!-- Hidden input for ID -->
+        <input type="hidden" id="Id" name="Id" value="@Model.Id" />
+
+        <!-- Start Time -->
+        <div class="form-group">
+            <label for="Start">Start Time</label>
+            <input type="datetime-local" id="Start" name="Start"
+                   value="@Model.Start.ToString("yyyy-MM-ddTHH:mm")"
+                   class="form-control" required />
+        </div>
+
+        <!-- End Time -->
+        <div class="form-group">
+            <label for="End">End Time</label>
+            <input type="datetime-local" id="End" name="End"
+                   value="@Model.End.ToString("yyyy-MM-ddTHH:mm")"
+                   class="form-control" required />
+        </div>
+
+        <!-- Room ID -->
+        <div class="form-group">
+            <label for="Room.Id">Room ID</label>
+            <input type="number" id="Room.Id" name="Room.Id"
+                   value="@Model.Room?.Id" class="form-control" required />
+        </div>
+
+        <!-- Request ID -->
+        <div class="form-group">
+            <label for="Request.Id">Request ID</label>
+            <input type="number" id="Request.Id" name="Request.Id"
+                   value="@Model.Request?.Id" class="form-control" required />
+        </div>
+
+        <!-- Organiser ID -->
+        <div class="form-group">
+            <label for="Organiser.Id">Organiser ID</label>
+            <input type="number" id="Organiser.Id" name="Organiser.Id"
+                   value="@Model.Organiser?.Id" class="form-control" required />
+        </div>
+
+        <!-- Save Button -->
+        <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+
+    <a href="/Reservation/Index" class="btn btn-link">Back to List</a>
+</div>

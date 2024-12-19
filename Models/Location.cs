@@ -9,7 +9,6 @@ public class Location
     public int Id { get; set; }
     
     
-    [Required]
     public string Name { get; set; }
    
     [Required]
@@ -19,7 +18,10 @@ public class Location
     [Required]
     [Display(Name = "Availability End")]
     public TimeOnly AvailabilityEnd { get; set; }
+
     public City? City { get; set; }
+
+    public Organiser Organiser { get; set; }
 
     public void Persist()
     {
@@ -32,12 +34,13 @@ public class Location
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.CommandText = "edit_location";
+            cmd.CommandText = "reservations_pkg.edit_location";
             cmd.Parameters.Add("location_id", Id);
             cmd.Parameters.Add("name", Name);
             cmd.Parameters.Add("availability_start", AvailabilityStart);
             cmd.Parameters.Add("availability_end", AvailabilityEnd);
             cmd.Parameters.Add("id_city", City.Id);
+            cmd.Parameters.Add("id_organiser", Organiser.Id); 
             int rows = cmd.ExecuteNonQuery();
             if (rows == 0)
             {
@@ -101,5 +104,20 @@ public class Location
             }
         }
         return list;
+    }
+
+
+    public void Delete()
+    {
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            OracleCommand cmd = conn.CreateCommand();
+            cmd.CommandType = System.Data.CommandType.StoredProcedure;
+            cmd.CommandText = "reservations_pkg.delete_location";
+            cmd.Parameters.Add("p_id_location", Id);
+
+            cmd.ExecuteNonQuery();
+        }
     }
 }

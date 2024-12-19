@@ -6,7 +6,7 @@ using WebApp.Util;
 
 namespace WebApp.Models;
 
-public class Request
+public class RoomRequest
 {
     public int Id { get; set; }
 
@@ -59,7 +59,7 @@ public class Request
         }
     }
 
-    public static object GetRequest(int Id)
+    public static RoomRequest GetRequest(int Id)
     {
         using (OracleConnection conn = DBManager.GetConnection())
         {
@@ -70,7 +70,7 @@ public class Request
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {
-                object? request = null;
+                RoomRequest? request = null;
 
                 if (!reader.Read())
                 {
@@ -117,9 +117,9 @@ public class Request
         }
     }
 
-    public static List<Request> ListRequests()
+    public static List<RoomRequest> ListRequests()
     {
-        List<Request> list = new List<Request>();
+        List<RoomRequest> list = new List<RoomRequest>();
         using (OracleConnection conn = DBManager.GetConnection())
         {
             conn.Open();
@@ -130,7 +130,7 @@ public class Request
             {
                 while (reader.Read())
                 {
-                    Request? request = null;
+                    RoomRequest? request = null;
 
                     // Pøekontrolujeme typ požadavku
                     if (reader.GetString(7) == "PRESENTATION_RREQUEST")
@@ -173,20 +173,18 @@ public class Request
         return list;
     }
 
-    private static TimeSpan ParseOracleInterval(string intervalString)
+    public void Delete()
+    {
+        using (OracleConnection conn = DBManager.GetConnection())
         {
-            // Pøíklad oèekávaného formátu: +000 03:12:00 (dny, hodiny:minuty:sekundy)
-            if (string.IsNullOrEmpty(intervalString))
-                return TimeSpan.Zero;
+            conn.Open();
+            OracleCommand cmd = conn.CreateCommand();
+            cmd.CommandType = System.Data.CommandType.StoredProcedure;
+            cmd.CommandText = "reservations_pkg.delete_room_request";
+            cmd.Parameters.Add("p_id_request", Id);
 
-            var parts = intervalString.Split(' ');
-            int days = int.Parse(parts[0]); // Dny
-            var timeParts = parts[1].Split(':');
-            int hours = int.Parse(timeParts[0]);
-            int minutes = int.Parse(timeParts[1]);
-            int seconds = int.Parse(timeParts[2]);
-
-            return new TimeSpan(days, hours, minutes, seconds);
+            cmd.ExecuteNonQuery();
         }
+    }
 
 }

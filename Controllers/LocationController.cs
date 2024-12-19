@@ -27,15 +27,11 @@ public class LocationController : Controller
     [HttpPost]
     public IActionResult Create(LocationViewModel locationViewModel)
     {
-        if (ModelState.IsValid)
-        {
+
             System.Console.Out.WriteLine(locationViewModel.CityId);
             locationViewModel.Location.City = City.GetCity(locationViewModel.CityId);
             locationViewModel.Location.Persist();
-            _logger.LogInformation("New location created successfully.");
             return RedirectToAction("Index");
-        }
-        return View(locationViewModel);
     }
 
     // GET: Location/Edit/5
@@ -47,27 +43,12 @@ public class LocationController : Controller
         {
             return NotFound();
         }
-        return View(location); // Zobrazí formuláø Edit.cshtml s pøedvyplnìnými hodnotami
-    }
-
-    // POST: Location/Update
-    [HttpPost]
-    public IActionResult Update(Location updatedLocation)
-    {
-        if (ModelState.IsValid)
+        var model = new LocationViewModel
         {
-            var existingLocation = Location.GetLocation(updatedLocation.Id);
-            if (existingLocation != null)
-            {
-                // Aktualizace dat existující lokace
-                existingLocation.Name = updatedLocation.Name;
-                existingLocation.AvailabilityStart = updatedLocation.AvailabilityStart;
-                existingLocation.AvailabilityEnd = updatedLocation.AvailabilityEnd;
-
-                _logger.LogInformation("Location updated successfully.");
-                return RedirectToAction("Index");
-            }
-        }
-        return View("Edit", updatedLocation); // V pøípadì chyby se vrátí na editovací stránku
+            CityId = location.City.Id,
+            Location = location
+        };
+        return View("Create", model); // Zobrazí formuláø Edit.cshtml s pøedvyplnìnými hodnotami
     }
+
 }

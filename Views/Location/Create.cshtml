@@ -6,7 +6,7 @@
 
 <div class="container mt-5">
     <h2>Location Details</h2>
-    @using (Html.BeginForm("Create", "Location", FormMethod.Post, new { role = "form" }))
+    @using (Html.BeginForm(FormMethod.Post, new { role = "form" }))
     {
         @Html.AntiForgeryToken()
         <div class="form-group">
@@ -42,7 +42,14 @@
                 <select id="@Html.IdFor(m => m.CityId)" name="@Html.NameFor(m => m.CityId)">
                     @foreach (var city in Model.Cities)
                     {
-                        <option value="@city.Id.ToString()">@city.Name, @city.Country.Name</option>
+                        @if (city.Id == Model.CityId)
+                        {
+                            <option value="@city.Id.ToString()" selected>@city.Name, @city.Country.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@city.Id.ToString()">@city.Name, @city.Country.Name</option>
+                        }
                     }
                 </select>
             </div>

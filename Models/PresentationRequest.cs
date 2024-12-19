@@ -3,7 +3,7 @@ using WebApp.Util;
 
 namespace WebApp.Models;
 
-public class PresentationRequest : Request
+public class PresentationRequest : RoomRequest
 {
     public required int PodiumSize { get; set; }
 }

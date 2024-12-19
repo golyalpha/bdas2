@@ -17,57 +17,56 @@ public class ReservationController : Controller
         return View(reservations);
     }
 
-    // GET: Reservation/Create
+    // GET: Room/Edit/{id}
     [HttpGet]
-    public IActionResult Create()
-    {
-        return View(); // Zobrazí formulář Create.cshtml
-    }
-
-    // POST: Reservation/Create
-    [HttpPost]
-    public IActionResult Create(Reservation reservation)
-    {
-        if (ModelState.IsValid)
+    [Route("Reservation/Edit/{id?}")]
+    [Route("Reservation/Create")]
+    public IActionResult Persist(int? id)
         {
-            // Logika pro přidání nové rezervace
-            _logger.LogInformation("New reservation created successfully.");
-            return RedirectToAction("Index");
-        }
-        return View(reservation);
-    }
-
-    // GET: Reservation/Edit/5
-    [HttpGet]
-    public IActionResult Edit(int id)
-    {
-        var reservation = Reservation.GetReservation(id); // Získání konkrétní rezervace podle ID
-        if (reservation == null)
+        if (id == null || id == 0)
         {
-            return NotFound();
-        }
-        return View(reservation); // Zobrazí formulář Edit.cshtml s předvyplněnými hodnotami
-    }
-
-    // POST: Reservation/Update
-    [HttpPost]
-    public IActionResult Update(Reservation updatedReservation)
-    {
-        if (ModelState.IsValid)
-        {
-            var existingReservation = Reservation.GetReservation(updatedReservation.Id);
-            if (existingReservation != null)
+            var newRoom = new Reservation
             {
-                // Aktualizace dat existující rezervace
-                existingReservation.Start = updatedReservation.Start;
-                existingReservation.End = updatedReservation.End;
-                existingReservation.Room = updatedReservation.Room;
-                existingReservation.Organiser = updatedReservation.Organiser;
-
-                _logger.LogInformation("Reservation updated successfully.");
-                return RedirectToAction("Index");
-            }
+                Id = 0,
+                Start = new DateTime(),
+                End = new DateTime(),
+                Room = new Room { Id = 0 },
+                Organiser = new Organiser { Id = 0 },
+            };
+            return View("Persist", newRoom); // Načte formulář Persist.cshtml
         }
-        return View("Edit", updatedReservation); // V případě chyby se vrátí na editovací stránku
+        else
+        {
+            // Načítáme existující záznam
+            var reservation = Reservation.GetReservation(id.Value);
+            if (reservation == null)
+            {
+                return NotFound();
+            }
+            return View("Persist", reservation); // Načte formulář Persist.cshtml
+        }
+    }
+
+    // POST: Reservation/Persist
+    [HttpPost]
+    public IActionResult Persist(Reservation reservation)
+    {
+        reservation.Persist();
+        return RedirectToAction("Index");
+    }
+
+    [HttpPost]
+    public IActionResult Delete(int id)
+    {
+        try
+        {
+            Reservation reservation = Reservation.GetReservation(id);
+            reservation.Delete();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting room.");
+        }
+        return RedirectToAction("Index");
     }
 }
