@@ -19,6 +19,7 @@ public class Room
     [Required]
     
     public Location Location { get; set; }
+
     [Required]
     public Organiser Organiser { get; set; }
 
@@ -80,9 +81,9 @@ public class Room
         }
     }
 
-    public static List<object> ListRooms()
+    public static List<Room> ListRooms()
     {
-        List<object> list = new List<object>();
+        List<Room> list = new List<Room>();
         using (OracleConnection conn = DBManager.GetConnection())
         {
             conn.Open();
@@ -93,7 +94,7 @@ public class Room
             {
                 while (reader.Read())
                 {
-                    object? room = null;
+                    Room? room = null;
                     //reader.Read();
                     if (reader.GetString(4) == "PRESENTATION_ROOM")
                     {

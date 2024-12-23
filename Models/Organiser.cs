@@ -7,7 +7,7 @@ namespace WebApp.Models;
 
 public class Organiser
 {
-    public int? Id { get; set; }
+    public int Id { get; set; }
 
     [Required]
     public string Name { get; set; }

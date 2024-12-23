@@ -1,0 +1,120 @@
+﻿@model WebApp.Models.RoomViewModel
+
+@{
+    ViewData["Title"] = "Room details";
+}
+
+<div class="container mt-5">
+    <h2>@ViewData["Title"]</h2>
+    @using (Html.BeginForm(FormMethod.Post, new { role = "form" }))
+    {
+
+        <!-- Common fields -->
+        <div class="form-group">
+            @Html.LabelFor(model => model.Room.Name, "Room Name", new { @class = "control-label" })
+            @Html.TextBoxFor(model => model.Room.Name, new { @class = "form-control", required = "required" })
+        </div>
+        <div class="form-group">
+            @Html.LabelFor(model => model.Room.Capacity, "Capacity", new { @class = "control-label" })
+            @Html.TextBoxFor(model => model.Room.Capacity, new { @class = "form-control", required = "required", type = "number", min = "1" })
+        </div>
+        <div class="form-group">
+            @Html.LabelFor(model => model.Room.Type, "Room Type", new { @class = "control-label" })
+            @Html.DropDownListFor(
+                     model => model.Room.Type,
+                     new SelectList(new[] {
+        new { Value = "MEETING_ROOM", Text = "Meeting Room" },
+        new { Value = "PRESENTATION_ROOM", Text = "Presentation Room" }
+        }, "Value", "Text", Model.Room.Type),
+                     new { @class = "form-control", id = "roomType" })
+        </div>
+         <!-- Dropdown for Locations -->
+        <div class="form-group">
+            @Html.LabelFor(model => model.LocationId, "Location", new { @class = "control-label" })
+            <select id="@Html.IdFor(m => m.LocationId)" name="@Html.NameFor(m => m.LocationId)" class="form-control">
+                @foreach (var location in Model.Locations)
+                {
+                    @if (location.Id == Model.LocationId)
+                    {
+                        <option value="@location.Id.ToString()" selected>@location.Name, @location.City.Name</option>
+                    }
+                    else
+                    {
+                        <option value="@location.Id.ToString()">@location.Name, @location.City.Name</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <!-- Dropdown for Organisers -->
+        <div class="form-group">
+            @Html.LabelFor(model => model.OrganiserId, "Organiser", new { @class = "control-label" })
+            <select id="@Html.IdFor(m => m.OrganiserId)" name="@Html.NameFor(m => m.OrganiserId)" class="form-control">
+                @foreach (var organiser in Model.Organisers)
+                {
+                    @if (organiser.Id == Model.OrganiserId)
+                    {
+                        <option value="@organiser.Id.ToString()" selected>@organiser.Name</option>
+                    }
+                    else
+                    {
+                        <option value="@organiser.Id.ToString()">@organiser.Name</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <!-- Specific fields for Meeting Room -->
+        <div id="meetingRoomFields" style="display: none;">
+            <div class="form-group">
+                @Html.LabelFor(model => model.VideoCallReady, "Video Call Ready", new { @class = "control-label" })
+                @Html.DropDownListFor(
+                         model => model.VideoCallReady,
+                         new SelectList(new[] {
+            new { Value = true, Text = "Yes" },
+            new { Value = false, Text = "No" }
+            }, "Value", "Text", Model.VideoCallReady),
+                         new { @class = "form-control" })
+            </div>
+        </div>
+
+        <div id="presentationRoomFields" style="display: none;">
+            <div class="form-group">
+                @Html.LabelFor(model => model.PodiumSize, "Podium Size", new { @class = "control-label" })
+                @Html.TextBoxFor(model => model.PodiumSize, new { @class = "form-control", type = "number" })
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save</button>
+    }
+
+    <a href="/Room/Index" class="btn btn-link">Back to List</a>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const roomTypeSelect = document.getElementById("roomType");
+            const meetingRoomFields = document.getElementById("meetingRoomFields");
+            const presentationRoomFields = document.getElementById("presentationRoomFields");
+
+            function toggleFields() {
+                const selectedType = roomTypeSelect.value;
+
+                if (selectedType === "MEETING_ROOM") {
+                    meetingRoomFields.style.display = "block";
+                    presentationRoomFields.style.display = "none";
+                } else if (selectedType === "PRESENTATION_ROOM") {
+                    meetingRoomFields.style.display = "none";
+                    presentationRoomFields.style.display = "block";
+                }
+            }
+
+            // Initialize field visibility
+            toggleFields();
+
+            // Update visibility on type change
+            roomTypeSelect.addEventListener("change", toggleFields);
+        });
+    </script>
+}

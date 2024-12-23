@@ -107,7 +107,7 @@ public class UserController : Controller
         };
         organiser.Persist();
         organiser = Organiser.FindOrganiser(request.Email);  // Gotta grab the ID from DB
-        if (organiser is null || organiser.Id is null) {
+        if (organiser is null || organiser.Id is 0) {
             throw new InvalidOperationException(); // This should absolutely never have a chance of happening
         }
         var credential = new Credential
