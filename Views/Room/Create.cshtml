@@ -20,13 +20,11 @@
         </div>
         <div class="form-group">
             @Html.LabelFor(model => model.Room.Type, "Room Type", new { @class = "control-label" })
-            @Html.DropDownListFor(
-                     model => model.Room.Type,
-                     new SelectList(new[] {
-        new { Value = "MEETING_ROOM", Text = "Meeting Room" },
-        new { Value = "PRESENTATION_ROOM", Text = "Presentation Room" }
-        }, "Value", "Text", Model.Room.Type),
-                     new { @class = "form-control", id = "roomType" })
+            @Html.DropDownListFor(model => model.Room.Type,
+                new SelectList(new[] {
+                new { Value = "MEETING_ROOM", Text = "Meeting Room" },
+                new { Value = "PRESENTATION_ROOM", Text = "Presentation Room" }}, "Value", "Text", Model.Room.Type),
+                new { @class = "form-control", id = "roomType" })
         </div>
          <!-- Dropdown for Locations -->
         <div class="form-group">
@@ -115,6 +113,19 @@
 
             // Update visibility on type change
             roomTypeSelect.addEventListener("change", toggleFields);
+        });
+        document.addEventListener("DOMContentLoaded", function () {
+            // Check if the room ID is greater than 0 (indicating edit mode)
+            const roomId = @Model.Room.Id;
+            const roomTypeField = document.getElementById("roomType");
+
+            if (roomId > 0) {
+                // Add the 'disabled' attribute for edit mode
+                roomTypeField.setAttribute("disabled", "true");
+            } else {
+                // Remove the 'disabled' attribute for create mode
+                roomTypeField.removeAttribute("disabled");
+            }
         });
     </script>
 }
