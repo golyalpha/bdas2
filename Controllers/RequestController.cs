@@ -86,7 +86,7 @@ public class RequestController : Controller
         if (request.Type == "PRESENTATION_RREQUEST") {
             model.PresentationRequest = (PresentationRequest)request;
         }
-        return View("Create", request); // Zobraz� formul�� Edit.cshtml s p�edvypln�n�mi hodnotami
+        return View("Create", model); // Zobraz� formul�� Edit.cshtml s p�edvypln�n�mi hodnotami
     }
 
     // POST: Request/Edit/5
