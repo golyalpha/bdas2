@@ -1,4 +1,17 @@
 CREATE OR REPLACE PACKAGE reservations_pkg AS
+    PROCEDURE edit_request (
+        p_id_room_request IN NUMBER DEFAULT NULL,
+        p_min_capacity IN NUMBER,
+        p_type IN VARCHAR2,
+        p_reservation_start IN DATE,
+        p_reservation_end IN DATE,
+        p_reservation_length IN DATE,
+        p_id_location IN NUMBER,
+        p_id_organizer IN NUMBER,
+        p_vc_ready IN CHAR DEFAULT NULL,
+        p_podium_size IN NUMBER DEFAULT NULL
+    );
+
     PROCEDURE edit_room (
         p_id_room IN NUMBER DEFAULT NULL,
         p_name IN VARCHAR2,
@@ -64,6 +77,78 @@ END reservations_pkg;
 /
 
 CREATE OR REPLACE PACKAGE BODY reservations_pkg AS
+
+    PROCEDURE edit_request (
+        p_id_room_request IN NUMBER DEFAULT NULL,
+        p_min_capacity IN NUMBER,
+        p_type IN VARCHAR2,
+        p_reservation_start IN DATE,
+        p_reservation_end IN DATE,
+        p_reservation_length IN DATE, -- Now treated directly as DATE
+        p_id_location IN NUMBER,
+        p_id_organizer IN NUMBER,
+        p_vc_ready IN CHAR DEFAULT NULL,
+        p_podium_size IN NUMBER DEFAULT NULL
+    ) IS
+        v_new_id NUMBER;
+    BEGIN
+        IF p_id_room_request IS NULL THEN
+            -- Generate new ID using sequence
+            SELECT room_requests_id_room_request.NEXTVAL INTO v_new_id FROM dual;
+
+            -- Insert into the base room_requests table
+            INSERT INTO room_requests (
+                id_room_request, min_capacity, "type", reservation_start, reservation_end, reservation_length, id_location, id_organizer
+            ) VALUES (
+                v_new_id, p_min_capacity, p_type, p_reservation_start, p_reservation_end, 
+                p_reservation_length, -- Store directly as DATE
+                p_id_location, p_id_organizer
+            );
+
+            -- Handle subtypes
+            IF p_type = 'MEETING_RREQUEST' THEN
+                INSERT INTO meeting_rrequests (id_room_request, vc_ready)
+                VALUES (v_new_id, p_vc_ready);
+            ELSIF p_type = 'PRESENTATION_RREQUEST' THEN
+                INSERT INTO presentation_rrequests (id_room_request, podium_size)
+                VALUES (v_new_id, p_podium_size);
+            END IF;
+
+        ELSE
+            -- Update the base room_requests table
+            UPDATE room_requests
+            SET min_capacity = p_min_capacity,
+                "type" = p_type,
+                reservation_start = p_reservation_start,
+                reservation_end = p_reservation_end,
+                reservation_length = p_reservation_length, -- Store directly as DATE
+                id_location = p_id_location,
+                id_organizer = p_id_organizer
+            WHERE id_room_request = p_id_room_request;
+
+            -- Handle subtypes
+            IF p_type = 'MEETING_RREQUEST' THEN
+                MERGE INTO meeting_rrequests m
+                USING (SELECT p_id_room_request AS id_room_request FROM dual) d
+                ON (m.id_room_request = d.id_room_request)
+                WHEN MATCHED THEN
+                    UPDATE SET vc_ready = p_vc_ready
+                WHEN NOT MATCHED THEN
+                    INSERT (id_room_request, vc_ready) VALUES (p_id_room_request, p_vc_ready);
+            ELSIF p_type = 'PRESENTATION_RREQUEST' THEN
+                MERGE INTO presentation_rrequests p
+                USING (SELECT p_id_room_request AS id_room_request FROM dual) d
+                ON (p.id_room_request = d.id_room_request)
+                WHEN MATCHED THEN
+                    UPDATE SET podium_size = p_podium_size
+                WHEN NOT MATCHED THEN
+                    INSERT (id_room_request, podium_size) VALUES (p_id_room_request, p_podium_size);
+            END IF;
+        END IF;
+
+        COMMIT;
+    END edit_request;
+
     -- Edit or Create Location
     PROCEDURE edit_location(
         p_id_location IN NUMBER DEFAULT NULL,
@@ -331,9 +416,11 @@ PROCEDURE edit_organizer (
 
         COMMIT;
     END edit_credential;
+
 END reservations_pkg;
 /
 
+/*
 BEGIN
     reservations_pkg.edit_location(
         p_id_location => 0,
@@ -390,3 +477,36 @@ BEGIN
     );
 END;
 /
+*/
+
+BEGIN
+    reservations_pkg.edit_request(
+        p_id_room_request => 1, -- Update request with ID 1
+        p_min_capacity => 20,
+        p_type => 'PRESENTATION_RREQUEST',
+        p_reservation_start => TO_DATE('2024-12-08 10:00:00', 'YYYY-MM-DD HH24:MI:SS'),
+        p_reservation_end => TO_DATE('2024-12-08 12:00:00', 'YYYY-MM-DD HH24:MI:SS'),
+        p_reservation_length => TO_DATE('1000-01-01 01:30:00', 'YYYY-MM-DD HH24:MI:SS'),
+        p_id_location => 2,
+        p_id_organizer => 2,
+        p_podium_size => 10
+    );
+END;
+/
+
+
+BEGIN
+    reservations_pkg.edit_request(
+        p_id_room_request => NULL,
+        p_min_capacity => 20,
+        p_type => 'MEETING_RREQUEST',
+        p_reservation_start => TO_DATE('2024-12-07 09:00:00', 'YYYY-MM-DD HH24:MI:SS'),
+        p_reservation_end => TO_DATE('2024-12-07 11:00:00', 'YYYY-MM-DD HH24:MI:SS'),
+        p_reservation_length => TO_DATE('1000-01-01 02:00:00', 'YYYY-MM-DD HH24:MI:SS'),
+        p_id_location => 1,
+        p_id_organizer => 1,
+        p_vc_ready => 'Y'
+    );
+END;
+/
+
