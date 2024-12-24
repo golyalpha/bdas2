@@ -40,19 +40,11 @@
         </div>
 
         <div class="form-group">
-            <label for="Type">Type</label>
+            @Html.LabelFor(m => m.Request.Type)
             <select id="@Html.IdFor(m => m.Request.Type)" name="@Html.NameFor(m => m.Request.Type)" class="form-control" readonly>
                 <option value=""></option>
-                @if (Model.Request.Type == "MEETING_RREQUEST")
-                {
-                    <option value="MEETING_RREQUEST" selected="selected">Meeting Room</option>
-                    <option value="PRESENTATION_RREQUEST">Presentation Room</option>
-                }
-                else
-                {
-                    <option value="MEETING_RREQUEST">Meeting Room</option>
-                    <option value="PRESENTATION_RREQUEST" selected="selected">Presentation Room</option>
-                }
+                <option value="MEETING_RREQUEST" selected="@(Model.Request?.Type == "MEETING_RREQUEST")">Meeting Room</option>
+                <option value="PRESENTATION_RREQUEST" selected="@(Model.Request?.Type == "PRESENTATION_RREQUEST")">Presentation Room</option>
             </select>
         </div>
         
@@ -104,7 +96,7 @@
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            const requestTypeSelect = document.getElementById("Type");
+            const requestTypeSelect = document.getElementById("Request_Type");
             const meetingRequestFields = document.getElementById("meetingRequestFields");
             const presentationRequestFields = document.getElementById("presentationRequestFields");
 

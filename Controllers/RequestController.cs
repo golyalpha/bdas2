@@ -35,10 +35,6 @@ public class RequestController : Controller
     [HttpPost]
     public IActionResult Create(RoomRequestViewModel model)
     {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
         var organiserIdString = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
         var organiser = Organiser.GetOrganiser(Int32.Parse(organiserIdString));
         RoomRequest request = null;
