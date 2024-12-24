@@ -93,10 +93,6 @@ public class RequestController : Controller
     [HttpPost]
     public IActionResult Edit(int id, RoomRequestViewModel model)
     {
-        if (!ModelState.IsValid)
-        {
-            return View("Create", model);
-        }
 
         RoomRequest request;
         try {
