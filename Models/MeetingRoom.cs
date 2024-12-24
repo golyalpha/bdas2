@@ -16,7 +16,7 @@ public class MeetingRoom : Room
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
             cmd.CommandText = "reservations_pkg.edit_room";
 
-            cmd.Parameters.Add("p_id_room", Id > 0 ? (object)Id : DBNull.Value);
+            cmd.Parameters.Add("p_id_room", Id == 0 ? (object)DBNull.Value : Id);
             cmd.Parameters.Add("p_name", Name);
             cmd.Parameters.Add("p_capacity", Capacity);
             cmd.Parameters.Add("p_type", "MEETING_ROOM");

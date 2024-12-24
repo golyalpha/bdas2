@@ -35,7 +35,7 @@ namespace WebApp.Models
             {
                 conn.Open();
                 OracleCommand cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT id_country, name FROM COUNTRIES_V WHERE id_country = :id";
+                cmd.CommandText = @"SELECT id_country, ""name"" FROM COUNTRIES_V WHERE id_country = :id";
                 cmd.Parameters.Add("id", Id);
                 cmd.CommandType = System.Data.CommandType.Text;
                 using (OracleDataReader reader = cmd.ExecuteReader())

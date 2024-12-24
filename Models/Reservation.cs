@@ -9,10 +9,12 @@ public class Reservation
 {
     public int Id { get; set; }
 
-    [Required]
+    [Required(ErrorMessage = "Start Time is required")]
+    [Display(Name = "Reservation Start")]
     public DateTime Start { get; set; }
 
-    [Required]
+    [Required(ErrorMessage = "End Time is required")]
+    [Display(Name = "Reservation End")]
     public DateTime End { get; set; }
 
     [Required]
@@ -114,5 +116,33 @@ public class Reservation
 
             cmd.ExecuteNonQuery();
         }
+    }
+
+    public static List<Reservation> GetReservationsByOrganizerId(int organizerId) {
+        List<Reservation> list = new();
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            OracleCommand cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT * FROM RESERVATIONS_V WHERE id_organizer = :id";
+            cmd.Parameters.Add("id", organizerId);
+            cmd.CommandType = System.Data.CommandType.Text;
+            using (OracleDataReader reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    list.Add(new Reservation
+                    {
+                        Id = reader.GetInt32(0),
+                        Start = reader.GetDateTime(1),
+                        End = reader.GetDateTime(2),
+                        Room = Room.GetRoom(reader.GetInt32(3)),
+                        Request = (RoomRequest)RoomRequest.GetRequest(reader.GetInt32(4)),
+                        Organiser = Organiser.GetOrganiser(reader.GetInt32(5))
+                    });
+                }
+            }
+        }
+        return list;
     }
 }

@@ -17,11 +17,18 @@ public class UserController : Controller
         _logger = logger;
     }
 
-    public IActionResult Index()
+    public IActionResult Index(string searchString)
     {
         var users = WebApp.Models.Organiser.ListOrganisers();
+
+        if (!string.IsNullOrEmpty(searchString))
+        {
+            users = users.Where(u => u.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        ViewData["CurrentFilter"] = searchString;
         return View(users);
     }
+
 
     [HttpGet]
     [AllowAnonymous]
@@ -69,6 +76,8 @@ public class UserController : Controller
         return View(request);
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -108,7 +117,7 @@ public class UserController : Controller
         };
         organiser.Persist();
         organiser = Organiser.FindOrganiser(request.Email);  // Gotta grab the ID from DB
-        if (organiser is null || organiser.Id is null) {
+        if (organiser is null || organiser.Id is 0) {
             throw new InvalidOperationException(); // This should absolutely never have a chance of happening
         }
         var credential = new Credential
@@ -121,4 +130,24 @@ public class UserController : Controller
         return RedirectToAction("Login");
     }
 
+
+    [HttpGet]
+    public IActionResult Details(int id)
+    {
+        var user = Organiser.GetOrganiser(id);
+        if (user == null)
+        {
+            return NotFound();
+        }
+        var reservations = Reservation.GetReservationsByOrganizerId(id);
+        var requests = RoomRequest.GetRequestsByOrganiserId(id);
+        var model = new UserDetailsViewModel
+        {
+            User = user,
+            Reservations = reservations,
+            Requests = requests
+        };
+
+        return View(model);
+    }
 }

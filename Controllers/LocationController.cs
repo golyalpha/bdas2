@@ -29,8 +29,6 @@ public class LocationController : Controller
     [HttpPost]
     public IActionResult Create(LocationViewModel locationViewModel)
     {
-
-            System.Console.Out.WriteLine(locationViewModel.CityId);
             locationViewModel.Location.City = City.GetCity(locationViewModel.CityId);
             locationViewModel.Location.Persist();
             return RedirectToAction("Index");

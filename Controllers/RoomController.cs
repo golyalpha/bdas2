@@ -15,98 +15,126 @@ public class RoomController : Controller
     // Index: Zobrazí seznam místností
     public IActionResult Index()
     {
-        var objects = WebApp.Models.Room.ListRooms();
-        var rooms = new List<Room>();
-        foreach (var obj in objects)
-        {
-            rooms.Add((Room)obj);
-        }
+        var rooms = WebApp.Models.Room.ListRooms();
         return View(rooms);
     }
 
-    // GET: Room/Edit/{id}
+    // GET: Room/Create
     [HttpGet]
-    [Route("Room/Edit/{id?}")]
-    [Route("Room/Create")]
-    public IActionResult Persist(int? id)
+    public IActionResult Create()
     {
-        if (id == null || id == 0)
+        var model = new RoomViewModel
         {
-            // Nový záznam
-            var newRoom = new Room
-            {
-                Id = 0,
-                Name = string.Empty,
-                Capacity = 0,
-                Type = "MEETING_ROOM", // Výchozí typ
-                Location = new Location { Id = 0 },
-                Organiser = new Organiser { Id = 0 }
-            };
-            return View("Persist", newRoom); // Naète formuláø Persist.cshtml
-        }
-        else
-        {
-            // Naèítáme existující záznam
-            var room = Room.GetRoom(id.Value);
-            if (room == null)
-            {
-                return NotFound();
-            }
-            return View("Persist", room); // Naète formuláø Persist.cshtml
-        }
+            Locations = Location.ListLocations(),
+            Organisers = Organiser.ListOrganisers()
+        };
+
+        return View(model);
     }
 
-    // POST: Room/Persist
+    // POST: Room/Create
     [HttpPost]
-    public IActionResult Persist(IFormCollection form)
+    public IActionResult Create(RoomViewModel roomViewModel)
+    {
+        var room = roomViewModel.Room;
+        room.Location = Location.GetLocation(roomViewModel.LocationId);
+        room.Organiser = Organiser.GetOrganiser(roomViewModel.OrganiserId);
+        if(room.Type == "MEETING_ROOM")
+        {
+            var meetingRoom = new MeetingRoom
+            {
+                Name = room.Name,
+                Capacity = room.Capacity,
+                Type = room.Type,
+                Location = room.Location,
+                Organiser = room.Organiser,
+                VideoCallReady = roomViewModel.VideoCallReady ?? false
+            };
+            meetingRoom.Persist();
+        }
+        else if (room.Type == "PRESENTATION_ROOM")
+        {
+            var presentationRoom = new PresentationRoom
+            {
+                Name = room.Name,
+                Capacity = room.Capacity,
+                Type = room.Type,
+                Location = room.Location,
+                Organiser = room.Organiser,
+                PodiumSize = roomViewModel.PodiumSize ?? 0
+            };
+            presentationRoom.Persist();
+        }
+        return RedirectToAction("Index");
+    }
+
+    // POST: Room/Edit/5
+    [HttpGet]
+    public IActionResult Edit(int id)
+    {
+        var room = Room.GetRoom(id);
+        if (room == null)
+        {
+            return NotFound();
+        }
+        var model = new RoomViewModel
+        {
+            Room = room,
+            Locations = Location.ListLocations(),
+            Organisers = Organiser.ListOrganisers(),
+            VideoCallReady = room is MeetingRoom meetingRoom ? meetingRoom.VideoCallReady : (bool?)null,
+            PodiumSize = room is PresentationRoom presentationRoom ? presentationRoom.PodiumSize : (int?)null
+        };
+
+        return View("Create", model); // Reuse Create view for editing
+    }
+
+    [HttpPost]
+    public IActionResult Edit(RoomViewModel roomViewModel, int id)
     {
         try
         {
-            // Naètení spoleèných vlastností
-            int id = int.TryParse(form["Id"], out var parsedId) ? parsedId : 0;
-            string name = form["Name"];
-            int capacity = int.Parse(form["Capacity"]);
-            string type = form["Type"];
-            int locationId = int.Parse(form["Location.Id"]);
-            int organiserId = int.Parse(form["Organiser.Id"]);
+            var room = roomViewModel.Room;
+            room.Id = id;
+            room.Location = Location.GetLocation(roomViewModel.LocationId);
+            room.Organiser = Organiser.GetOrganiser(roomViewModel.OrganiserId);
 
-            // Výbìr podtypu a volání Persist
-            if (type == "MEETING_ROOM")
+            if (room.Type == "MEETING_ROOM")
             {
-                string vcReady = form["VideoCallReady"];
                 var meetingRoom = new MeetingRoom
                 {
                     Id = id,
-                    Name = name,
-                    Capacity = capacity,
-                    Type = type,
-                    Location = new Location { Id = locationId },
-                    Organiser = new Organiser { Id = organiserId },
-                    VideoCallReady = vcReady == "Y"
+                    Name = room.Name,
+                    Capacity = room.Capacity,
+                    Type = room.Type,
+                    Location = room.Location,
+                    Organiser = room.Organiser,
+                    VideoCallReady = roomViewModel.VideoCallReady ?? false
                 };
                 meetingRoom.Persist();
             }
-            else if (type == "PRESENTATION_ROOM")
+            else if (room.Type == "PRESENTATION_ROOM")
             {
-                int podiumSize = int.Parse(form["PodiumSize"]);
                 var presentationRoom = new PresentationRoom
                 {
                     Id = id,
-                    Name = name,
-                    Capacity = capacity,
-                    Type = type,
-                    Location = new Location { Id = locationId },
-                    Organiser = new Organiser { Id = organiserId },
-                    PodiumSize = podiumSize
+                    Name = room.Name,
+                    Capacity = room.Capacity,
+                    Type = room.Type,
+                    Location = room.Location,
+                    Organiser = room.Organiser,
+                    PodiumSize = roomViewModel.PodiumSize ?? 0
                 };
                 presentationRoom.Persist();
             }
+
             return RedirectToAction("Index");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error saving room.");
-            return RedirectToAction("Index");
+            _logger.LogError(ex, "Error updating room.");
+            ModelState.AddModelError("", "An error occurred while saving the room.");
+            return View("Create", roomViewModel);
         }
     }
 

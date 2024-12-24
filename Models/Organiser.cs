@@ -7,7 +7,7 @@ namespace WebApp.Models;
 
 public class Organiser
 {
-    public int? Id { get; set; }
+    public int Id { get; set; }
 
     [Required]
     public string Name { get; set; }
@@ -26,7 +26,7 @@ public class Organiser
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
             cmd.CommandText = "reservations_pkg.edit_organizer";
-            cmd.Parameters.Add("id_organizer", Id);
+            cmd.Parameters.Add("id_organizer", Id == 0 ? (object)DBNull.Value : Id);
             cmd.Parameters.Add("name", Name);
             cmd.Parameters.Add("email", Email);
             cmd.Parameters.Add("id_role", Role.Id);
@@ -44,7 +44,7 @@ public class Organiser
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_organizer, name, email, id_role FROM ORGANIZERS_V WHERE id_organizer = :id";
+            cmd.CommandText = @"SELECT id_organizer, ""name"", email, id_role FROM ORGANIZERS_V WHERE id_organizer = :id";
             cmd.Parameters.Add("id", Id);
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
@@ -73,7 +73,7 @@ public class Organiser
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_organizer, name, email, id_role FROM ORGANIZERS_V WHERE email = :email";
+            cmd.CommandText = @"SELECT id_organizer, ""name"", email, id_role FROM ORGANIZERS_V WHERE email = :email";
             cmd.Parameters.Add("email", Email);
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
@@ -103,7 +103,7 @@ public class Organiser
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_organizer, name, email, id_role FROM ORGANIZERS_V";
+            cmd.CommandText = @"SELECT id_organizer, ""name"", email, id_role FROM ORGANIZERS_V";
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {

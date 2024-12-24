@@ -1,0 +1,45 @@
+﻿@model WebApp.Models.UserDetailsViewModel
+
+@{
+    ViewData["Title"] = "User Details";
+}
+
+<h3>Room Requests</h3>
+@if (Model.Requests != null && Model.Requests.Any())
+{
+    <ul>
+        @foreach (var request in Model.Requests)
+        {
+            <li>
+                @Html.DisplayNameFor(model => request.Type): @Html.DisplayFor(model => request.Type)<br />
+                @Html.DisplayNameFor(model => request.Start): @Html.DisplayFor(model => request.Start)<br />
+                @Html.DisplayNameFor(model => request.End): @Html.DisplayFor(model => request.End)<br />
+            </li>
+        }
+    </ul>
+}
+else
+{
+    <p>No room requests found.</p>
+}
+
+<h3>Reservations</h3>
+@if (Model.Reservations != null && Model.Reservations.Any())
+{
+    <ul>
+        @foreach (var reservation in Model.Reservations)
+        {
+            <li>
+                @Html.DisplayNameFor(model => reservation.Room.Name): @Html.DisplayFor(model => reservation.Room.Name)<br />
+                @Html.DisplayNameFor(model => reservation.Start): @Html.DisplayFor(model => reservation.Start)<br />
+                @Html.DisplayNameFor(model => reservation.End): @Html.DisplayFor(model => reservation.End)<br />
+            </li>
+        }
+    </ul>
+}
+else
+{
+    <p>No reservations found.</p>
+}
+
+<a href="@Url.Action("Index", "User")">Back to User List</a>
