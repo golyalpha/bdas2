@@ -25,7 +25,6 @@ public class RoomController : Controller
     {
         var model = new RoomViewModel
         {
-            Room = new Room(),
             Locations = Location.ListLocations(),
             Organisers = Organiser.ListOrganisers()
         };

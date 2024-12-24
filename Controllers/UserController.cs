@@ -69,6 +69,8 @@ public class UserController : Controller
         return View(request);
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -121,4 +123,24 @@ public class UserController : Controller
         return RedirectToAction("Login");
     }
 
+
+    [HttpGet]
+    public IActionResult Details(int id)
+    {
+        var user = Organiser.GetOrganiser(id);
+        if (user == null)
+        {
+            return NotFound();
+        }
+        var reservations = Reservation.GetReservationsByOrganizerId(id);
+        var requests = RoomRequest.GetRequestsByOrganiserId(id);
+        var model = new UserDetailsViewModel
+        {
+            User = user,
+            Reservations = reservations,
+            Requests = requests
+        };
+
+        return View(model);
+    }
 }

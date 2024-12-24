@@ -9,6 +9,7 @@ public class Room
     public int Id { get; set; }
 
     [Required]
+    [Display(Name = "Room Name")]
     public string Name { get; set; }
     
     [Required]
