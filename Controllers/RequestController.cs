@@ -24,7 +24,11 @@ public class RequestController : Controller
     [HttpGet]
     public IActionResult Create()
     {
-        return View(); // Zobraz� formul�� Create.cshtml
+        var model = new RoomRequestViewModel
+        {
+            Locations = Location.ListLocations()
+        };
+        return View(model);
     }
 
     // POST: Request/Create

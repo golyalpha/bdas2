@@ -37,7 +37,7 @@ public class Role
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_role, name FROM ROLES_V WHERE id_role = :id";
+            cmd.CommandText = @"SELECT id_role, ""name"" FROM ROLES_V WHERE id_role = :id";
             cmd.Parameters.Add("id", Id);
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
@@ -65,7 +65,7 @@ public class Role
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_role, name FROM ROLES_V";
+            cmd.CommandText = @"SELECT id_role, ""name"" FROM ROLES_V";
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {

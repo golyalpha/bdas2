@@ -97,28 +97,28 @@ DROP TABLE rooms CASCADE CONSTRAINTS;
 
 CREATE TABLE cities (
     id_city    NUMBER NOT NULL,
-    name       VARCHAR2(64) NOT NULL,
+    "name"       VARCHAR2(64) NOT NULL,
     id_country NUMBER NOT NULL
 );
 
 ALTER TABLE cities ADD CONSTRAINT cities_pk PRIMARY KEY ( id_city );
 
-ALTER TABLE cities ADD CONSTRAINT city_name_id_country_un UNIQUE ( name,
+ALTER TABLE cities ADD CONSTRAINT city_name_id_country_un UNIQUE ( "name",
                                                                    id_country );
 
 CREATE TABLE countries (
     id_country NUMBER NOT NULL,
-    name       VARCHAR2(32) NOT NULL
+    "name"       VARCHAR2(32) NOT NULL
 );
 
 ALTER TABLE countries ADD CONSTRAINT countries_pk PRIMARY KEY ( id_country );
 
-ALTER TABLE countries ADD CONSTRAINT countries_name_un UNIQUE ( name );
+ALTER TABLE countries ADD CONSTRAINT countries_name_un UNIQUE ( "name" );
 
 CREATE TABLE credentials (
     id_credential   INTEGER NOT NULL,
     credential_type CHAR(8) NOT NULL,
-    data            VARCHAR2(256) NOT NULL,
+    "data"            VARCHAR2(256) NOT NULL,
     created_at      TIMESTAMP WITH LOCAL TIME ZONE NOT NULL,
     id_organizer    NUMBER NOT NULL
 );
@@ -127,7 +127,7 @@ ALTER TABLE credentials ADD CONSTRAINT credentials_pk PRIMARY KEY ( id_credentia
 
 CREATE TABLE images (
     id_image     NUMBER NOT NULL,
-    data         BLOB NOT NULL,
+    "data"         BLOB NOT NULL,
     id_organizer NUMBER NOT NULL,
     id_location  NUMBER NOT NULL,
     id_room      NUMBER NOT NULL
@@ -152,7 +152,7 @@ ALTER TABLE images ADD CONSTRAINT images_pk PRIMARY KEY ( id_image );
 
 CREATE TABLE locations (
     id_location        NUMBER NOT NULL,
-    name               VARCHAR2(32) NOT NULL,
+    "name"               VARCHAR2(32) NOT NULL,
     availability_start DATE NOT NULL,
     availability_end   DATE NOT NULL,
     id_city            NUMBER NOT NULL,
@@ -161,7 +161,7 @@ CREATE TABLE locations (
 
 ALTER TABLE locations ADD CONSTRAINT locations_pk PRIMARY KEY ( id_location );
 
-ALTER TABLE locations ADD CONSTRAINT location_name_id_city_un UNIQUE ( name,
+ALTER TABLE locations ADD CONSTRAINT location_name_id_city_un UNIQUE ( "name",
                                                                        id_city );
 
 CREATE TABLE meeting_rooms (
@@ -195,18 +195,17 @@ ALTER TABLE notifications ADD CONSTRAINT notifications_pk PRIMARY KEY ( id_notif
 
 CREATE TABLE organizers (
     id_organizer            NUMBER NOT NULL,
-    name                    VARCHAR2(64) NOT NULL,
+    "name"                    VARCHAR2(64) NOT NULL,
     email                   VARCHAR2(320) NOT NULL,
     id_role                 INTEGER,
     id_organizer_substitute NUMBER
 );
 
+ALTER TABLE organizers ADD CONSTRAINT organizers_pk PRIMARY KEY ( id_organizer );
 
 ALTER TABLE organizers
     ADD CONSTRAINT organizers_organizers_fk FOREIGN KEY ( id_organizer )
         REFERENCES organizers ( id_organizer );
-
-ALTER TABLE organizers ADD CONSTRAINT organizers_pk PRIMARY KEY ( id_organizer );
 
 CREATE TABLE presentation_rooms (
     id_room     NUMBER NOT NULL,
@@ -237,7 +236,7 @@ ALTER TABLE reservations ADD CONSTRAINT reservations_pk PRIMARY KEY ( id_reserva
 
 CREATE TABLE roles (
     id_role INTEGER NOT NULL,
-    name    VARCHAR2(32) NOT NULL
+    "name"    VARCHAR2(32) NOT NULL
 );
 
 ALTER TABLE roles ADD CONSTRAINT roles_pk PRIMARY KEY ( id_role );
@@ -245,7 +244,7 @@ ALTER TABLE roles ADD CONSTRAINT roles_pk PRIMARY KEY ( id_role );
 CREATE TABLE room_requests (
     id_room_request    NUMBER NOT NULL,
     min_capacity       NUMBER NOT NULL,
-    type               VARCHAR2(21) NOT NULL,
+    "type"               VARCHAR2(21) NOT NULL,
     reservation_start  DATE NOT NULL,
     reservation_end    DATE,
     reservation_length DATE,
@@ -254,25 +253,25 @@ CREATE TABLE room_requests (
 );
 
 ALTER TABLE room_requests
-    ADD CONSTRAINT ch_inh_room_request CHECK ( type IN ( 'MEETING_RREQUEST', 'PRESENTATION_RREQUEST', 'ROOM_REQUEST' ) );
+    ADD CONSTRAINT ch_inh_room_request CHECK ( "type" IN ( 'MEETING_RREQUEST', 'PRESENTATION_RREQUEST', 'ROOM_REQUEST' ) );
 
 ALTER TABLE room_requests ADD CONSTRAINT room_request_pk PRIMARY KEY ( id_room_request );
 
 CREATE TABLE rooms (
     id_room      NUMBER NOT NULL,
-    name         VARCHAR2(32) NOT NULL,
+    "name"         VARCHAR2(32) NOT NULL,
     capacity     NUMBER NOT NULL,
-    type         VARCHAR2(17) NOT NULL,
+    "type"         VARCHAR2(17) NOT NULL,
     id_location  NUMBER NOT NULL,
     id_organizer NUMBER NOT NULL
 );
 
 ALTER TABLE rooms
-    ADD CONSTRAINT ch_inh_room CHECK ( type IN ( 'MEETING_ROOM', 'PRESENTATION_ROOM', 'ROOM' ) );
+    ADD CONSTRAINT ch_inh_room CHECK ( "type" IN ( 'MEETING_ROOM', 'PRESENTATION_ROOM', 'ROOM' ) );
 
 ALTER TABLE rooms ADD CONSTRAINT room_pk PRIMARY KEY ( id_room ) ;
 
-ALTER TABLE rooms ADD CONSTRAINT rooms_name_un UNIQUE ( name );
+ALTER TABLE rooms ADD CONSTRAINT rooms_name_un UNIQUE ( "name" );
 
 ALTER TABLE cities
     ADD CONSTRAINT city_country_fk FOREIGN KEY ( id_country )
@@ -366,34 +365,34 @@ ALTER TABLE room_requests
         REFERENCES organizers ( id_organizer ) ON DELETE CASCADE;
 
 CREATE OR REPLACE VIEW CITIES_V ( ID_CITY
-   , name
+   , "name"
    , ID_COUNTRY )
  AS SELECT
     ID_CITY
-   , name
+   , "name"
    , ID_COUNTRY
  FROM 
     CITIES 
 ;
 
 CREATE OR REPLACE VIEW COUNTRIES_V ( ID_COUNTRY
-   , name )
+   , "name" )
  AS SELECT
     ID_COUNTRY
-   , name
+   , "name"
  FROM 
     COUNTRIES 
 ;
 
 CREATE OR REPLACE VIEW CREDENTIALS_V ( ID_CREDENTIAL
    , credential_type
-   , data
+   , "data"
    , created_at
    , ID_ORGANIZER )
  AS SELECT
     ID_CREDENTIAL
    , credential_type
-   , data
+   , "data"
    , created_at
    , ID_ORGANIZER
  FROM 
@@ -401,13 +400,13 @@ CREATE OR REPLACE VIEW CREDENTIALS_V ( ID_CREDENTIAL
 ;
 
 CREATE OR REPLACE VIEW IMAGES_V ( ID_IMAGE
-   , data
+   , "data"
    , ID_ORGANIZER
    , ID_LOCATION
    , ID_ROOM )
  AS SELECT
     ID_IMAGE
-   , data
+   , "data"
    , ID_ORGANIZER
    , ID_LOCATION
    , ID_ROOM
@@ -416,14 +415,14 @@ CREATE OR REPLACE VIEW IMAGES_V ( ID_IMAGE
 ;
 
 CREATE OR REPLACE VIEW LOCATIONS_V ( ID_LOCATION
-   , name
+   , "name"
    , availability_start
    , availability_end
    , ID_CITY
    , ID_ORGANIZER )
  AS SELECT
     ID_LOCATION
-   , name
+   , "name"
    , availability_start
    , availability_end
    , ID_CITY
@@ -448,13 +447,13 @@ CREATE OR REPLACE VIEW NOTIFICATIONS_V ( ID_NOTIFICATION
 ;
 
 CREATE OR REPLACE VIEW ORGANIZERS_V ( ID_ORGANIZER
-   , name
+   , "name"
    , email
    , ID_ROLE
    , ID_ORGANIZER_SUBSTITUTE )
  AS SELECT
     ID_ORGANIZER
-   , name
+   , "name"
    , email
    , ID_ROLE
    , ID_ORGANIZER_SUBSTITUTE
@@ -480,15 +479,15 @@ CREATE OR REPLACE VIEW RESERVATIONS_V ( ID_RESERVATION
 ;
 
 CREATE OR REPLACE VIEW ROLES_V ( ID_ROLE
-   , name )
+   , "name" )
  AS SELECT
     ID_ROLE
-   , name
+   , "name"
  FROM 
     ROLES 
 ;
 
-CREATE OR REPLACE VIEW ROOM_REQUESTS_V ( id_organizer, id_location, id_room_request, min_capacity, reservation_start, reservation_end, reservation_length, type, vc_ready, podium_size ) AS
+CREATE OR REPLACE VIEW ROOM_REQUESTS_V ( id_organizer, id_location, id_room_request, min_capacity, reservation_start, reservation_end, reservation_length, "type", vc_ready, podium_size ) AS
 SELECT
     organizers.id_organizer,
     locations.id_location,
@@ -497,7 +496,7 @@ SELECT
     room_requests.reservation_start,
     room_requests.reservation_end,
     room_requests.reservation_length,
-    room_requests.type,
+    room_requests."type",
     meeting_rrequests.vc_ready,
     presentation_rrequests.podium_size
 FROM
@@ -510,9 +509,9 @@ FROM
 
 CREATE OR REPLACE VIEW ROOMS_V (
     id_room,
-    name,
+    "name",
     capacity,
-    type,
+    "type",
     id_location,
     availability_start,
     availability_end,
@@ -522,9 +521,9 @@ CREATE OR REPLACE VIEW ROOMS_V (
 ) AS
 SELECT
     r.id_room,
-    r.name,
+    r."name",
     r.capacity,
-    r.type,
+    r."type",
     l.id_location,
     l.availability_start,
     l.availability_end,
@@ -539,13 +538,13 @@ FROM
 ;
 
 
-CREATE OR REPLACE VIEW USERS_V ( ID_ORGANIZER, email, credential_type, data, name ) AS
+CREATE OR REPLACE VIEW USERS_V ( ID_ORGANIZER, email, credential_type, "data", "name" ) AS
 SELECT
 	o.ID_ORGANIZER,
 	o.email,
 	c.credential_type,
-	c.data,
-	r.name
+	c."data",
+	r."name"
 FROM ORGANIZERS o 
      JOIN CREDENTIALS c ON o.ID_ORGANIZER = c.ID_ORGANIZER
 	JOIN ROLES r ON o.ID_ROLE = r.ID_ROLE
@@ -573,7 +572,7 @@ DECLARE
     d VARCHAR2(17);
 BEGIN
     SELECT
-        a.type
+        a."type"
     INTO d
     FROM
         rooms a
@@ -600,7 +599,7 @@ DECLARE
     d VARCHAR2(17);
 BEGIN
     SELECT
-        a.type
+        a."type"
     INTO d
     FROM
         rooms a
@@ -627,7 +626,7 @@ DECLARE
     d VARCHAR2(21);
 BEGIN
     SELECT
-        a.type
+        a."type"
     INTO d
     FROM
         room_requests a
@@ -654,7 +653,7 @@ DECLARE
     d VARCHAR2(21);
 BEGIN
     SELECT
-        a.type
+        a."type"
     INTO d
     FROM
         room_requests a

@@ -22,7 +22,10 @@ public class RoomRequest
 
     [Display(Name = "Minimum Capacity")]
     public int MinimumCapacity { get; set; }
+
+    [Display(Name = "Room Request Type")]
     public String Type { get; set; }
+
     public Location Location { get; set; }
 
     [Required]
@@ -68,7 +71,7 @@ public class RoomRequest
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_organizer, id_location, id_room_request, min_capacity, reservation_start, reservation_length, reservation_end, type, vc_ready, podium_size FROM ROOM_REQUESTS_V WHERE id_room_request = :id";
+            cmd.CommandText = @"SELECT id_organizer, id_location, id_room_request, min_capacity, reservation_start, reservation_length, reservation_end, ""type"", vc_ready, podium_size FROM ROOM_REQUESTS_V WHERE id_room_request = :id";
             cmd.Parameters.Add("id", Id);
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
@@ -144,7 +147,7 @@ public class RoomRequest
                             MinimumCapacity = reader.GetInt32(3),
                             Start = reader.GetDateTime(4),
                             End = reader.GetDateTime(5),
-                            Length = reader.GetDateTime(6), // Convert INTERVAL to TimeSpan
+                            Length = reader.GetDateTime(6),
                             Type = reader.GetString(7),
                             PodiumSize = reader.GetInt32(9),
                             Location = Location.GetLocation(reader.GetInt32(1)),
@@ -159,7 +162,7 @@ public class RoomRequest
                             MinimumCapacity = reader.GetInt32(3),
                             Start = reader.GetDateTime(4),
                             End = reader.GetDateTime(5),
-                            Length = reader.GetDateTime(6), // Convert INTERVAL to TimeSpan
+                            Length = reader.GetDateTime(6),
                             Type = reader.GetString(7),
                             VideoCallReady = reader.GetString(8) == "Y", // Convert CHAR(1) to Boolean
                             Location = Location.GetLocation(reader.GetInt32(1)),
@@ -190,4 +193,60 @@ public class RoomRequest
         }
     }
 
+    public static List<RoomRequest> GetRequestsByOrganiserId(int organiserId)
+    {
+        List<RoomRequest> list = new List<RoomRequest>();
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            OracleCommand cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT * FROM ROOM_REQUESTS_V WHERE id_organizer = :id";
+            cmd.Parameters.Add("id", organiserId);
+            cmd.CommandType = System.Data.CommandType.Text;
+            using (OracleDataReader reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    RoomRequest? request = null;
+
+                    // Překontrolujeme typ požadavku
+                    if (reader.GetString(7) == "PRESENTATION_RREQUEST")
+                    {
+                        request = new PresentationRequest
+                        {
+                            Id = reader.GetInt32(2),
+                            MinimumCapacity = reader.GetInt32(3),
+                            Start = reader.GetDateTime(4),
+                            End = reader.GetDateTime(5),
+                            Length = reader.GetDateTime(6), // Convert INTERVAL to TimeSpan
+                            Type = reader.GetString(7),
+                            PodiumSize = reader.GetInt32(9),
+                            Location = Location.GetLocation(reader.GetInt32(1)),
+                            Organiser = Organiser.GetOrganiser(reader.GetInt32(0))
+                        };
+                    }
+                    if (reader.GetString(7) == "MEETING_RREQUEST")
+                    {
+                        request = new MeetingRequest
+                        {
+                            Id = reader.GetInt32(2),
+                            MinimumCapacity = reader.GetInt32(3),
+                            Start = reader.GetDateTime(4),
+                            End = reader.GetDateTime(5),
+                            Length = reader.GetDateTime(6), // Convert INTERVAL to TimeSpan
+                            Type = reader.GetString(7),
+                            VideoCallReady = reader.GetString(8) == "Y",
+                            Location = Location.GetLocation(reader.GetInt32(1)),
+                            Organiser = Organiser.GetOrganiser(reader.GetInt32(0))
+                        };
+                    }
+                    if (request != null)
+                    {
+                        list.Add(request);
+                    }
+                }
+            }
+        }
+        return list;
+    }
 }

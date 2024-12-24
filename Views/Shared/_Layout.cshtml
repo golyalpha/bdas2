@@ -36,8 +36,21 @@
                     </ul>
                     <!-- Right-aligned buttons -->
                     <div class="ms-auto">
-                        <a class="btn btn-primary" asp-area="" asp-controller="User" asp-action="Login">Login</a>
-                        <a class="btn btn-primary" asp-area="" asp-controller="User" asp-action="Register">Register</a>
+                        <div class="header">
+                            @if (User.Identity.IsAuthenticated)
+                            {
+                                <span>Welcome, @User.Identity.Name!</span>
+                                <form asp-controller="User" asp-action="Logout" method="post" style="display:inline;">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-primary" type="submit" class="btn btn-link">Logout</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <a class="btn btn-primary" asp-area="" asp-controller="User" asp-action="Login">Login</a>
+                                <a class="btn btn-primary" asp-area="" asp-controller="User" asp-action="Register">Register</a>
+                            }
+                        </div>
                     </div>
                 </div>
             </div>

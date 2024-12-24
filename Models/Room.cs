@@ -9,6 +9,7 @@ public class Room
     public int Id { get; set; }
 
     [Required]
+    [Display(Name = "Room Name")]
     public string Name { get; set; }
     
     [Required]
@@ -19,6 +20,7 @@ public class Room
     [Required]
     
     public Location Location { get; set; }
+
     [Required]
     public Organiser Organiser { get; set; }
 
@@ -33,7 +35,7 @@ public class Room
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_room, id_location, name, capacity, type, vc_ready, podium_size, id_organizer FROM ROOMS_V WHERE id_room = :id";
+            cmd.CommandText = @"SELECT id_room, id_location, ""name"", capacity, ""type"", vc_ready, podium_size, id_organizer FROM ROOMS_V WHERE id_room = :id";
             cmd.Parameters.Add("id", Id);
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
@@ -80,20 +82,20 @@ public class Room
         }
     }
 
-    public static List<object> ListRooms()
+    public static List<Room> ListRooms()
     {
-        List<object> list = new List<object>();
+        List<Room> list = new List<Room>();
         using (OracleConnection conn = DBManager.GetConnection())
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_room, id_location, name, capacity, type, vc_ready, podium_size, id_organizer FROM ROOMS_V"; 
+            cmd.CommandText = @"SELECT id_room, id_location, ""name"", capacity, ""type"", vc_ready, podium_size, id_organizer FROM ROOMS_V";
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {
                 while (reader.Read())
                 {
-                    object? room = null;
+                    Room? room = null;
                     //reader.Read();
                     if (reader.GetString(4) == "PRESENTATION_ROOM")
                     {
