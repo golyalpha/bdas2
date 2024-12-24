@@ -78,10 +78,11 @@ public class RoomController : Controller
         {
             return NotFound();
         }
-
         var model = new RoomViewModel
         {
             Room = room,
+            Locations = Location.ListLocations(),
+            Organisers = Organiser.ListOrganisers(),
             VideoCallReady = room is MeetingRoom meetingRoom ? meetingRoom.VideoCallReady : (bool?)null,
             PodiumSize = room is PresentationRoom presentationRoom ? presentationRoom.PodiumSize : (int?)null
         };
@@ -92,7 +93,6 @@ public class RoomController : Controller
     [HttpPost]
     public IActionResult Edit(RoomViewModel roomViewModel, int id)
     {
-
         try
         {
             var room = roomViewModel.Room;

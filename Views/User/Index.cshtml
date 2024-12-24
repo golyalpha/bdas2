@@ -7,10 +7,10 @@
 <div class="container mt-5">
     <h2>@ViewData["Title"]</h2>
 
+
     <table class="table table-dark table-striped">
         <thead>
             <tr>
-                <th>ID</th>
                 <th>Name</th>
                 <th>Email</th>
             </tr>
@@ -19,8 +19,7 @@
             @foreach (var organiser in Model)
             {
                 <tr>
-                    <td>@organiser.Id</td>
-                    <td>@organiser.Name</td>
+                    <td><a href="/User/Details/@organiser.Id">@organiser.Name</a></td>
                     <td>@organiser.Email</td>
                 </tr>
             }

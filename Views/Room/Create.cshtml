@@ -25,6 +25,7 @@
                 new { Value = "MEETING_ROOM", Text = "Meeting Room" },
                 new { Value = "PRESENTATION_ROOM", Text = "Presentation Room" }}, "Value", "Text", Model.Room.Type),
                 new { @class = "form-control", id = "roomType" })
+            @Html.HiddenFor(model => model.Room.Type)
         </div>
          <!-- Dropdown for Locations -->
         <div class="form-group">
@@ -116,15 +117,13 @@
         });
         document.addEventListener("DOMContentLoaded", function () {
             // Check if the room ID is greater than 0 (indicating edit mode)
-            const roomId = @Model.Room.Id;
+            const roomId = @((Model.Room?.Id ?? 0));
             const roomTypeField = document.getElementById("roomType");
 
             if (roomId > 0) {
-                // Add the 'disabled' attribute for edit mode
-                roomTypeField.setAttribute("disabled", "true");
-                @Html.HiddenFor(model => model.Room.Type)
+                roomTypeField.setAttribute("disabled", true);
             } else {
-                // Remove the 'disabled' attribute for create mode
+                // Odstraní atribut readonly v režimu vytváření
                 roomTypeField.removeAttribute("disabled");
             }
         });
