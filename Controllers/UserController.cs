@@ -17,11 +17,18 @@ public class UserController : Controller
         _logger = logger;
     }
 
-    public IActionResult Index()
+    public IActionResult Index(string searchString)
     {
         var users = WebApp.Models.Organiser.ListOrganisers();
+
+        if (!string.IsNullOrEmpty(searchString))
+        {
+            users = users.Where(u => u.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        ViewData["CurrentFilter"] = searchString;
         return View(users);
     }
+
 
     [HttpGet]
     [AllowAnonymous]
