@@ -38,6 +38,23 @@
                 @Html.ValidationMessageFor(m => m.Request.MinimumCapacity, "", new { @class = "text-danger" })
             </div>
         </div>
+
+        <div class="form-group">
+            <label for="Type">Type</label>
+            <select id="@Html.IdFor(m => m.Request.Type)" name="@Html.NameFor(m => m.Request.Type)" class="form-control" readonly>
+                <option value=""></option>
+                @if (Model.Request.Type == "MEETING_RREQUEST")
+                {
+                    <option value="MEETING_RREQUEST" selected="selected">Meeting Room</option>
+                    <option value="PRESENTATION_RREQUEST">Presentation Room</option>
+                }
+                else
+                {
+                    <option value="MEETING_RREQUEST">Meeting Room</option>
+                    <option value="PRESENTATION_RREQUEST" selected="selected">Presentation Room</option>
+                }
+            </select>
+        </div>
         
         <div class="form-group">
             @Html.LabelFor(m => m.LocationId)
