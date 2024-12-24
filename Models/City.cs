@@ -37,7 +37,7 @@ namespace WebApp.Models
             {
                 conn.Open();
                 OracleCommand cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT id_city, name, id_country FROM CITIES_V WHERE id_city = :id";
+                cmd.CommandText = @"SELECT id_city, ""name"", id_country FROM CITIES_V WHERE id_city = :id";
                 cmd.Parameters.Add("id", Id);
                 cmd.CommandType = System.Data.CommandType.Text;
                 using (OracleDataReader reader = cmd.ExecuteReader())
@@ -66,7 +66,7 @@ namespace WebApp.Models
             {
                 conn.Open();
                 OracleCommand cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT id_city, name, id_country FROM CITIES_V";
+                cmd.CommandText = @"SELECT id_city, ""name"", id_country FROM CITIES_V";
                 cmd.CommandType = System.Data.CommandType.Text;
                 using (OracleDataReader reader = cmd.ExecuteReader())
                 {

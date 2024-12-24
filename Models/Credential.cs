@@ -37,7 +37,7 @@ public class Credential
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_credential, data, credential_type, id_organizer FROM CREDENTIALS_V WHERE id_credential = :1";
+            cmd.CommandText = @"SELECT id_credential, ""data"", credential_type, id_organizer FROM CREDENTIALS_V WHERE id_credential = :1";
             cmd.Parameters.Add(Id);
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
@@ -66,7 +66,7 @@ public class Credential
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT id_credential, data, credential_type, id_organizer FROM CREDENTIALS_V";
+            cmd.CommandText = @"SELECT id_credential, ""data"", credential_type, id_organizer FROM CREDENTIALS_V";
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             { 

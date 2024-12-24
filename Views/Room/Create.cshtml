@@ -122,6 +122,7 @@
             if (roomId > 0) {
                 // Add the 'disabled' attribute for edit mode
                 roomTypeField.setAttribute("disabled", "true");
+                @Html.HiddenFor(model => model.Room.Type)
             } else {
                 // Remove the 'disabled' attribute for create mode
                 roomTypeField.removeAttribute("disabled");
