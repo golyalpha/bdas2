@@ -35,10 +35,6 @@ public class RequestController : Controller
     [HttpPost]
     public IActionResult Create(RoomRequestViewModel model)
     {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
         var organiserIdString = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
         var organiser = Organiser.GetOrganiser(Int32.Parse(organiserIdString));
         RoomRequest request = null;
@@ -52,7 +48,7 @@ public class RequestController : Controller
             ModelState.AddModelError(model.Request.Type, "Invalid Room Request Type");
             return View(model);
         }
-        request.Location = model.Request.Location;
+        request.Location = Location.GetLocation(model.LocationId);
         request.MinimumCapacity = model.Request.MinimumCapacity;
         request.Start = model.Request.Start;
         request.End = model.Request.End;
@@ -67,33 +63,64 @@ public class RequestController : Controller
     [HttpGet]
     public IActionResult Edit(int id)
     {
-        var request = RoomRequest.GetRequest(id); // Z�sk�n� konkr�tn� ��dosti podle ID
-        if (request == null)
-        {
+        RoomRequest request;
+        try {
+            request = RoomRequest.GetRequest(id);
+        } catch (KeyNotFoundException) {
             return NotFound();
         }
-        return View(request); // Zobraz� formul�� Edit.cshtml s p�edvypln�n�mi hodnotami
+
+        var organiserIdString = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (request.Organiser.Id != int.Parse(organiserIdString)){
+            return Unauthorized();
+        }
+
+        var model = new RoomRequestViewModel {
+            Request = request,
+            LocationId = request.Location.Id
+
+        };
+        if (request.Type == "MEETING_RREQUEST") {
+            model.MeetingRequest = (MeetingRequest)request;
+        }
+        if (request.Type == "PRESENTATION_RREQUEST") {
+            model.PresentationRequest = (PresentationRequest)request;
+        }
+        return View("Create", model); // Zobraz� formul�� Edit.cshtml s p�edvypln�n�mi hodnotami
     }
 
-    // POST: Request/Update
+    // POST: Request/Edit/5
     [HttpPost]
-    public IActionResult Update(RoomRequest updatedRequest)
+    public IActionResult Edit(int id, RoomRequestViewModel model)
     {
-        if (ModelState.IsValid)
-        {
-            var existingRequest = RoomRequest.GetRequest(updatedRequest.Id);
-            if (existingRequest != null)
-            {
-                // Aktualizace dat existuj�c� ��dosti
-                existingRequest.Start = updatedRequest.Start;
-                existingRequest.End = updatedRequest.End;
-                existingRequest.Organiser = updatedRequest.Organiser;
 
-                _logger.LogInformation("Request updated successfully.");
-                return RedirectToAction("Index");
-            }
+        RoomRequest request;
+        try {
+            request = RoomRequest.GetRequest(id);
+        } catch (KeyNotFoundException) {
+            return NotFound();
         }
-        return View("Edit", updatedRequest); // V p��pad� chyby se vr�t� na editovac� str�nku
+
+        var organiserIdString = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (request.Organiser.Id != int.Parse(organiserIdString)){
+            return Unauthorized();
+        }
+
+        if (request.Type == "MEETING_RREQUEST") {
+            ((MeetingRequest)request).VideoCallReady = model.MeetingRequest.VideoCallReady;
+        }
+        if (model.Request.Type == "PRESENTATION_RREQUEST") {
+            ((PresentationRequest)request).PodiumSize = model.PresentationRequest.PodiumSize;
+        }
+
+        request.Location = Location.GetLocation(model.LocationId);
+        request.MinimumCapacity = model.Request.MinimumCapacity;
+        request.Start = model.Request.Start;
+        request.End = model.Request.End;
+        request.Length = model.Request.Length;
+        request.Type = model.Request.Type;
+        request.Persist();
+        return RedirectToAction("Index");
     }
 
     [HttpPost]
