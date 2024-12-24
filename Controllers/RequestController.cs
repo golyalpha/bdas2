@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApp.Models;
@@ -14,7 +15,7 @@ public class RequestController : Controller
 
     public IActionResult Index()
     {
-        var requests = RoomRequest.ListRequests(); // Získání seznamu žádostí pro zobrazení v indexu
+        var requests = RoomRequest.ListRequests(); // Zï¿½skï¿½nï¿½ seznamu ï¿½ï¿½dostï¿½ pro zobrazenï¿½ v indexu
         return View(requests);
     }
 
@@ -23,32 +24,51 @@ public class RequestController : Controller
     [HttpGet]
     public IActionResult Create()
     {
-        return View(); // Zobrazí formuláø Create.cshtml
+        return View(); // Zobrazï¿½ formulï¿½ï¿½ Create.cshtml
     }
 
     // POST: Request/Create
     [HttpPost]
-    public IActionResult Create(RoomRequest request)
+    public IActionResult Create(RoomRequestViewModel model)
     {
-        if (ModelState.IsValid)
+        if (!ModelState.IsValid)
         {
-            // Logika pro pøidání nové žádosti (napøíklad ukládání do databáze)
-            _logger.LogInformation("New request created successfully.");
-            return RedirectToAction("Index");
+            return View(model);
         }
-        return View(request);
+        var organiserIdString = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var organiser = Organiser.GetOrganiser(Int32.Parse(organiserIdString));
+        RoomRequest request = null;
+        if (model.Request.Type == "MEETING_RREQUEST") {
+            request = model.MeetingRequest;
+        }
+        if (model.Request.Type == "PRESENTATION_RREQUEST") {
+            request = model.PresentationRequest; 
+        }
+        if (request == null){
+            ModelState.AddModelError(model.Request.Type, "Invalid Room Request Type");
+            return View(model);
+        }
+        request.Location = model.Request.Location;
+        request.MinimumCapacity = model.Request.MinimumCapacity;
+        request.Start = model.Request.Start;
+        request.End = model.Request.End;
+        request.Length = model.Request.Length;
+        request.Organiser = organiser;
+        request.Type = model.Request.Type;
+        request.Persist();
+        return RedirectToAction("Index");
     }
 
     // GET: Request/Edit/5
     [HttpGet]
     public IActionResult Edit(int id)
     {
-        var request = RoomRequest.GetRequest(id); // Získání konkrétní žádosti podle ID
+        var request = RoomRequest.GetRequest(id); // Zï¿½skï¿½nï¿½ konkrï¿½tnï¿½ ï¿½ï¿½dosti podle ID
         if (request == null)
         {
             return NotFound();
         }
-        return View(request); // Zobrazí formuláø Edit.cshtml s pøedvyplnìnými hodnotami
+        return View(request); // Zobrazï¿½ formulï¿½ï¿½ Edit.cshtml s pï¿½edvyplnï¿½nï¿½mi hodnotami
     }
 
     // POST: Request/Update
@@ -60,7 +80,7 @@ public class RequestController : Controller
             var existingRequest = RoomRequest.GetRequest(updatedRequest.Id);
             if (existingRequest != null)
             {
-                // Aktualizace dat existující žádosti
+                // Aktualizace dat existujï¿½cï¿½ ï¿½ï¿½dosti
                 existingRequest.Start = updatedRequest.Start;
                 existingRequest.End = updatedRequest.End;
                 existingRequest.Organiser = updatedRequest.Organiser;
@@ -69,7 +89,7 @@ public class RequestController : Controller
                 return RedirectToAction("Index");
             }
         }
-        return View("Edit", updatedRequest); // V pøípadì chyby se vrátí na editovací stránku
+        return View("Edit", updatedRequest); // V pï¿½ï¿½padï¿½ chyby se vrï¿½tï¿½ na editovacï¿½ strï¿½nku
     }
 
     [HttpPost]

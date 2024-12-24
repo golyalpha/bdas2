@@ -14,10 +14,13 @@ public class RoomRequest
     [Display(Name = "Start Time")]
     public DateTime Start { get; set; }
 
-    [Required(ErrorMessage = "End Time is required")]
     [Display(Name = "End Time")]
     public DateTime End { get; set; }
+    
+    [Display(Name = "Reservation Length")]
     public DateTime Length { get; set; }
+
+    [Display(Name = "Minimum Capacity")]
     public int MinimumCapacity { get; set; }
     public String Type { get; set; }
     public Location Location { get; set; }
@@ -132,7 +135,7 @@ public class RoomRequest
                 {
                     RoomRequest? request = null;
 
-                    // Pøekontrolujeme typ požadavku
+                    // Pï¿½ekontrolujeme typ poï¿½adavku
                     if (reader.GetString(7) == "PRESENTATION_RREQUEST")
                     {
                         request = new PresentationRequest

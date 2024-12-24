@@ -1,4 +1,4 @@
-﻿@model WebApp.Models.RoomRequest
+﻿@model WebApp.Models.RoomRequestViewModel
 
 @{
     ViewData["Title"] = "Create Request";
@@ -8,24 +8,107 @@
     <h2>Create Request</h2>
     <form id="createRequestForm" method="post" action="/Request/Create">
         <div class="form-group">
-            <label for="start">Start Time</label>
-            <input type="datetime-local" id="start" name="start" class="form-control" required />
+            @Html.LabelFor(m => m.Request.Start)
+            <div>
+                <input type="time"
+                       name="@Html.NameFor(m => m.Request.Start)"
+                       value="@Html.ValueFor(m => m.Request.Start)"
+                       id="@Html.IdFor(m => m.Request.Start)" />
+                @Html.ValidationMessageFor(m => m.Request.Start, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(m => m.Request.End)
+            <div>
+                <input type="time"
+                       name="@Html.NameFor(m => m.Request.End)"
+                       value="@Html.ValueFor(m => m.Request.End)"
+                       id="@Html.IdFor(m => m.Request.End)" />
+                @Html.ValidationMessageFor(m => m.Request.End, "", new { @class = "text-danger" })
+            </div>
         </div>
         <div class="form-group">
-            <label for="end">End Time</label>
-            <input type="datetime-local" id="end" name="end" class="form-control" required />
+            @Html.LabelFor(m => m.Request.MinimumCapacity)
+            <div>
+                <input type="number"
+                       name="@Html.NameFor(m => m.Request.MinimumCapacity)"
+                       value="@Html.ValueFor(m => m.Request.MinimumCapacity)"
+                       id="@Html.IdFor(m => m.Request.MinimumCapacity)" />
+                @Html.ValidationMessageFor(m => m.Request.MinimumCapacity, "", new { @class = "text-danger" })
+            </div>
         </div>
+        
         <div class="form-group">
-            <label for="organiserName">Organiser Name</label>
-            <input type="text" id="organiserName" name="organiserName" class="form-control" required />
+            @Html.LabelFor(m => m.LocationId)
+            <div>
+                <select id="@Html.IdFor(m => m.LocationId)" name="@Html.NameFor(m => m.LocationId)">
+                    @foreach (var location in Model.Locations)
+                    {
+                        @if (location.Id == Model.LocationId)
+                        {
+                            <option value="@location.Id.ToString()" selected>@location.Name, @location.City.Name, @location.City.Country.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@location.Id.ToString()">@location.Name, @location.City.Name, @location.City.Country.Name</option>
+                        }
+                    }
+                </select>
+            </div>
         </div>
-        <div class="form-group">
-            <label for="organiserEmail">Organiser Email</label>
-            <input type="email" id="organiserEmail" name="organiserEmail" class="form-control" required />
+
+        <div id="meetingRequestFields" style="display: none;">
+            <div class="form-group">
+                @Html.LabelFor(m => m.MeetingRequest.VideoCallReady)
+                @Html.CheckBoxFor(m => m.MeetingRequest.VideoCallReady)
+                @Html.ValidationMessageFor(m => m.MeetingRequest.VideoCallReady, "", new { @class = "text-danger" })
+            </div>
         </div>
+
+        <div id="presentationRequestFields" style="display: none;">
+            <div class="form-group">
+                @Html.LabelFor(m => m.PresentationRequest.PodiumSize)
+                <input type="number"
+                       name="@Html.NameFor(m => m.PresentationRequest.PodiumSize)"
+                       value="@Html.ValueFor(m => m.PresentationRequest.PodiumSize)"
+                       id="@Html.IdFor(m => m.PresentationRequest.PodiumSize)" />
+                @Html.ValidationMessageFor(m => m.PresentationRequest.PodiumSize, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
         <button type="submit" class="btn btn-primary">Save</button>
     </form>
     <div>
         <a href="/Request/Index" class="btn btn-link">Back to List</a>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const requestTypeSelect = document.getElementById("Type");
+            const meetingRequestFields = document.getElementById("meetingRequestFields");
+            const presentationRequestFields = document.getElementById("presentationRequestFields");
+
+            function toggleFields() {
+                const selectedType = requestTypeSelect.value;
+
+                if (selectedType === "MEETING_RREQUEST") {
+                    meetingRequestFields.style.display = "block";
+                    presentationRequestFields.style.display = "none";
+                } else if (selectedType === "PRESENTATION_RREQUEST") {
+                    meetingRequestFields.style.display = "none";
+                    presentationRequestFields.style.display = "block";
+                }
+            }
+
+            // Přepnutí na základě výchozí hodnoty
+            toggleFields();
+
+            // Přepnutí při změně hodnoty comboboxu
+            requestTypeSelect.addEventListener("change", toggleFields);
+        });
+    </script>
+}
+
