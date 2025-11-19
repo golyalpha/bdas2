@@ -38,7 +38,7 @@ public class RoomRequest
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.CommandText = "edit_reservation_request";
+            cmd.CommandText = "reservations_pkg.edit_request";
             cmd.Parameters.Add("id", Id);
             cmd.Parameters.Add("reservation_start", Start);
             cmd.Parameters.Add("reservation_end", End);
