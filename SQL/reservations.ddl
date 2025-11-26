@@ -487,25 +487,36 @@ CREATE OR REPLACE VIEW ROLES_V ( ID_ROLE
     ROLES 
 ;
 
-CREATE OR REPLACE VIEW ROOM_REQUESTS_V ( id_organizer, id_location, id_room_request, min_capacity, reservation_start, reservation_end, reservation_length, "type", vc_ready, podium_size ) AS
+CREATE OR REPLACE VIEW ROOM_REQUESTS_V (
+    id_organizer,
+    id_location,
+    id_room_request,
+    min_capacity,
+    reservation_start,
+    reservation_end,
+    reservation_length,
+    "type",
+    vc_ready,
+    podium_size
+) AS
 SELECT
-    organizers.id_organizer,
-    locations.id_location,
-    room_requests.id_room_request,
-    room_requests.min_capacity,
-    room_requests.reservation_start,
-    room_requests.reservation_end,
-    room_requests.reservation_length,
-    room_requests."type",
-    meeting_rrequests.vc_ready,
-    presentation_rrequests.podium_size
-FROM
-         room_requests
-    INNER JOIN locations ON locations.id_location = room_requests.id_location
-    INNER JOIN organizers ON organizers.id_organizer = room_requests.id_organizer,
-    meeting_rrequests,
-    presentation_rrequests 
-;
+    rr.id_organizer,
+    rr.id_location,
+    rr.id_room_request,
+    rr.min_capacity,
+    rr.reservation_start,
+    rr.reservation_end,
+    rr.reservation_length,
+    rr."type",
+    mr.vc_ready,
+    pr.podium_size
+FROM room_requests rr
+JOIN locations   l  ON l.id_location   = rr.id_location
+JOIN organizers  o  ON o.id_organizer  = rr.id_organizer
+LEFT JOIN meeting_rrequests      mr ON mr.id_room_request = rr.id_room_request
+                                    AND rr."type" = 'MEETING_RREQUEST'
+LEFT JOIN presentation_rrequests pr ON pr.id_room_request = rr.id_room_request
+                                    AND rr."type" = 'PRESENTATION_RREQUEST';
 
 CREATE OR REPLACE VIEW ROOMS_V (
     id_room,
@@ -845,7 +856,12 @@ CREATE OR REPLACE TRIGGER trg_meeting_rreq_auto_alloc
 AFTER INSERT ON meeting_rrequests
 FOR EACH ROW
 BEGIN
-    reservations_pkg.process_request(:NEW.id_room_request);
+    reservations_pkg.process_request(
+        p_id_room_request => :NEW.id_room_request,
+        p_type            => 'MEETING_RREQUEST',
+        p_vc_ready        => :NEW.vc_ready,
+        p_podium_size     => NULL
+    );
 END;
 /
 
@@ -854,6 +870,11 @@ CREATE OR REPLACE TRIGGER trg_presentation_rreq_auto_alloc
 AFTER INSERT ON presentation_rrequests
 FOR EACH ROW
 BEGIN
-    reservations_pkg.process_request(:NEW.id_room_request);
+    reservations_pkg.process_request(
+        p_id_room_request => :NEW.id_room_request,
+        p_type            => 'PRESENTATION_RREQUEST',
+        p_vc_ready        => NULL,
+        p_podium_size     => :NEW.podium_size
+    );
 END;
 /
