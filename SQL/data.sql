@@ -34,36 +34,36 @@ VALUES ('Room 202', 30, 'PRESENTATION_ROOM', 2, 2);
 INSERT INTO rooms ("name", capacity, "type", id_location, id_organizer) 
 VALUES ('Room 303', 20, 'MEETING_ROOM', 3, 3);
 
--- Meeting Rooms
-INSERT INTO meeting_rooms (id_room, vc_ready) VALUES (1, 'Y');
-INSERT INTO meeting_rooms (id_room, vc_ready) VALUES (3, 'N');
+-- Meeting Rooms (navázání pøes poddotaz na ID místnosti)
+INSERT INTO meeting_rooms (id_room, vc_ready) 
+SELECT id_room, 'Y' FROM rooms WHERE "name" = 'Room 101';
+INSERT INTO meeting_rooms (id_room, vc_ready) 
+SELECT id_room, 'N' FROM rooms WHERE "name" = 'Room 303';
 
 -- Presentation Rooms
-INSERT INTO presentation_rooms (id_room, podium_size) VALUES (2,10);
+INSERT INTO presentation_rooms (id_room, podium_size) 
+SELECT id_room, 10 FROM rooms WHERE "name" = 'Room 202';
 
 -- Room Requests
-INSERT INTO room_requests (min_capacity, "type", reservation_start, reservation_end, reservation_length, id_location, id_organizer) 
-VALUES (20, 'MEETING_RREQUEST', TO_DATE('2024-12-07 09:00', 'YYYY-MM-DD HH24:MI'), TO_DATE('2024-12-07 11:00', 'YYYY-MM-DD HH24:MI'), TO_DATE('02:00', 'HH24:MI'), 1, 1);
-INSERT INTO room_requests (min_capacity, "type", reservation_start, reservation_end, reservation_length, id_location, id_organizer) 
-VALUES (15, 'PRESENTATION_RREQUEST', TO_DATE('2024-12-08 10:00', 'YYYY-MM-DD HH24:MI'), TO_DATE('2024-12-08 12:00', 'YYYY-MM-DD HH24:MI'), TO_DATE('02:00', 'HH24:MI'), 2, 2);
+-- Room Requests
+-- MEETING_RREQUEST, požadavek na VC = Y -> vybere se Room 101 (mr.vc_ready = 'Y', kapacita 50)
+INSERT INTO room_requests (id_room_request, min_capacity, "type", reservation_start, reservation_end, reservation_length, id_location, id_organizer) 
+VALUES (room_requests_id_room_request.NEXTVAL, 20, 'MEETING_RREQUEST',
+        TO_DATE('2024-12-07 09:00', 'YYYY-MM-DD HH24:MI'),
+        TO_DATE('2024-12-07 11:00', 'YYYY-MM-DD HH24:MI'),
+        TO_DATE('02:00', 'HH24:MI'), 1, 1);
+INSERT INTO meeting_rrequests (id_room_request, vc_ready)
+VALUES (room_requests_id_room_request.CURRVAL, 'Y');
 
--- Meeting Room Requestsexample
-INSERT INTO meeting_rrequests (id_room_request, vc_ready) VALUES (1,'Y');
+-- PRESENTATION_RREQUEST, pódium 10 -> vybere se Room 202 (podium_size = 10, kapacita 30)
+INSERT INTO room_requests (id_room_request, min_capacity, "type", reservation_start, reservation_end, reservation_length, id_location, id_organizer) 
+VALUES (room_requests_id_room_request.NEXTVAL, 15, 'PRESENTATION_RREQUEST',
+        TO_DATE('2024-12-08 10:00', 'YYYY-MM-DD HH24:MI'),
+        TO_DATE('2024-12-08 12:00', 'YYYY-MM-DD HH24:MI'),
+        TO_DATE('02:00', 'HH24:MI'), 2, 2);
+INSERT INTO presentation_rrequests (id_room_request, podium_size)
+VALUES (room_requests_id_room_request.CURRVAL, 10);
 
--- Presentation Room Requests
-INSERT INTO presentation_rrequests (id_room_request, podium_size) VALUES (2, 10);
-
--- Reservations
-INSERT INTO reservations ("start", "end", id_room, id_room_request, id_organizer) 
-VALUES (TO_DATE('2024-12-09 10:00', 'YYYY-MM-DD HH24:MI'), TO_DATE('2024-12-09 12:00', 'YYYY-MM-DD HH24:MI'), 1, 1, 1);
-INSERT INTO reservations ("start", "end", id_room, id_room_request, id_organizer) 
-VALUES (TO_DATE('2024-12-10 13:00', 'YYYY-MM-DD HH24:MI'), TO_DATE('2024-12-10 15:00', 'YYYY-MM-DD HH24:MI'), 2, 2, 2);
-
--- Notifications
-INSERT INTO notifications (notification_type, delivered, id_organizer, id_room_request) 
-VALUES ('Email', 'Y', 1, 1);
-INSERT INTO notifications (notification_type, delivered, id_organizer, id_room_request) 
-VALUES ('SMS', 'N', 2, 2);
 
 -- Credentials
 INSERT INTO credentials (credential_type, "data", created_at, id_organizer) 

@@ -36,27 +36,41 @@ public class RoomRequest
         using (OracleConnection conn = DBManager.GetConnection())
         {
             conn.Open();
-            OracleCommand cmd = conn.CreateCommand();
+            using var cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
             cmd.CommandText = "reservations_pkg.edit_request";
-            cmd.Parameters.Add("id", Id);
-            cmd.Parameters.Add("reservation_start", Start);
-            cmd.Parameters.Add("reservation_end", End);
-            cmd.Parameters.Add("reservation_length", Length);
-            cmd.Parameters.Add("minimum_capacity", MinimumCapacity);
-            cmd.Parameters.Add("type", Type);
-            cmd.Parameters.Add("location_id", Location.Id);
-            cmd.Parameters.Add("organiser_id", Organiser.Id);
+            cmd.BindByName = true;
+
+            // Mapování na parametr names v balíčku
+            cmd.Parameters.Add("p_id_room_request", Id == 0 ? (object)DBNull.Value : Id);
+            cmd.Parameters.Add("p_min_capacity", MinimumCapacity);
+            cmd.Parameters.Add("p_type", Type);
+            cmd.Parameters.Add("p_reservation_start", Start);
+            cmd.Parameters.Add("p_reservation_end", End);
+            cmd.Parameters.Add("p_reservation_length", Length);
+            cmd.Parameters.Add("p_id_location", Location.Id);
+            cmd.Parameters.Add("p_id_organizer", Organiser.Id);
+
+            // Subtypové parametry (volitelné podle typu)
             if (Type == "PRESENTATION_RREQUEST")
             {
-                PresentationRequest request = (PresentationRequest)this;
-                cmd.Parameters.Add("podium_size", request.PodiumSize);
+                var pr = (PresentationRequest)this;
+                cmd.Parameters.Add("p_podium_size", pr.PodiumSize);
+                cmd.Parameters.Add("p_vc_ready", DBNull.Value);
             }
-            if (Type == "MEETING_RREQUEST")
+            else if (Type == "MEETING_RREQUEST")
             {
-                MeetingRequest request = (MeetingRequest)this;
-                cmd.Parameters.Add("vc_ready", request.VideoCallReady);
+                var mr = (MeetingRequest)this;
+                cmd.Parameters.Add("p_vc_ready", mr.VideoCallReady ? "Y" : "N");
+                cmd.Parameters.Add("p_podium_size", DBNull.Value);
             }
+            else
+            {
+                // čistý ROOM_REQUEST bez subtype
+                cmd.Parameters.Add("p_vc_ready", DBNull.Value);
+                cmd.Parameters.Add("p_podium_size", DBNull.Value);
+            }
+
             int rows = cmd.ExecuteNonQuery();
             if (rows == 0)
             {

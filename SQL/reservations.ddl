@@ -837,3 +837,23 @@ END;
 -- 
 -- ERRORS                                   2
 -- WARNINGS                                 0
+
+
+
+-- Automatická alokace pro meeting požadavky
+CREATE OR REPLACE TRIGGER trg_meeting_rreq_auto_alloc
+AFTER INSERT ON meeting_rrequests
+FOR EACH ROW
+BEGIN
+    reservations_pkg.process_request(:NEW.id_room_request);
+END;
+/
+
+-- Automatická alokace pro presentation požadavky
+CREATE OR REPLACE TRIGGER trg_presentation_rreq_auto_alloc
+AFTER INSERT ON presentation_rrequests
+FOR EACH ROW
+BEGIN
+    reservations_pkg.process_request(:NEW.id_room_request);
+END;
+/

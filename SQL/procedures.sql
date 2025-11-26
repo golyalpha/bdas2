@@ -73,6 +73,15 @@ CREATE OR REPLACE PACKAGE reservations_pkg AS
         p_id_room_request IN NUMBER
     );
 
+
+     -- procedura pro alokaci místnosti k požadavku (MUSÍ odpovídat BODY)
+    PROCEDURE process_request (
+        p_id_room_request IN room_requests.id_room_request%TYPE,
+        p_type            IN VARCHAR2,
+        p_vc_ready        IN CHAR    DEFAULT NULL,
+        p_podium_size     IN NUMBER  DEFAULT NULL
+    );
+
 END reservations_pkg;
 /
 
@@ -416,56 +425,84 @@ PROCEDURE edit_organizer (
 
         COMMIT;
     END edit_credential;
+    
+
+-- Automatická alokace místnosti bez sloupce STATUS v ROOM_REQUESTS
+-- PŘEPIS / REPLACE
+
+PROCEDURE process_request (
+    p_id_room_request IN room_requests.id_room_request%TYPE,
+    p_type            IN VARCHAR2,
+    p_vc_ready        IN CHAR    DEFAULT NULL,
+    p_podium_size     IN NUMBER  DEFAULT NULL
+) IS
+    v_organizer_id room_requests.id_organizer%TYPE;
+    v_rows NUMBER;
+BEGIN
+    -- kdo podal žádost
+    SELECT id_organizer
+      INTO v_organizer_id
+      FROM room_requests
+     WHERE id_room_request = p_id_room_request;
+
+    -- VLOŽ REZERVACI – bez čtení z mutující tabulky podtypu
+    INSERT INTO reservations ("start", "end", id_room, id_room_request, id_organizer)
+    SELECT req.reservation_start,
+           req.reservation_end,
+           alloc.id_room,
+           req.id_room_request,
+           req.id_organizer
+      FROM room_requests req
+      JOIN (
+            SELECT inner_req.id_room_request,
+                   rm.id_room,
+                   ROW_NUMBER() OVER (PARTITION BY inner_req.id_room_request ORDER BY rm.id_room) rn
+              FROM room_requests inner_req
+              JOIN rooms rm
+                ON rm.capacity >= inner_req.min_capacity
+               AND (inner_req.id_location IS NULL OR rm.id_location = inner_req.id_location)
+               AND (
+                    (p_type = 'MEETING_RREQUEST' AND EXISTS (
+                         SELECT 1
+                           FROM meeting_rooms mr
+                          WHERE mr.id_room = rm.id_room
+                            AND (p_vc_ready = 'N' OR (p_vc_ready = 'Y' AND mr.vc_ready = 'Y'))
+                    )))
+                 OR (p_type = 'PRESENTATION_RREQUEST' AND EXISTS (
+                         SELECT 1
+                           FROM presentation_rooms pr
+                          WHERE pr.id_room = rm.id_room
+                            AND p_podium_size <= pr.podium_size
+                    )
+                )
+               WHERE inner_req.id_room_request = p_id_room_request
+               AND NOT EXISTS (
+                    SELECT 1
+                      FROM reservations r
+                     WHERE r.id_room = rm.id_room
+                       AND r."start" < inner_req.reservation_end
+                       AND r."end"   > inner_req.reservation_start
+               )
+           ) alloc
+        ON alloc.id_room_request = req.id_room_request
+     WHERE req.id_room_request = p_id_room_request
+       AND alloc.rn = 1;
+
+    v_rows := SQL%ROWCOUNT;
+
+    IF v_rows > 0 THEN
+        INSERT INTO notifications (notification_type, delivered, id_organizer, id_room_request)
+        VALUES ('ALLOC_SUCCESS', 'N', v_organizer_id, p_id_room_request);
+    ELSE
+        INSERT INTO notifications (notification_type, delivered, id_organizer, id_room_request)
+        VALUES ('ALLOC_FAIL', 'N', v_organizer_id, p_id_room_request);
+    END IF;
+END process_request;
 
 END reservations_pkg;
 /
 
 /*
-BEGIN
-    reservations_pkg.edit_location(
-        p_id_location => 0,
-        p_name => 'aaaadddddddddddaaaal',
-        p_start => TO_DATE('2024-12-06 10:00', 'YYYY-MM-DD HH24:MI'),
-        p_end => TO_DATE('2024-12-06 19:00', 'YYYY-MM-DD HH24:MI'),
-        p_id_city => 3,
-        p_id_organizer => 3
-    );
-END;
-/
-
-
-BEGIN
-    RESERVATIONS_PKG.EDIT_ROOM(
-        P_ID_ROOM => NULL,
-        P_NAME => 'Room 10DAHFKJAFHDK1',
-        P_CAPACITY => 50,
-        P_TYPE => 'MEETING_ROOM',
-        P_ID_LOCATION => 1,
-        P_ID_ORGANIZER => 1,
-        P_VC_READY => 'Y'
-    );
-END;
-/
-
-
-
-
-BEGIN
-    reservations_pkg.edit_reservation(
-        p_id_reservation => NULL,
-        p_start => TO_DATE('2024-01-10 14:00:00' , 'YYYY-MM-DD HH24:MI:SS'),
-        p_end => TO_DATE('2024-01-10 16:00:00', 'YYYY-MM-DD HH24:MI:SS'),
-        p_id_room => 1,
-        p_id_room_request => 1,
-        p_id_organizer => 1
-    );
-END;
-/
-
-
-
-
-
 BEGIN
     reservations_pkg.edit_reservation(
         p_id_reservation => NULL,   -- Pass NULL if inserting a new reservation
@@ -476,37 +513,38 @@ BEGIN
         p_id_organizer => 1        -- Replace with a valid Organizer ID
     );
 END;
-/
 */
 
-BEGIN
-    reservations_pkg.edit_request(
-        p_id_room_request => 1, -- Update request with ID 1
-        p_min_capacity => 20,
-        p_type => 'PRESENTATION_RREQUEST',
-        p_reservation_start => TO_DATE('2024-12-08 10:00:00', 'YYYY-MM-DD HH24:MI:SS'),
-        p_reservation_end => TO_DATE('2024-12-08 12:00:00', 'YYYY-MM-DD HH24:MI:SS'),
-        p_reservation_length => TO_DATE('1000-01-01 01:30:00', 'YYYY-MM-DD HH24:MI:SS'),
-        p_id_location => 2,
-        p_id_organizer => 2,
-        p_podium_size => 10
-    );
-END;
-/
+--BEGIN
+--    reservations_pkg.edit_request(
+--        p_id_room_request => 1, -- Update request with ID 1
+--        p_min_capacity => 20,
+--        p_type => 'PRESENTATION_RREQUEST',
+--        p_reservation_start => TO_DATE('2024-12-08 10:00:00', 'YYYY-MM-DD HH24:MI:SS'),
+--        p_reservation_end => TO_DATE('2024-12-08 12:00:00', 'YYYY-MM-DD HH24:MI:SS'),
+--        p_reservation_length => TO_DATE('1000-01-01 01:30:00', 'YYYY-MM-DD HH24:MI:SS'),
+--        p_id_location => 2,
+--        p_id_organizer => 2,
+--        p_podium_size => 10
+--    );
+--END;
+--/
 
 
-BEGIN
-    reservations_pkg.edit_request(
-        p_id_room_request => NULL,
-        p_min_capacity => 20,
-        p_type => 'MEETING_RREQUEST',
-        p_reservation_start => TO_DATE('2024-12-07 09:00:00', 'YYYY-MM-DD HH24:MI:SS'),
-        p_reservation_end => TO_DATE('2024-12-07 11:00:00', 'YYYY-MM-DD HH24:MI:SS'),
-        p_reservation_length => TO_DATE('1000-01-01 02:00:00', 'YYYY-MM-DD HH24:MI:SS'),
-        p_id_location => 1,
-        p_id_organizer => 1,
-        p_vc_ready => 'Y'
-    );
-END;
-/
+--BEGIN
+--    reservations_pkg.edit_request(
+--        p_id_room_request => NULL,
+--        p_min_capacity => 20,
+--        p_type => 'MEETING_RREQUEST',
+--        p_reservation_start => TO_DATE('2024-12-07 09:00:00', 'YYYY-MM-DD HH24:MI:SS'),
+--        p_reservation_end => TO_DATE('2024-12-07 11:00:00', 'YYYY-MM-DD HH24:MI:SS'),
+--        p_reservation_length => TO_DATE('1000-01-01 02:00:00', 'YYYY-MM-DD HH24:MI:SS'),
+--        p_id_location => 1,
+--        p_id_organizer => 1,
+--        p_vc_ready => 'Y'
+--    );
+--END;
+--/
+
+
 
