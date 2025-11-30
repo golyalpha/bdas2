@@ -7,12 +7,13 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/WebApp.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </head>
 <body class="bg-dark text-light">
+    @Html.AntiForgeryToken()
     <header>
         <nav class="navbar navbar-expand-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
             <div class="container">
-                <!-- Left-aligned links -->
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -34,23 +35,41 @@
                             <a class="nav-link text-light" asp-area="" asp-controller="User" asp-action="Index">Uživatelé</a>
                         </li>
                     </ul>
-                    <!-- Right-aligned buttons -->
-                    <div class="ms-auto">
-                        <div class="header">
-                            @if (User.Identity.IsAuthenticated)
-                            {
-                                <span>Welcome, @User.Identity.Name!</span>
-                                <form asp-controller="User" asp-action="Logout" method="post" style="display:inline;">
-                                    @Html.AntiForgeryToken()
-                                    <button class="btn btn-primary" type="submit" class="btn btn-link">Logout</button>
-                                </form>
-                            }
-                            else
-                            {
-                                <a class="btn btn-primary" asp-area="" asp-controller="User" asp-action="Login">Login</a>
-                                <a class="btn btn-primary" asp-area="" asp-controller="User" asp-action="Register">Register</a>
-                            }
-                        </div>
+                    <div class="ms-auto d-flex align-items-center">
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            <!-- Notification Bell -->
+                            <div class="dropdown me-3">
+                                <button class="btn btn-link text-light position-relative" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-bell" style="font-size: 1.5rem;"></i>
+                                    <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">
+                                        0
+                                    </span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end notification-dropdown" aria-labelledby="notificationDropdown" style="min-width: 350px; max-height: 400px; overflow-y: auto;">
+                                    <li class="dropdown-header">Notifikace</li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <div id="notificationList">
+                                        <li class="dropdown-item text-center text-muted">Načítání...</li>
+                                    </div>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li class="text-center">
+                                        <a class="dropdown-item" href="/Notification/Index">Zobrazit všechny</a>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <span class="me-3">Vítejte, @User.Identity.Name!</span>
+                            <form asp-controller="User" asp-action="Logout" method="post" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-primary" type="submit">Odhlásit se</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <a class="btn btn-primary me-2" asp-area="" asp-controller="User" asp-action="Login">Přihlásit se</a>
+                            <a class="btn btn-primary" asp-area="" asp-controller="User" asp-action="Register">Registrovat</a>
+                        }
                     </div>
                 </div>
             </div>
@@ -65,6 +84,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/notifications.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

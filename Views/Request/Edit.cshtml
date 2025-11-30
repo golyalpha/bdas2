@@ -1,33 +1,161 @@
 ﻿@model WebApp.Models.RoomRequest
 
 @{
-    ViewData["Title"] = "Edit Request";
+    var isReadOnly = ViewBag.IsReadOnly ?? false;
+    ViewData["Title"] = ViewBag.PageTitle ?? "Edit Request";
 }
 
 <div class="container mt-5">
-    <h2>Edit Request</h2>
-    <form id="editRequestForm" method="post" action="/Request/Update">
+    <h2>@ViewData["Title"]</h2>
+    
+    @if (!isReadOnly)
+    {
+        <form id="editRequestForm" method="post" action="/Request/Edit/@Model.Id">
+            @Html.AntiForgeryToken()
+            
+            <div class="form-group">
+                <label for="start">Start Time</label>
+                <input type="datetime-local" id="start" name="Start" class="form-control" required 
+                       value="@(Model.Start.ToString("yyyy-MM-ddTHH:mm"))" />
+            </div>
+            
+            <div class="form-group">
+                <label for="end">End Time</label>
+                <input type="datetime-local" id="end" name="End" class="form-control" required 
+                       value="@(Model.End.ToString("yyyy-MM-ddTHH:mm"))" />
+            </div>
+
+            <div class="form-group">
+                <label for="length">Reservation Length</label>
+                <input type="time" id="length" name="Length" class="form-control" 
+                       value="@(Model.Length.ToString("HH:mm"))" />
+            </div>
+
+            <div class="form-group">
+                <label for="minCapacity">Minimum Capacity</label>
+                <input type="number" id="minCapacity" name="MinimumCapacity" class="form-control" 
+                       value="@Model.MinimumCapacity" />
+            </div>
+
+            <div class="form-group">
+                <label for="type">Request Type</label>
+                <input type="text" id="type" name="Type" class="form-control" readonly 
+                       value="@(Model.Type == "MEETING_RREQUEST" ? "Meeting Room" : "Presentation Room")" />
+            </div>
+
+            <div class="form-group">
+                <label for="location">Location</label>
+                <input type="text" id="location" class="form-control" readonly 
+                       value="@Model.Location?.Name, @Model.Location?.City?.Name, @Model.Location?.City?.Country?.Name" />
+            </div>
+
+            @if (Model is WebApp.Models.MeetingRequest meetingRequest)
+            {
+                <div class="form-group">
+                    <label for="vcReady">Video Call Ready</label>
+                    <select id="vcReady" name="VideoCallReady" class="form-control">
+                        <option value="true" selected="@meetingRequest.VideoCallReady">Yes</option>
+                        <option value="false" selected="@(!meetingRequest.VideoCallReady)">No</option>
+                    </select>
+                </div>
+            }
+
+            @if (Model is WebApp.Models.PresentationRequest presentationRequest)
+            {
+                <div class="form-group">
+                    <label for="podiumSize">Podium Size</label>
+                    <input type="number" id="podiumSize" name="PodiumSize" class="form-control" 
+                           value="@presentationRequest.PodiumSize" />
+                </div>
+            }
+
+            <div class="form-group">
+                <label for="organiserName">Organiser Name</label>
+                <input type="text" id="organiserName" name="Organiser.Name" class="form-control" readonly
+                       value="@Model.Organiser.Name" />
+            </div>
+            
+            <div class="form-group">
+                <label for="organiserEmail">Organiser Email</label>
+                <input type="email" id="organiserEmail" name="Organiser.Email" class="form-control" readonly 
+                       value="@Model.Organiser.Email" />
+            </div>
+            
+            <input type="hidden" id="id" name="Id" value="@Model.Id" />
+            <button type="submit" class="btn btn-primary">Update</button>
+            <a href="/Request/Index" class="btn btn-link">Back to List</a>
+        </form>
+    }
+    else
+    {
+        <!-- Read-only mode -->
         <div class="form-group">
-            <label for="start">Start Time</label>
-            <input type="datetime-local" id="start" name="Start" class="form-control" required value="@(Model.Start.ToString("yyyy-MM-ddTHH:mm"))" />
+            <label>Start Time</label>
+            <input type="datetime-local" class="form-control" disabled 
+                   value="@(Model.Start.ToString("yyyy-MM-ddTHH:mm"))" />
         </div>
+        
         <div class="form-group">
-            <label for="end">End Time</label>
-            <input type="datetime-local" id="end" name="End" class="form-control" required value="@(Model.End.ToString("yyyy-MM-ddTHH:mm"))" />
+            <label>End Time</label>
+            <input type="datetime-local" class="form-control" disabled 
+                   value="@(Model.End.ToString("yyyy-MM-ddTHH:mm"))" />
         </div>
+
         <div class="form-group">
-            <label for="organiserName">Organiser Name</label>
-            <input type="text" id="organiserName" name="Organiser.Name" class="form-control" required
+            <label>Reservation Length</label>
+            <input type="time" class="form-control" disabled 
+                   value="@(Model.Length.ToString("HH:mm"))" />
+        </div>
+
+        <div class="form-group">
+            <label>Minimum Capacity</label>
+            <input type="number" class="form-control" disabled 
+                   value="@Model.MinimumCapacity" />
+        </div>
+
+        <div class="form-group">
+            <label>Request Type</label>
+            <input type="text" class="form-control" disabled 
+                   value="@(Model.Type == "MEETING_RREQUEST" ? "Meeting Room" : "Presentation Room")" />
+        </div>
+
+        <div class="form-group">
+            <label>Location</label>
+            <input type="text" class="form-control" disabled 
+                   value="@Model.Location?.Name, @Model.Location?.City?.Name, @Model.Location?.City?.Country?.Name" />
+        </div>
+
+        @if (Model is WebApp.Models.MeetingRequest meetingRequest)
+        {
+            <div class="form-group">
+                <label>Video Call Ready</label>
+                <input type="text" class="form-control" disabled 
+                       value="@(meetingRequest.VideoCallReady ? "Yes" : "No")" />
+            </div>
+        }
+
+        @if (Model is WebApp.Models.PresentationRequest presentationRequest)
+        {
+            <div class="form-group">
+                <label>Podium Size</label>
+                <input type="number" class="form-control" disabled 
+                       value="@presentationRequest.PodiumSize" />
+            </div>
+        }
+
+        <div class="form-group">
+            <label>Organiser Name</label>
+            <input type="text" class="form-control" disabled
                    value="@Model.Organiser.Name" />
         </div>
+        
         <div class="form-group">
-            <label for="organiserEmail">Organiser Email</label>
-            <input type="email" id="organiserEmail" name="Organiser.Email" class="form-control" required value="@Model.Organiser.Email" />
+            <label>Organiser Email</label>
+            <input type="email" class="form-control" disabled 
+                   value="@Model.Organiser.Email" />
         </div>
-        <input type="hidden" id="id" name="Id" value="@Model.Id" />
-        <button type="submit" class="btn btn-primary">Update</button>
-    </form>
-    <div>
-        <a href="/Request/Index" class="btn btn-link">Back to List</a>
-    </div>
+
+        <a href="/Request/Index" class="btn btn-secondary">Zpět na seznam žádostí</a>
+        <a href="/Notification/Index" class="btn btn-info">Zpět na notifikace</a>
+    }
 </div>

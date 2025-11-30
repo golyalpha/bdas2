@@ -74,13 +74,27 @@ CREATE OR REPLACE PACKAGE reservations_pkg AS
     );
 
 
-     -- procedura pro alokaci místnosti k požadavku (MUSÍ odpovídat BODY)
+     -- procedura pro alokaci místnosti k požadavku
     PROCEDURE process_request (
         p_id_room_request IN room_requests.id_room_request%TYPE,
         p_type            IN VARCHAR2,
         p_vc_ready        IN CHAR    DEFAULT NULL,
         p_podium_size     IN NUMBER  DEFAULT NULL
     );
+
+    PROCEDURE mark_notification_delivered(
+    p_id_organizer IN NUMBER,
+    p_notification_id IN NUMBER  -- JEN JEDNO ID
+);
+    
+    -- ========================================
+    -- FUNKCE PRO NOTIFIKACE
+    -- ========================================
+
+    -- Získání počtu nepřečtených notifikací pro organizátora
+    FUNCTION get_unread_notification_count(
+        p_id_organizer IN NUMBER
+    ) RETURN NUMBER;
 
 END reservations_pkg;
 /
@@ -499,7 +513,48 @@ BEGIN
     END IF;
 END process_request;
 
+
+    -- ========================================
+    -- FUNKCE PRO NOTIFIKACE
+    -- ========================================
+
+-- Získání počtu nepřečtených notifikací pro organizátora
+FUNCTION get_unread_notification_count(
+    p_id_organizer IN NUMBER
+) RETURN NUMBER
+IS
+    v_count NUMBER;
+BEGIN
+    SELECT COUNT(*)
+    INTO v_count
+    FROM notifications
+    WHERE id_organizer = p_id_organizer
+      AND delivered = 'N';
+        
+    RETURN v_count;
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN 0;
+END get_unread_notification_count;
+
+    PROCEDURE mark_notification_delivered(
+    p_id_organizer IN NUMBER,
+    p_notification_id IN NUMBER  -- JEN JEDNO ID
+) IS
+BEGIN
+    UPDATE notifications
+    SET delivered = 'Y'
+    WHERE id_notification = p_notification_id
+      AND id_organizer = p_id_organizer;
+    
+    COMMIT;
+END mark_notification_delivered;
+
 END reservations_pkg;
+/
+
+-- V SQL Developer vytvořte:
+CREATE OR REPLACE TYPE NUMBER_TABLE AS TABLE OF NUMBER;
 /
 
 /*
@@ -545,6 +600,4 @@ END;
 --    );
 --END;
 --/
-
-
 

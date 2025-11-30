@@ -99,3 +99,38 @@ li button:focus {
 .reservations-table {
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
 }
+
+/* Notification styles */
+.notification-dropdown {
+    background-color: #343a40;
+    border: 1px solid #495057;
+}
+
+.notification-dropdown .dropdown-item {
+    color: #f8f9fa;
+    border-bottom: 1px solid #495057;
+    padding: 0.75rem 1rem;
+}
+
+.notification-dropdown .dropdown-item:hover {
+    background-color: #495057;
+}
+
+.notification-dropdown .dropdown-header {
+    color: #adb5bd;
+    font-weight: bold;
+}
+
+.notification-item {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.notification-item .mark-read {
+    opacity: 0.6;
+    padding: 0.25rem 0.5rem;
+}
+
+.notification-item .mark-read:hover {
+    opacity: 1;
+}

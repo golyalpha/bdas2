@@ -7,13 +7,16 @@
 <div class="container mt-5">
     <h2>Create Request</h2>
     <form id="createRequestForm" method="post" action="/Request/Create">
+        @Html.AntiForgeryToken()
+        
         <div class="form-group">
             @Html.LabelFor(m => m.Request.Start)
             <div>
-                <input type="time"
+                <input type="datetime-local"
                        name="@Html.NameFor(m => m.Request.Start)"
-                       value="@Html.ValueFor(m => m.Request.Start)"
-                       id="@Html.IdFor(m => m.Request.Start)" />
+                       value="@(Model.Request?.Start.ToString("yyyy-MM-ddTHH:mm"))"
+                       id="@Html.IdFor(m => m.Request.Start)"
+                       class="form-control" />
                 @Html.ValidationMessageFor(m => m.Request.Start, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -21,28 +24,43 @@
         <div class="form-group">
             @Html.LabelFor(m => m.Request.End)
             <div>
-                <input type="time"
+                <input type="datetime-local"
                        name="@Html.NameFor(m => m.Request.End)"
-                       value="@Html.ValueFor(m => m.Request.End)"
-                       id="@Html.IdFor(m => m.Request.End)" />
+                       value="@(Model.Request?.End.ToString("yyyy-MM-ddTHH:mm"))"
+                       id="@Html.IdFor(m => m.Request.End)"
+                       class="form-control" />
                 @Html.ValidationMessageFor(m => m.Request.End, "", new { @class = "text-danger" })
             </div>
         </div>
+
+        <div class="form-group">
+            @Html.LabelFor(m => m.Request.Length)
+            <div>
+                <input type="time"
+                       name="@Html.NameFor(m => m.Request.Length)"
+                       value="@(Model.Request?.Length.ToString("HH:mm"))"
+                       id="@Html.IdFor(m => m.Request.Length)"
+                       class="form-control" />
+                @Html.ValidationMessageFor(m => m.Request.Length, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
         <div class="form-group">
             @Html.LabelFor(m => m.Request.MinimumCapacity)
             <div>
                 <input type="number"
                        name="@Html.NameFor(m => m.Request.MinimumCapacity)"
                        value="@Html.ValueFor(m => m.Request.MinimumCapacity)"
-                       id="@Html.IdFor(m => m.Request.MinimumCapacity)" />
+                       id="@Html.IdFor(m => m.Request.MinimumCapacity)"
+                       class="form-control" />
                 @Html.ValidationMessageFor(m => m.Request.MinimumCapacity, "", new { @class = "text-danger" })
             </div>
         </div>
 
         <div class="form-group">
             @Html.LabelFor(m => m.Request.Type)
-            <select id="@Html.IdFor(m => m.Request.Type)" name="@Html.NameFor(m => m.Request.Type)" class="form-control" readonly>
-                <option value=""></option>
+            <select id="@Html.IdFor(m => m.Request.Type)" name="@Html.NameFor(m => m.Request.Type)" class="form-control">
+                <option value="">-- Vyberte typ --</option>
                 <option value="MEETING_RREQUEST" selected="@(Model.Request?.Type == "MEETING_RREQUEST")">Meeting Room</option>
                 <option value="PRESENTATION_RREQUEST" selected="@(Model.Request?.Type == "PRESENTATION_RREQUEST")">Presentation Room</option>
             </select>
@@ -51,7 +69,7 @@
         <div class="form-group">
             @Html.LabelFor(m => m.LocationId)
             <div>
-                <select id="@Html.IdFor(m => m.LocationId)" name="@Html.NameFor(m => m.LocationId)">
+                <select id="@Html.IdFor(m => m.LocationId)" name="@Html.NameFor(m => m.LocationId)" class="form-control">
                     @foreach (var location in Model.Locations)
                     {
                         @if (location.Id == Model.LocationId)
@@ -81,7 +99,8 @@
                 <input type="number"
                        name="@Html.NameFor(m => m.PresentationRequest.PodiumSize)"
                        value="@Html.ValueFor(m => m.PresentationRequest.PodiumSize)"
-                       id="@Html.IdFor(m => m.PresentationRequest.PodiumSize)" />
+                       id="@Html.IdFor(m => m.PresentationRequest.PodiumSize)"
+                       class="form-control" />
                 @Html.ValidationMessageFor(m => m.PresentationRequest.PodiumSize, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -109,6 +128,9 @@
                 } else if (selectedType === "PRESENTATION_RREQUEST") {
                     meetingRequestFields.style.display = "none";
                     presentationRequestFields.style.display = "block";
+                } else {
+                    meetingRequestFields.style.display = "none";
+                    presentationRequestFields.style.display = "none";
                 }
             }
 

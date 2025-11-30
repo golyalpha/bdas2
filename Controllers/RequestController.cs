@@ -137,4 +137,34 @@ public class RequestController : Controller
         }
         return RedirectToAction("Index");
     }
+
+    /// <summary>
+    /// Zobrazí detail žádosti pouze pro čtení (používá se z notifikací)
+    /// </summary>
+    [HttpGet]
+    public IActionResult Detail(int id)
+    {
+        RoomRequest request;
+        try 
+        {
+            request = RoomRequest.GetRequest(id);
+        } 
+        catch (KeyNotFoundException) 
+        {
+            return NotFound();
+        }
+
+        // Ověříme, že uživatel má přístup k této žádosti
+        var organiserIdString = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (request.Organiser.Id != int.Parse(organiserIdString))
+        {
+            return Unauthorized();
+        }
+
+        // Nastavíme ViewBag pro indikaci read-only módu
+        ViewBag.IsReadOnly = true;
+        ViewBag.PageTitle = "Detail žádosti";
+        
+        return View("Edit", request);
+    }
 }

@@ -1,0 +1,59 @@
+@model IEnumerable<WebApp.Models.Notification>
+
+@{
+    ViewData["Title"] = "Notifikace";
+}
+
+<div class="container mt-5">
+    <h2>@ViewData["Title"]</h2>
+
+    @if (Model.Any())
+    {
+        <table class="table table-dark table-striped">
+            <thead>
+                <tr>
+                    <th>Typ</th>
+                    <th>Požadavek</th>
+                    <th>Místo</th>
+                    <th>Datum zaèátku</th>
+                    <th>Stav</th>
+                    <th>Akce</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var notification in Model)
+                {
+                    <tr class="@(notification.Delivered ? "" : "table-primary")">
+                        <td>@notification.NotificationType</td>
+                        <td>
+                            <a href="/Request/Edit/@notification.Request.Id">
+                                @notification.Request.Type
+                            </a>
+                        </td>
+                        <td>@notification.Request.Location?.Name</td>
+                        <td>@notification.Request.Start.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>
+                            @if (notification.Delivered)
+                            {
+                                <span class="badge bg-secondary">Pøeèteno</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-primary">Nové</span>
+                            }
+                        </td>
+                        <td>
+                            <a href="/Request/Detail/@notification.Request.Id" class="btn btn-sm btn-primary">
+                                Detail
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">Nemáte žádné notifikace.</p>
+    }
+</div>
