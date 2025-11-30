@@ -878,3 +878,17 @@ BEGIN
     );
 END;
 /
+
+CREATE OR REPLACE VIEW organizers_hierarchy_v AS
+SELECT 
+    LEVEL as hierarchy_level,
+    id_organizer,
+    "name",
+    email,
+    id_organizer_substitute,
+    SYS_CONNECT_BY_PATH("name", ' → ') as hierarchy_path,
+    CONNECT_BY_ROOT "name" as top_organizer
+FROM organizers
+START WITH id_organizer_substitute IS NULL
+CONNECT BY PRIOR id_organizer = id_organizer_substitute
+ORDER SIBLINGS BY "name";

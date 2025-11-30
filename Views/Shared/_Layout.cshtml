@@ -34,6 +34,23 @@
                         <li class="nav-item">
                             <a class="nav-link text-light" asp-area="" asp-controller="User" asp-action="Index">Uživatelé</a>
                         </li>
+
+                        <!-- ADMIN MENU (pouze pro administrátory) -->
+                        @if (User.IsInRole("Administrator"))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-warning" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-shield-lock"></i> Administrace
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="adminDropdown">
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Admin" asp-action="Hierarchy">
+                                            <i class="bi bi-diagram-3"></i> Hierarchie organizátorů
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
                     </ul>
                     <div class="ms-auto d-flex align-items-center">
                         @if (User.Identity.IsAuthenticated)

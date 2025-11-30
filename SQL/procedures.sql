@@ -96,6 +96,10 @@ CREATE OR REPLACE PACKAGE reservations_pkg AS
         p_id_organizer IN NUMBER
     ) RETURN NUMBER;
 
+PROCEDURE get_organizers_hierarchy(
+    p_cursor OUT SYS_REFCURSOR
+);
+
 END reservations_pkg;
 /
 
@@ -550,12 +554,30 @@ BEGIN
     COMMIT;
 END mark_notification_delivered;
 
+PROCEDURE get_organizers_hierarchy(
+    p_cursor OUT SYS_REFCURSOR
+)
+IS
+BEGIN
+    OPEN p_cursor FOR
+    SELECT 
+        LEVEL as hierarchy_level,
+        id_organizer,
+        "name",
+        email,
+        id_organizer_substitute,
+        SUBSTR(SYS_CONNECT_BY_PATH("name", ' → '), 4) as hierarchy_path,
+        CONNECT_BY_ROOT "name" as top_organizer
+    FROM organizers
+    START WITH id_organizer_substitute IS NULL
+    CONNECT BY PRIOR id_organizer = id_organizer_substitute
+    ORDER SIBLINGS BY "name";
+END get_organizers_hierarchy;
+
 END reservations_pkg;
 /
 
--- V SQL Developer vytvořte:
-CREATE OR REPLACE TYPE NUMBER_TABLE AS TABLE OF NUMBER;
-/
+
 
 /*
 BEGIN
