@@ -96,9 +96,14 @@ CREATE OR REPLACE PACKAGE reservations_pkg AS
         p_id_organizer IN NUMBER
     ) RETURN NUMBER;
 
-PROCEDURE get_organizers_hierarchy(
-    p_cursor OUT SYS_REFCURSOR
-);
+    PROCEDURE get_organizers_hierarchy(
+        p_cursor OUT SYS_REFCURSOR
+    );
+
+    -- V PACKAGE SPECIFICATION (za get_organizers_hierarchy)
+    PROCEDURE list_database_objects(
+        p_cursor OUT SYS_REFCURSOR
+    );
 
 END reservations_pkg;
 /
@@ -573,6 +578,23 @@ BEGIN
     CONNECT BY PRIOR id_organizer = id_organizer_substitute
     ORDER SIBLINGS BY "name";
 END get_organizers_hierarchy;
+
+PROCEDURE list_database_objects(
+    p_cursor OUT SYS_REFCURSOR
+)
+IS
+BEGIN
+    OPEN p_cursor FOR
+    SELECT 
+        object_type,
+        object_name,
+        status,
+        TO_CHAR(created, 'DD.MM.YYYY HH24:MI') as created_date,
+        TO_CHAR(last_ddl_time, 'DD.MM.YYYY HH24:MI') as last_modified
+    FROM user_objects
+    WHERE object_type IN ('TABLE', 'VIEW', 'PROCEDURE', 'FUNCTION', 'TRIGGER', 'SEQUENCE', 'PACKAGE')
+    ORDER BY object_type, object_name;
+END list_database_objects;
 
 END reservations_pkg;
 /

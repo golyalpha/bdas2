@@ -14,9 +14,6 @@ public class AdminController : Controller
         _logger = logger;
     }
 
-    /// <summary>
-    /// Zobrazí hierarchickou strukturu organizátorù
-    /// </summary>
     public IActionResult Hierarchy()
     {
         try
@@ -29,6 +26,21 @@ public class AdminController : Controller
             _logger.LogError(ex, "Error loading organizer hierarchy");
             TempData["ErrorMessage"] = "Chyba pøi naèítání hierarchie organizátorù.";
             return RedirectToAction("Index", "User");
+        }
+    }
+
+    public IActionResult DatabaseObjects()
+    {
+        try
+        {
+            var objects = DatabaseObject.GetAllObjects();
+            return View(objects);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading database objects");
+            TempData["ErrorMessage"] = "Chyba pøi naèítání databázových objektù.";
+            return RedirectToAction("Hierarchy");
         }
     }
 }
