@@ -150,4 +150,117 @@ public class UserController : Controller
 
         return View(model);
     }
+
+    [HttpGet]
+    [Authorize(Roles = "Administrator")]
+    public IActionResult Impersonate()
+    {
+        var users = Organiser.GetNonAdminOrganisers();
+        return View(users);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> ImpersonateUser(int userId)
+    {
+        var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var currentUserName = User.FindFirst(ClaimTypes.Name)?.Value;
+        var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;  // PØIDÁNO: uložení pùvodní role
+        
+        if (string.IsNullOrEmpty(currentUserId))
+        {
+            return RedirectToAction("Login");
+        }
+
+        // Naètení cílového uživatele
+        Organiser targetUser;
+        try
+        {
+            targetUser = Organiser.GetOrganiser(userId);
+        }
+        catch (KeyNotFoundException)
+        {
+            TempData["Error"] = "Uživatel nebyl nalezen.";
+            return RedirectToAction("Impersonate");
+        }
+
+        // Nelze impersonovat jiného administrátora
+        if (targetUser.Role.Name == "Administrator")
+        {
+            TempData["Error"] = "Nelze impersonovat jiného administrátora.";
+            return RedirectToAction("Impersonate");
+        }
+
+        // Vytvoøení nových claims s impersonací
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, targetUser.Id.ToString()),
+            new Claim(ClaimTypes.Name, targetUser.Name),
+            new Claim(ClaimTypes.Role, targetUser.Role.Name),
+            new Claim("OriginalUserId", currentUserId),
+            new Claim("OriginalUserName", currentUserName),
+            new Claim("OriginalUserRole", currentUserRole),  
+            new Claim("IsImpersonating", "true")
+        };
+
+        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
+
+        _logger.LogWarning("Administrátor {AdminName} (ID: {AdminId}) zahájil impersonaci uživatele {UserName} (ID: {UserId})", 
+            currentUserName, currentUserId, targetUser.Name, targetUser.Id);
+
+        TempData["Success"] = $"Nyní jednáte jako uživatel {targetUser.Name}.";
+        return RedirectToAction("Index", "Home");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize]
+    public async Task<IActionResult> StopImpersonation()
+    {
+        var isImpersonating = User.FindFirst("IsImpersonating")?.Value;
+        
+        if (isImpersonating != "true")
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var originalUserId = User.FindFirst("OriginalUserId")?.Value;
+        var originalUserName = User.FindFirst("OriginalUserName")?.Value;
+        var impersonatedUserName = User.FindFirst(ClaimTypes.Name)?.Value;
+
+        if (string.IsNullOrEmpty(originalUserId))
+        {
+            return RedirectToAction("Login");
+        }
+
+        // Naètení pùvodního administrátora
+        Organiser originalUser;
+        try
+        {
+            originalUser = Organiser.GetOrganiser(int.Parse(originalUserId));
+        }
+        catch (KeyNotFoundException)
+        {
+            return RedirectToAction("Login");
+        }
+
+        // Obnovení pùvodních claims
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, originalUser.Id.ToString()),
+            new Claim(ClaimTypes.Name, originalUser.Name),
+            new Claim(ClaimTypes.Role, originalUser.Role.Name)
+        };
+
+        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
+
+        _logger.LogWarning("Administrátor {AdminName} (ID: {AdminId}) ukonèil impersonaci uživatele {UserName}", 
+            originalUserName, originalUserId, impersonatedUserName);
+
+        TempData["Success"] = "Impersonace byla ukonèena. Jste pøihlášeni jako vlastní úèet.";
+        return RedirectToAction("Index", "Home");
+    }
 }

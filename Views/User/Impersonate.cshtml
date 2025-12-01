@@ -1,0 +1,79 @@
+﻿@model List<WebApp.Models.Organiser>
+
+@{
+    ViewData["Title"] = "Impersonovat uživatele";
+}
+
+<div class="container mt-4">
+    <h2>@ViewData["Title"]</h2>
+    <p class="text-muted">Vyberte uživatele, kterého chcete impersonovat. Budete moci zobrazit systém z jeho pohledu.</p>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (User.Identity?.IsAuthenticated == true && User.HasClaim("IsImpersonating", "true"))
+    {
+        <div class="alert alert-warning mb-0 text-center rounded-0" role="alert">
+            <strong>⚠️ REŽIM IMPERSONACE ⚠️</strong>
+            Jednáte jako uživatel <strong>@User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value</strong>
+            (Původní admin: @User.FindFirst("OriginalUserName")?.Value)
+            <form asp-controller="User" asp-action="StopImpersonation" method="post" class="d-inline ms-3">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-sm btn-danger">
+                    <i class="bi bi-x-circle"></i> Ukončit impersonaci
+                </button>
+            </form>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Jméno</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Akce</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in Model)
+                            {
+                                <tr>
+                                    <td>@user.Name</td>
+                                    <td>@user.Email</td>
+                                    <td>
+                                        <span class="badge bg-@(user.Role.Name == "User" ? "primary" : "secondary")">
+                                            @user.Role.Name
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <form asp-action="ImpersonateUser" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="userId" value="@user.Id" />
+                                            <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('Opravdu chcete impersonovat uživatele @user.Name?')">
+                                                <i class="bi bi-person-fill-gear"></i> Impersonovat
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a asp-action="Index" class="btn btn-secondary">Zpět na seznam uživatelů</a>
+    </div>
+</div>

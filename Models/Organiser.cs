@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Oracle.ManagedDataAccess.Client;
+using Oracle.ManagedDataAccess.Types;
 using System.ComponentModel.DataAnnotations;
 using WebApp.Util;
 
@@ -115,6 +116,45 @@ public class Organiser
                         Name = reader.GetString(1),
                         Email = reader.GetString(2),
                         Role = Role.GetRole(reader.GetInt32(3))
+                    });
+                }
+            }
+        }
+        return list;
+    }
+
+    public static List<Organiser> GetNonAdminOrganisers()
+    {
+        List<Organiser> list = new List<Organiser>();
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            OracleCommand cmd = conn.CreateCommand();
+            cmd.CommandType = System.Data.CommandType.StoredProcedure;
+            cmd.CommandText = "user_management_pkg.get_non_admin_organizers";
+            
+            OracleParameter cursorParam = new OracleParameter();
+            cursorParam.ParameterName = "p_cursor";
+            cursorParam.OracleDbType = OracleDbType.RefCursor;
+            cursorParam.Direction = System.Data.ParameterDirection.Output;
+            cmd.Parameters.Add(cursorParam);
+
+            cmd.ExecuteNonQuery();
+
+            using (OracleDataReader reader = ((OracleRefCursor)cursorParam.Value).GetDataReader())
+            {
+                while (reader.Read())
+                {
+                    list.Add(new Organiser
+                    {
+                        Id = reader.GetInt32(0),
+                        Name = reader.GetString(1),
+                        Email = reader.GetString(2),
+                        Role = new Role
+                        {
+                            Id = reader.GetInt32(3),
+                            Name = reader.GetString(4)
+                        }
                     });
                 }
             }
