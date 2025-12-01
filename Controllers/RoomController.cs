@@ -25,8 +25,19 @@ public class RoomController : Controller
     {
         var model = new RoomViewModel
         {
+            Room = new Room  
+            {
+                Id = 0,
+                Name = "",
+                Capacity = 1,
+                Type = "MEETING_ROOM",
+                Location = new Location { Id = 0 },
+                Organiser = new Organiser { Id = 0 }
+            },
             Locations = Location.ListLocations(),
-            Organisers = Organiser.ListOrganisers()
+            Organisers = Organiser.ListOrganisers(),
+            LocationId = 0,
+            OrganiserId = 0
         };
 
         return View(model);
