@@ -892,3 +892,106 @@ FROM organizers
 START WITH id_organizer_substitute IS NULL
 CONNECT BY PRIOR id_organizer = id_organizer_substitute
 ORDER SIBLINGS BY "name";
+
+-- Tabulka pro audit log
+CREATE TABLE audit_log (
+    id_log NUMBER PRIMARY KEY,
+    table_name VARCHAR2(30) NOT NULL,
+    operation VARCHAR2(10) NOT NULL,
+    record_id NUMBER,
+    id_organizer NUMBER,
+    changed_at TIMESTAMP DEFAULT SYSTIMESTAMP,
+    old_values VARCHAR2(1000),
+    new_values VARCHAR2(1000)
+);
+
+CREATE SEQUENCE audit_log_seq START WITH 1 NOCACHE ORDER;
+
+-- Index pro rychlejší vyhledávání
+CREATE INDEX idx_audit_log_table ON audit_log(table_name, changed_at DESC);
+CREATE INDEX idx_audit_log_organizer ON audit_log(id_organizer, changed_at DESC);
+
+
+-- Audit trigger pro tabulku RESERVATIONS
+CREATE OR REPLACE TRIGGER trg_audit_reservations
+AFTER INSERT OR UPDATE OR DELETE ON reservations
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10);
+    v_old_values VARCHAR2(1000);
+    v_new_values VARCHAR2(1000);
+    v_organizer_id NUMBER;
+BEGIN
+    -- Určení typu operace
+    IF INSERTING THEN
+        v_operation := 'INSERT';
+        v_organizer_id := :NEW.id_organizer;
+        v_new_values := 'Room:' || :NEW.id_room || 
+                       ',Start:' || TO_CHAR(:NEW."start", 'DD.MM.YYYY HH24:MI') ||
+                       ',End:' || TO_CHAR(:NEW."end", 'DD.MM.YYYY HH24:MI');
+    ELSIF UPDATING THEN
+        v_operation := 'UPDATE';
+        v_organizer_id := :NEW.id_organizer;
+        v_old_values := 'Room:' || :OLD.id_room || 
+                       ',Start:' || TO_CHAR(:OLD."start", 'DD.MM.YYYY HH24:MI');
+        v_new_values := 'Room:' || :NEW.id_room || 
+                       ',Start:' || TO_CHAR(:NEW."start", 'DD.MM.YYYY HH24:MI');
+    ELSIF DELETING THEN
+        v_operation := 'DELETE';
+        v_organizer_id := :OLD.id_organizer;
+        v_old_values := 'Room:' || :OLD.id_room || 
+                       ',Start:' || TO_CHAR(:OLD."start", 'DD.MM.YYYY HH24:MI') ||
+                       ',End:' || TO_CHAR(:OLD."end", 'DD.MM.YYYY HH24:MI');
+    END IF;
+    
+    -- Vložení do audit logu
+    INSERT INTO audit_log (
+        id_log, table_name, operation, record_id, id_organizer, 
+        old_values, new_values
+    ) VALUES (
+        audit_log_seq.NEXTVAL,
+        'RESERVATIONS',
+        v_operation,
+        COALESCE(:NEW.id_reservation, :OLD.id_reservation),
+        v_organizer_id,
+        v_old_values,
+        v_new_values
+    );
+END;
+/
+
+-- Audit trigger pro tabulku ROOMS
+CREATE OR REPLACE TRIGGER trg_audit_rooms
+AFTER INSERT OR UPDATE OR DELETE ON rooms
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10);
+    v_old_values VARCHAR2(1000);
+    v_new_values VARCHAR2(1000);
+BEGIN
+    IF INSERTING THEN
+        v_operation := 'INSERT';
+        v_new_values := 'Name:' || :NEW."name" || ',Capacity:' || :NEW.capacity || ',Type:' || :NEW."type";
+    ELSIF UPDATING THEN
+        v_operation := 'UPDATE';
+        v_old_values := 'Name:' || :OLD."name" || ',Capacity:' || :OLD.capacity;
+        v_new_values := 'Name:' || :NEW."name" || ',Capacity:' || :NEW.capacity;
+    ELSIF DELETING THEN
+        v_operation := 'DELETE';
+        v_old_values := 'Name:' || :OLD."name" || ',Capacity:' || :OLD.capacity || ',Type:' || :OLD."type";
+    END IF;
+    
+    INSERT INTO audit_log (
+        id_log, table_name, operation, record_id, id_organizer, 
+        old_values, new_values
+    ) VALUES (
+        audit_log_seq.NEXTVAL,
+        'ROOMS',
+        v_operation,
+        COALESCE(:NEW.id_room, :OLD.id_room),
+        COALESCE(:NEW.id_organizer, :OLD.id_organizer),
+        v_old_values,
+        v_new_values
+    );
+END;
+/

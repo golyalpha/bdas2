@@ -43,4 +43,20 @@ public class AdminController : Controller
             return RedirectToAction("Hierarchy");
         }
     }
+
+    public IActionResult AuditLog(string tableName = null)
+    {
+        try
+        {
+            var logs = WebApp.Models.AuditLog.GetRecentLogs(100, tableName);
+            ViewBag.SelectedTable = tableName;
+            return View(logs);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading audit log");
+            TempData["ErrorMessage"] = "Chyba pøi naèítání audit logu.";
+            return RedirectToAction("DatabaseObjects");
+        }
+    }
 }
