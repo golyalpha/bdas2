@@ -8,13 +8,16 @@ public class Room
 {
     public int Id { get; set; }
 
-    [Required]
-    [Display(Name = "Room Name")]
+    [Required(ErrorMessage = "Název místnosti je povinná")]
+    [StringLength(100, ErrorMessage = "Název může mít maximálně 100 znaků")]
     public string Name { get; set; }
     
-    [Required]
+    [Required(ErrorMessage = "Kapacita je povinná")]
+    [Range(1, int.MaxValue, ErrorMessage = "Kapacita musí být kladná a nenulová (IO1)")]
     public int Capacity { get; set; }
+
     [Required]
+    [RegularExpression("^(MEETING_ROOM|PRESENTATION_ROOM)$")]
     public string Type { get; set; }
     
     [Required]

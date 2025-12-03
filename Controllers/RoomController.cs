@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Oracle.ManagedDataAccess.Client;
 using WebApp.Models;
 
 [Authorize]
@@ -12,7 +13,7 @@ public class RoomController : Controller
         _logger = logger;
     }
 
-    // Index: Zobraz� seznam m�stnost�
+    // Index: Zobrazí seznam místností
     public IActionResult Index()
     {
         var rooms = WebApp.Models.Room.ListRooms();
@@ -47,36 +48,101 @@ public class RoomController : Controller
     [HttpPost]
     public IActionResult Create(RoomViewModel roomViewModel)
     {
-        var room = roomViewModel.Room;
-        room.Location = Location.GetLocation(roomViewModel.LocationId);
-        room.Organiser = Organiser.GetOrganiser(roomViewModel.OrganiserId);
-        if(room.Type == "MEETING_ROOM")
+        // Validace modelu
+        if (!ModelState.IsValid)
         {
-            var meetingRoom = new MeetingRoom
-            {
-                Name = room.Name,
-                Capacity = room.Capacity,
-                Type = room.Type,
-                Location = room.Location,
-                Organiser = room.Organiser,
-                VideoCallReady = roomViewModel.VideoCallReady ?? false
-            };
-            meetingRoom.Persist();
+            roomViewModel.Locations = Location.ListLocations();
+            roomViewModel.Organisers = Organiser.ListOrganisers();
+            return View(roomViewModel);
         }
-        else if (room.Type == "PRESENTATION_ROOM")
+
+        // SP1: Kapacita musí být kladná
+        if (roomViewModel.Room.Capacity <= 0)
         {
-            var presentationRoom = new PresentationRoom
-            {
-                Name = room.Name,
-                Capacity = room.Capacity,
-                Type = room.Type,
-                Location = room.Location,
-                Organiser = room.Organiser,
-                PodiumSize = roomViewModel.PodiumSize ?? 0
-            };
-            presentationRoom.Persist();
+            ModelState.AddModelError("Room.Capacity", 
+                "Kapacita místnosti musí být kladná (SP1)");
+            roomViewModel.Locations = Location.ListLocations();
+            roomViewModel.Organisers = Organiser.ListOrganisers();
+            return View(roomViewModel);
         }
-        return RedirectToAction("Index");
+
+        // SP3: Velikost p�dia pro presentation room
+        if (roomViewModel.Room.Type == "PRESENTATION_ROOM")
+        {
+            if (!roomViewModel.PodiumSize.HasValue || roomViewModel.PodiumSize.Value <= 0)
+            {
+                ModelState.AddModelError("PodiumSize", 
+                    "Velikost pódia musí být kladná (SP3)");
+                roomViewModel.Locations = Location.ListLocations();
+                roomViewModel.Organisers = Organiser.ListOrganisers();
+                return View(roomViewModel);
+            }
+        }
+
+        try
+        {
+            var room = roomViewModel.Room;
+            room.Location = Location.GetLocation(roomViewModel.LocationId);
+            room.Organiser = Organiser.GetOrganiser(roomViewModel.OrganiserId);
+            
+            if (room.Type == "MEETING_ROOM")
+            {
+                var meetingRoom = new MeetingRoom
+                {
+                    Name = room.Name,
+                    Capacity = room.Capacity,
+                    Type = room.Type,
+                    Location = room.Location,
+                    Organiser = room.Organiser,
+                    VideoCallReady = roomViewModel.VideoCallReady ?? false
+                };
+                meetingRoom.Persist();
+            }
+            else if (room.Type == "PRESENTATION_ROOM")
+            {
+                var presentationRoom = new PresentationRoom
+                {
+                    Name = room.Name,
+                    Capacity = room.Capacity,
+                    Type = room.Type,
+                    Location = room.Location,
+                    Organiser = room.Organiser,
+                    PodiumSize = roomViewModel.PodiumSize.Value
+                };
+                presentationRoom.Persist();
+            }
+            
+            TempData["Success"] = "Místnost byla úspěšně vytvořena";
+            return RedirectToAction("Index");
+        }
+        catch (OracleException ex)
+        {
+            // Zpracování specifických DB chyb
+            if (ex.Message.Contains("rooms_name_un"))
+            {
+                ModelState.AddModelError("Room.Name", 
+                    "M�stnost s t�mto n�zvem ji� existuje (IO7)");
+            }
+            else if (ex.Message.Contains("chk_room_capacity_positive"))
+            {
+                ModelState.AddModelError("Room.Capacity", 
+                    "Kapacita musí být kladná (IO1)");
+            }
+            else if (ex.Message.Contains("chk_podium_size_positive"))
+            {
+                ModelState.AddModelError("PodiumSize", 
+                    "Velikost pódia musí být kladná (IO3)");
+            }
+            else
+            {
+                ModelState.AddModelError("", 
+                    "Nastala chyba při ukládání: " + ex.Message);
+            }
+            
+            roomViewModel.Locations = Location.ListLocations();
+            roomViewModel.Organisers = Organiser.ListOrganisers();
+            return View(roomViewModel);
+        }
     }
 
     // POST: Room/Edit/5

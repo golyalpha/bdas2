@@ -10,40 +10,48 @@
         @Html.AntiForgeryToken()
         
         <div class="form-group">
-            @Html.LabelFor(m => m.Request.Start)
+            @Html.LabelFor(m => m.Request.Start, "Start Time", new { @class = "control-label" })
             <div>
                 <input type="datetime-local"
                        name="@Html.NameFor(m => m.Request.Start)"
                        value="@(Model.Request?.Start.ToString("yyyy-MM-ddTHH:mm"))"
                        id="@Html.IdFor(m => m.Request.Start)"
-                       class="form-control" />
+                       class="form-control"
+                       required />
                 @Html.ValidationMessageFor(m => m.Request.Start, "", new { @class = "text-danger" })
             </div>
         </div>
 
         <div class="form-group">
-            @Html.LabelFor(m => m.Request.End)
+            @Html.LabelFor(m => m.Request.End, "End Time", new { @class = "control-label" })
             <div>
                 <input type="datetime-local"
                        name="@Html.NameFor(m => m.Request.End)"
                        value="@(Model.Request?.End.ToString("yyyy-MM-ddTHH:mm"))"
                        id="@Html.IdFor(m => m.Request.End)"
-                       class="form-control" />
+                       class="form-control"
+                       required />
+                <small class="form-text text-muted">Konec musí být po začátku (IO5/SP5)</small>
                 @Html.ValidationMessageFor(m => m.Request.End, "", new { @class = "text-danger" })
             </div>
         </div>
 
+        <!-- DÉLKA - HIDDEN FIELD, VYPOČÍTANÁ V JAVASCRIPTU -->
         <div class="form-group">
-            @Html.LabelFor(m => m.Request.Length)
+            <label class="control-label">Délka (vypočítaná automaticky)</label>
             <div>
-                <input type="time"
-                       name="@Html.NameFor(m => m.Request.Length)"
-                       value="@(Model.Request?.Length.ToString("HH:mm"))"
-                       id="@Html.IdFor(m => m.Request.Length)"
-                       class="form-control" />
-                @Html.ValidationMessageFor(m => m.Request.Length, "", new { @class = "text-danger" })
+                <input type="text"
+                       id="lengthDisplay"
+                       class="form-control"
+                       readonly
+                       placeholder="Bude vypočítána automaticky" />
             </div>
         </div>
+        
+        <!-- HIDDEN: Skutečná hodnota délky pro odeslání -->
+        <input type="hidden" 
+               name="@Html.NameFor(m => m.Request.Length)" 
+               id="@Html.IdFor(m => m.Request.Length)" />
 
         <div class="form-group">
             @Html.LabelFor(m => m.Request.MinimumCapacity)
@@ -52,14 +60,15 @@
                        name="@Html.NameFor(m => m.Request.MinimumCapacity)"
                        value="@Html.ValueFor(m => m.Request.MinimumCapacity)"
                        id="@Html.IdFor(m => m.Request.MinimumCapacity)"
-                       class="form-control" />
+                       class="form-control"
+                       required />
                 @Html.ValidationMessageFor(m => m.Request.MinimumCapacity, "", new { @class = "text-danger" })
             </div>
         </div>
 
         <div class="form-group">
             @Html.LabelFor(m => m.Request.Type)
-            <select id="@Html.IdFor(m => m.Request.Type)" name="@Html.NameFor(m => m.Request.Type)" class="form-control">
+            <select id="@Html.IdFor(m => m.Request.Type)" name="@Html.NameFor(m => m.Request.Type)" class="form-control" required>
                 <option value="">-- Vyberte typ --</option>
                 <option value="MEETING_RREQUEST" selected="@(Model.Request?.Type == "MEETING_RREQUEST")">Meeting Room</option>
                 <option value="PRESENTATION_RREQUEST" selected="@(Model.Request?.Type == "PRESENTATION_RREQUEST")">Presentation Room</option>
@@ -69,7 +78,7 @@
         <div class="form-group">
             @Html.LabelFor(m => m.LocationId)
             <div>
-                <select id="@Html.IdFor(m => m.LocationId)" name="@Html.NameFor(m => m.LocationId)" class="form-control">
+                <select id="@Html.IdFor(m => m.LocationId)" name="@Html.NameFor(m => m.LocationId)" class="form-control" required>
                     @foreach (var location in Model.Locations)
                     {
                         @if (location.Id == Model.LocationId)
@@ -118,6 +127,12 @@
             const requestTypeSelect = document.getElementById("Request_Type");
             const meetingRequestFields = document.getElementById("meetingRequestFields");
             const presentationRequestFields = document.getElementById("presentationRequestFields");
+            
+            // Elementy pro výpočet délky
+            const startInput = document.getElementById("Request_Start");
+            const endInput = document.getElementById("Request_End");
+            const lengthHiddenInput = document.getElementById("Request_Length");  // Hidden field pro odeslání
+            const lengthDisplay = document.getElementById("lengthDisplay");        // Readonly zobrazení
 
             function toggleFields() {
                 const selectedType = requestTypeSelect.value;
@@ -134,12 +149,44 @@
                 }
             }
 
-            // Přepnutí na základě výchozí hodnoty
-            toggleFields();
+            // Výpočet délky v reálném čase
+            function calculateLength() {
+                if (startInput.value && endInput.value) {
+                    const start = new Date(startInput.value);
+                    const end = new Date(endInput.value);
+                    
+                    if (end > start) {
+                        const diffMs = end - start;
+                        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                        const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                        
+                        // Zobrazení pro uživatele
+                        lengthDisplay.value = `${diffHours}h ${diffMinutes}min`;
+                        lengthDisplay.classList.remove('text-danger');
+                        
+                        // Hodnota pro odeslání do DB (formát pro Oracle DATE: '1000-01-01 HH:MI')
+                        const lengthFormatted = `1000-01-01 ${String(diffHours).padStart(2, '0')}:${String(diffMinutes).padStart(2, '0')}:00`;
+                        lengthHiddenInput.value = lengthFormatted;
+                        
+                    } else {
+                        lengthDisplay.value = "Konec musí být po začátku!";
+                        lengthDisplay.classList.add('text-danger');
+                        lengthHiddenInput.value = "";  // Nevyplníme, pokud je chyba
+                    }
+                } else {
+                    lengthDisplay.value = "";
+                    lengthHiddenInput.value = "";
+                }
+            }
 
-            // Přepnutí při změně hodnoty comboboxu
+            // Event listenery
+            toggleFields();
             requestTypeSelect.addEventListener("change", toggleFields);
+            startInput.addEventListener("change", calculateLength);
+            endInput.addEventListener("change", calculateLength);
+            
+            // Inicializace při načtení stránky
+            calculateLength();
         });
     </script>
 }
-

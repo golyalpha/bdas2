@@ -2,6 +2,8 @@
 
 @{
     ViewData["Title"] = "Requests";
+    var isAdmin = ViewBag.IsAdmin ?? false;
+    var currentUserId = ViewBag.CurrentUserId ?? 0;
 }
 
 <div class="container mt-5">
@@ -23,6 +25,7 @@
         <tbody>
             @foreach (var request in Model)
             {
+                var canEdit = isAdmin || request.Organiser.Id == currentUserId;
                 <tr>
                     <td>@request.Start.ToString("yyyy-MM-dd HH:mm")</td>
                     <td>@request.End.ToString("yyyy-MM-dd HH:mm")</td>
@@ -30,13 +33,21 @@
                     <td>@request.Organiser.Name</td>
                     <td>@request.Type</td>
                     <td>
-                        <a href="/Request/Edit?id=@request.Id" class="btn btn-warning">Edit</a>
-                        <form asp-action="Delete" asp-controller="Request" method="post" style="display:inline;">
-                            <input type="hidden" name="id" value="@request.Id" />
-                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this request?');">
-                                Delete
-                            </button>
-                        </form>
+                        @if (canEdit)
+                        {
+                            <a href="/Request/Edit?id=@request.Id" class="btn btn-warning btn-sm">Edit</a>
+                            <form asp-action="Delete" asp-controller="Request" method="post" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@request.Id" />
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this request?');">
+                                    Delete
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
                     </td>
                 </tr>
             }
