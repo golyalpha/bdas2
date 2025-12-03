@@ -1,56 +1,116 @@
 @model IEnumerable<WebApp.Models.RoomRequest>
 
 @{
-    ViewData["Title"] = "Requests";
+    ViewData["Title"] = "Moje žádosti o rezervace";
     var isAdmin = ViewBag.IsAdmin ?? false;
     var currentUserId = ViewBag.CurrentUserId ?? 0;
 }
 
 <div class="container mt-5">
-    <h2>@ViewData["Title"]</h2>
-
-    <a asp-controller="Request" asp-action="Create" class="btn btn-primary">Create New Request</a>
-
-    <table class="table table-dark table-striped">
-        <thead>
-            <tr>
-                <th>Start Time</th>
-                <th>End Time</th>
-                <th>Length</th>
-                <th>Organizer</th>
-                <th>Type</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var request in Model)
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-calendar-check"></i> 
+            @if (isAdmin)
             {
-                var canEdit = isAdmin || request.Organiser.Id == currentUserId;
-                <tr>
-                    <td>@request.Start.ToString("yyyy-MM-dd HH:mm")</td>
-                    <td>@request.End.ToString("yyyy-MM-dd HH:mm")</td>
-                    <td>@request.Length.ToString("H:mm")</td>
-                    <td>@request.Organiser.Name</td>
-                    <td>@request.Type</td>
-                    <td>
-                        @if (canEdit)
-                        {
-                            <a href="/Request/Edit?id=@request.Id" class="btn btn-warning btn-sm">Edit</a>
-                            <form asp-action="Delete" asp-controller="Request" method="post" style="display:inline;">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@request.Id" />
-                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this request?');">
-                                    Delete
-                                </button>
-                            </form>
-                        }
-                        else
-                        {
-                            <span class="text-muted">-</span>
-                        }
-                    </td>
-                </tr>
+                <text>Všechny žádosti o rezervace</text>
             }
-        </tbody>
-    </table>
+            else
+            {
+                <text>Moje žádosti o rezervace</text>
+            }
+        </h2>
+        <a asp-controller="Request" asp-action="Create" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Vytvoøit novou žádost
+        </a>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle fs-3"></i>
+            <p class="mt-2 mb-0">
+                @if (isAdmin)
+                {
+                    <text>V systému zatím nejsou žádné žádosti o rezervace.</text>
+                }
+                else
+                {
+                    <text>Zatím nemáte žádné žádosti o rezervace. Vytvoøte si svou první!</text>
+                }
+            </p>
+        </div>
+    }
+    else
+    {
+        <table class="table table-dark table-striped table-hover">
+            <thead>
+                <tr>
+                    <th><i class="bi bi-calendar-event"></i> Zaèátek</th>
+                    <th><i class="bi bi-calendar-event"></i> Konec</th>
+                    <th><i class="bi bi-clock"></i> Délka</th>
+                    <th><i class="bi bi-person"></i> Organizátor</th>
+                    <th><i class="bi bi-door-open"></i> Typ</th>
+                    <th class="text-center"><i class="bi bi-gear"></i> Akce</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var request in Model)
+                {
+                    var canEdit = isAdmin || request.Organiser.Id == currentUserId;
+                    <tr>
+                        <td>@request.Start.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>@request.End.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>@request.Length.ToString("H:mm")h</td>
+                        <td>
+                            @if (isAdmin)
+                            {
+                                <span class="badge bg-secondary">@request.Organiser.Name</span>
+                            }
+                            else
+                            {
+                                <text>@request.Organiser.Name</text>
+                            }
+                        </td>
+                        <td>
+                            @if (request.Type == "MEETING_RREQUEST")
+                            {
+                                <span class="badge bg-primary"><i class="bi bi-people"></i> Meetingová místnost</span>
+                            }
+                            else if (request.Type == "PRESENTATION_RREQUEST")
+                            {
+                                <span class="badge bg-info"><i class="bi bi-projector"></i> Prezentaèní místnost</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            @if (canEdit)
+                            {
+                                <a href="/Request/Edit?id=@request.Id" class="btn btn-warning btn-sm" title="Upravit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form asp-action="Delete" asp-controller="Request" method="post" style="display:inline;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@request.Id" />
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Smazat" onclick="return confirm('Opravdu chcete smazat tuto žádost?');">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="text-muted"><i class="bi bi-lock"></i></span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>

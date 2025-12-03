@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApp.Models;
 
@@ -13,9 +14,11 @@ public class HomeController : Controller
         _logger = logger;
     }
 
+    [Authorize]
     public IActionResult Index()
     {
-        return RedirectToAction("Login", "User");
+        // Přesměrování na domovskou stránku (seznam žádostí)
+        return RedirectToAction("Index", "Request");
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

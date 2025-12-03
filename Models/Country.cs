@@ -9,8 +9,6 @@ namespace WebApp.Models
         public int Id { get; set; }
         public required string Name { get; set; }
 
-
-
         public void Persist()
         {
             using (OracleConnection conn = DBManager.GetConnection())

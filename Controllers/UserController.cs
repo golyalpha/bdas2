@@ -34,6 +34,12 @@ public class UserController : Controller
     [AllowAnonymous]
     public IActionResult Login(string ReturnUrl)
     {
+        // Pokud je uživatel již pøihlášen, pøesmìruj na domovskou stránku
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return RedirectToAction("Index", "Request");
+        }
+        
         System.Console.WriteLine(ReturnUrl);
         return View();
     }
@@ -71,7 +77,9 @@ public class UserController : Controller
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
-            return RedirectToAction("Index");
+            
+            // Pøesmìrování na domovskou stránku po úspìšném pøihlášení
+            return RedirectToAction("Index", "Request");
         }
         return View(request);
     }
@@ -211,7 +219,7 @@ public class UserController : Controller
             currentUserName, currentUserId, targetUser.Name, targetUser.Id);
 
         TempData["Success"] = $"Nyní jednáte jako uživatel {targetUser.Name}.";
-        return RedirectToAction("Index", "Home");
+        return RedirectToAction("Index", "Request");
     }
 
     [HttpPost]
@@ -261,6 +269,6 @@ public class UserController : Controller
             originalUserName, originalUserId, impersonatedUserName);
 
         TempData["Success"] = "Impersonace byla ukonèena. Jste pøihlášeni jako vlastní úèet.";
-        return RedirectToAction("Index", "Home");
+        return RedirectToAction("Index", "Request");
     }
 }
