@@ -34,7 +34,7 @@ public class UserController : Controller
     [AllowAnonymous]
     public IActionResult Login(string ReturnUrl)
     {
-        // Pokud je uûivatel jiû p¯ihl·öen, p¯esmÏruj na domovskou str·nku
+        // Pokud je u≈æivatel ji≈æ p≈ôihl√°≈°en, p≈ôesmƒõruj na domovskou str√°nku
         if (User.Identity?.IsAuthenticated == true)
         {
             return RedirectToAction("Index", "Request");
@@ -78,7 +78,7 @@ public class UserController : Controller
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
             
-            // P¯esmÏrov·nÌ na domovskou str·nku po ˙spÏönÈm p¯ihl·öenÌ
+            // P≈ôesmƒõrov√°n√≠ na domovskou str√°nku po √∫spƒõ≈°n√©m p≈ôihl√°≈°en√≠
             return RedirectToAction("Index", "Request");
         }
         return View(request);
@@ -161,6 +161,59 @@ public class UserController : Controller
 
     [HttpGet]
     [Authorize(Roles = "Administrator")]
+    public IActionResult EditRole(int id)
+    {
+        var user = Organiser.GetOrganiser(id);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        /*
+        if (user.Role.Name == "Administrator")
+        {
+            TempData["Error"] = "Nelze mƒõnit roli jin√©ho administr√°tora.";
+            return RedirectToAction("Index");
+        }
+        */
+
+        ViewBag.Roles = Role.ListRoles();
+        return View(user);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Administrator")]
+    public IActionResult EditRole(int id, int roleId)
+    {
+        var user = Organiser.GetOrganiser(id);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        /*
+        if (user.Role.Name == "Administrator")
+        {
+            TempData["Error"] = "Nelze mƒõnit roli jin√©ho administr√°tora.";
+            return RedirectToAction("Index");
+        }
+        */
+
+        var newRole = Role.GetRole(roleId);
+
+        user.Role = newRole;
+        user.Persist();
+
+        _logger.LogInformation("Administr√°tor zmƒõnil roli u≈æivatele {UserName} (ID: {UserId}) na {NewRole}", 
+            user.Name, user.Id, newRole.Name);
+
+        TempData["Success"] = $"Role u≈æivatele {user.Name} byla zmƒõnƒõna na {newRole.Name}.";
+        return RedirectToAction("Index");
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "Administrator")]
     public IActionResult Impersonate()
     {
         var users = Organiser.GetNonAdminOrganisers();
@@ -174,14 +227,14 @@ public class UserController : Controller
     {
         var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var currentUserName = User.FindFirst(ClaimTypes.Name)?.Value;
-        var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;  // PÿID¡NO: uloûenÌ p˘vodnÌ role
+        var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;  // P≈òID√ÅNO: ulo≈æen√≠ p≈Øvodn√≠ role
         
         if (string.IsNullOrEmpty(currentUserId))
         {
             return RedirectToAction("Login");
         }
 
-        // NaËtenÌ cÌlovÈho uûivatele
+        // Naƒçten√≠ c√≠lov√©ho u≈æivatele
         Organiser targetUser;
         try
         {
@@ -189,18 +242,18 @@ public class UserController : Controller
         }
         catch (KeyNotFoundException)
         {
-            TempData["Error"] = "Uûivatel nebyl nalezen.";
+            TempData["Error"] = "UÔøΩivatel nebyl nalezen.";
             return RedirectToAction("Impersonate");
         }
 
-        // Nelze impersonovat jinÈho administr·tora
+        // Nelze impersonovat jin√©ho administr√°tora
         if (targetUser.Role.Name == "Administrator")
         {
-            TempData["Error"] = "Nelze impersonovat jinÈho administr·tora.";
+            TempData["Error"] = "Nelze impersonovat jin√©ho administr√°tora.";
             return RedirectToAction("Impersonate");
         }
 
-        // Vytvo¯enÌ nov˝ch claims s impersonacÌ
+        // Vytvo≈ôen√≠ nov√Ωch claims s impersonac√≠
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, targetUser.Id.ToString()),
@@ -215,10 +268,10 @@ public class UserController : Controller
         var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
 
-        _logger.LogWarning("Administr·tor {AdminName} (ID: {AdminId}) zah·jil impersonaci uûivatele {UserName} (ID: {UserId})", 
+        _logger.LogWarning("Administr√°tor {AdminName} (ID: {AdminId}) zah√°jil impersonaci u≈æivatele {UserName} (ID: {UserId})", 
             currentUserName, currentUserId, targetUser.Name, targetUser.Id);
 
-        TempData["Success"] = $"NynÌ jedn·te jako uûivatel {targetUser.Name}.";
+        TempData["Success"] = $"Nyn√≠ jedn√°te jako u≈æivatel {targetUser.Name}.";
         return RedirectToAction("Index", "Request");
     }
 
@@ -243,7 +296,7 @@ public class UserController : Controller
             return RedirectToAction("Login");
         }
 
-        // NaËtenÌ p˘vodnÌho administr·tora
+        // Naƒçten√≠ p≈Øvodn√≠ho administr√°tora
         Organiser originalUser;
         try
         {
@@ -254,7 +307,7 @@ public class UserController : Controller
             return RedirectToAction("Login");
         }
 
-        // ObnovenÌ p˘vodnÌch claims
+        // Obnoven√≠ p≈Øvodn√≠ch claims
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, originalUser.Id.ToString()),
@@ -265,10 +318,10 @@ public class UserController : Controller
         var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
 
-        _logger.LogWarning("Administr·tor {AdminName} (ID: {AdminId}) ukonËil impersonaci uûivatele {UserName}", 
+        _logger.LogWarning("Administr√°tor {AdminName} (ID: {AdminId}) ukonƒçil impersonaci u≈æivatele {UserName}", 
             originalUserName, originalUserId, impersonatedUserName);
 
-        TempData["Success"] = "Impersonace byla ukonËena. Jste p¯ihl·öeni jako vlastnÌ ˙Ëet.";
+        TempData["Success"] = "Impersonace byla ukonƒçena. Jste p≈ôihl√°≈°eni jako vlastn√≠ √∫ƒçet.";
         return RedirectToAction("Index", "Request");
     }
 }

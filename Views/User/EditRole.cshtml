@@ -1,0 +1,121 @@
+@model WebApp.Models.Organiser
+
+@{
+    ViewData["Title"] = "Změnit roli uživatele";
+    var roles = ViewBag.Roles as List<WebApp.Models.Role>;
+}
+
+<div class="container mt-5">
+    <div class="card bg-dark text-light">
+        <div class="card-header">
+            <h2><i class="bi bi-shield-fill-check"></i> Změnit roli uživatele</h2>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>Pozor:</strong> Změna role ovlivní oprávnění uživatele v celém systému.
+            </div>
+
+            <form method="post" asp-action="EditRole" asp-controller="User" asp-route-id="@Model.Id">
+                @Html.AntiForgeryToken()
+
+                <div class="mb-3">
+                    <label class="form-label"><i class="bi bi-person"></i> U�ivatel:</label>
+                    <input type="text" class="form-control" value="@Model.Name (@Model.Email)" disabled />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><i class="bi bi-shield"></i> Aktuální role:</label>
+                    @if (Model.Role.Name == "Administrator")
+                    {
+                        <div><span class="badge bg-danger fs-5"><i class="bi bi-shield-fill-check"></i> Administrator</span></div>
+                    }
+                    else if (Model.Role.Name == "User")
+                    {
+                        <div><span class="badge bg-primary fs-5"><i class="bi bi-person-check"></i> User</span></div>
+                    }
+                    else
+                    {
+                        <div><span class="badge bg-secondary fs-5"><i class="bi bi-person"></i> Guest</span></div>
+                    }
+                </div>
+
+                <div class="mb-4">
+                    <label for="roleId" class="form-label"><i class="bi bi-shield-fill-plus"></i> Nová role:</label>
+                    <select id="roleId" name="roleId" class="form-select" required>
+                        <option value="">-- Vyberte roli --</option>
+                        @foreach (var role in roles)
+                        {
+                            if (role.Name != "Administrator")
+                            {
+                                <option value="@role.Id" selected="@(role.Id == Model.Role.Id)">
+                                    @if (role.Name == "User")
+                                    {
+                                        <text>👤 User - Standardní uživatel (může vytvářet a spravovat své žádosti)</text>
+                                    }
+                                    else if (role.Name == "Guest")
+                                    {
+                                        <text>👥 Guest - Omezený přístup (pouze čtení a vytváření žádostí)</text>
+                                    }
+                                    else
+                                    {
+                                        @role.Name
+                                    }
+                                </option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <h5>Oprávnění podle rolí:</h5>
+                    <table class="table table-sm table-dark table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Akce</th>
+                                <th class="text-center">User</th>
+                                <th class="text-center">Guest</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Vytvořit žádost o rezervaci</td>
+                                <td class="text-center"><i class="bi bi-check-circle text-success"></i></td>
+                                <td class="text-center"><i class="bi bi-check-circle text-success"></i></td>
+                            </tr>
+                            <tr>
+                                <td>Editovat/Mazat vlastní žádosti</td>
+                                <td class="text-center"><i class="bi bi-check-circle text-success"></i></td>
+                                <td class="text-center"><i class="bi bi-x-circle text-danger"></i></td>
+                            </tr>
+                            <tr>
+                                <td>Spravovat rezervace</td>
+                                <td class="text-center"><i class="bi bi-check-circle text-success"></i></td>
+                                <td class="text-center"><i class="bi bi-x-circle text-danger"></i></td>
+                            </tr>
+                            <tr>
+                                <td>Vytvářet/Editovat místnosti</td>
+                                <td class="text-center"><i class="bi bi-check-circle text-success"></i></td>
+                                <td class="text-center"><i class="bi bi-x-circle text-danger"></i></td>
+                            </tr>
+                            <tr>
+                                <td>Prohlížet místnosti a lokace</td>
+                                <td class="text-center"><i class="bi bi-check-circle text-success"></i></td>
+                                <td class="text-center"><i class="bi bi-check-circle text-success"></i> (pouze �ten�)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-save"></i> Uložit změnu
+                    </button>
+                    <a href="/User/Index" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Zrušit
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
