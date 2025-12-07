@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using WebApp.Models;
 
 [Authorize]
@@ -15,6 +16,14 @@ public class LocationController : Controller
     public IActionResult Index()
     {
         var locations = WebApp.Models.Location.ListLocations();
+        var isGuest = User.IsInRole("Guest");
+        var isAdmin = User.IsInRole("Administrator");
+        var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+        ViewBag.IsGuest = isGuest;
+        ViewBag.IsAdmin = isAdmin;
+        ViewBag.CurrentUserId = currentUserId;
+
         return View(locations);
     }
 
@@ -38,6 +47,12 @@ public class LocationController : Controller
     [HttpPost]
     public IActionResult Edit(LocationViewModel locationViewModel, int id)
     {
+        if (User.IsInRole("Guest"))
+        {
+            TempData["Error"] = "UÅ¾ivatelÃ© s rolÃ­ Guest nemohou upravovat lokace.";
+            return RedirectToAction("Index");
+        }
+
         locationViewModel.Location.Id = id;
         System.Console.Out.WriteLine(locationViewModel.CityId);
         locationViewModel.Location.City = City.GetCity(locationViewModel.CityId);
@@ -49,7 +64,7 @@ public class LocationController : Controller
     [HttpGet]
     public IActionResult Edit(int id)
     {
-        var location = Location.GetLocation(id); // Získání konkrétní lokace podle ID
+        var location = Location.GetLocation(id); // ZÃ­skÃ¡nÃ­ konkrÃ©tnÃ­ lokace podle ID
         if (location == null)
         {
             return NotFound();
@@ -59,7 +74,7 @@ public class LocationController : Controller
             CityId = location.City.Id,
             Location = location
         };
-        return View("Create", model); // Zobrazí formuláø Edit.cshtml s pøedvyplnìnými hodnotami
+        return View("Create", model); // ZobrazÃ­ formulÃ¡Å™ Edit.cshtml s pÅ™edvyplnÄ›nÃ½mi hodnotami
     }
 
 }

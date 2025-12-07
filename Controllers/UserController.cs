@@ -161,59 +161,6 @@ public class UserController : Controller
 
     [HttpGet]
     [Authorize(Roles = "Administrator")]
-    public IActionResult EditRole(int id)
-    {
-        var user = Organiser.GetOrganiser(id);
-        if (user == null)
-        {
-            return NotFound();
-        }
-
-        /*
-        if (user.Role.Name == "Administrator")
-        {
-            TempData["Error"] = "Nelze měnit roli jiného administrátora.";
-            return RedirectToAction("Index");
-        }
-        */
-
-        ViewBag.Roles = Role.ListRoles();
-        return View(user);
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Administrator")]
-    public IActionResult EditRole(int id, int roleId)
-    {
-        var user = Organiser.GetOrganiser(id);
-        if (user == null)
-        {
-            return NotFound();
-        }
-
-        /*
-        if (user.Role.Name == "Administrator")
-        {
-            TempData["Error"] = "Nelze měnit roli jiného administrátora.";
-            return RedirectToAction("Index");
-        }
-        */
-
-        var newRole = Role.GetRole(roleId);
-
-        user.Role = newRole;
-        user.Persist();
-
-        _logger.LogInformation("Administrátor změnil roli uživatele {UserName} (ID: {UserId}) na {NewRole}", 
-            user.Name, user.Id, newRole.Name);
-
-        TempData["Success"] = $"Role uživatele {user.Name} byla změněna na {newRole.Name}.";
-        return RedirectToAction("Index");
-    }
-
-    [HttpGet]
-    [Authorize(Roles = "Administrator")]
     public IActionResult Impersonate()
     {
         var users = Organiser.GetNonAdminOrganisers();
@@ -242,7 +189,7 @@ public class UserController : Controller
         }
         catch (KeyNotFoundException)
         {
-            TempData["Error"] = "U�ivatel nebyl nalezen.";
+            TempData["Error"] = "Uživatel nebyl nalezen.";
             return RedirectToAction("Impersonate");
         }
 
@@ -323,5 +270,104 @@ public class UserController : Controller
 
         TempData["Success"] = "Impersonace byla ukončena. Jste přihlášeni jako vlastní účet.";
         return RedirectToAction("Index", "Request");
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "Administrator")]
+    public IActionResult EditRole(int id)
+    {
+        var user = Organiser.GetOrganiser(id);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        ViewBag.Roles = Role.ListRoles();
+        return View(user);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Administrator")]
+    public IActionResult EditRole(int id, int roleId)
+    {
+        var user = Organiser.GetOrganiser(id);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        var newRole = Role.GetRole(roleId);
+        user.Role = newRole;
+        user.Persist();
+
+        _logger.LogInformation("Administrátor změnil roli uživatele {UserName} (ID: {UserId}) na {NewRole}", 
+            user.Name, user.Id, newRole.Name);
+
+        TempData["Success"] = $"Role uživatele {user.Name} byla změněna na {newRole.Name}.";
+        return RedirectToAction("Index");
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "Administrator")]
+    public IActionResult EditSubstitute(int id)
+    {
+        var user = Organiser.GetOrganiser(id);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        var model = new EditSubstituteViewModel
+        {
+            User = user,
+            CurrentSubstituteId = user.Substitute?.Id,
+            PotentialSubstitutes = Organiser.GetPotentialSubstitutes(id)
+        };
+
+        return View(model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Administrator")]
+    public IActionResult EditSubstitute(int id, int? substituteId)
+    {
+        try
+        {
+            var user = Organiser.GetOrganiser(id);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            // Validace: nelze být sám sobě náhradníkem
+            if (substituteId == id)
+            {
+                TempData["Error"] = "Uživatel nemůže být sám sobě náhradníkem.";
+                return RedirectToAction("EditSubstitute", new { id });
+            }
+
+            user.UpdateSubstitute(substituteId);
+
+            var substituteName = substituteId.HasValue
+                ? Organiser.GetOrganiser(substituteId.Value).Name
+                : "žádný";
+
+            _logger.LogInformation("Administrátor změnil náhradníka uživatele {UserName} (ID: {UserId}) na {SubstituteName}",
+                user.Name, user.Id, substituteName);
+
+            TempData["Success"] = substituteId.HasValue
+                ? $"Náhradník uživatele {user.Name} byl nastaven na {substituteName}."
+                : $"Náhradník uživatele {user.Name} byl odebrán.";
+
+            return RedirectToAction("Index");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Chyba při změně náhradníka");
+            TempData["Error"] = "Chyba při ukládání náhradníka: " + ex.Message;
+            return RedirectToAction("EditSubstitute", new { id });
+        }
     }
 }

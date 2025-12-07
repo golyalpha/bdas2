@@ -1,0 +1,101 @@
+@model WebApp.Models.EditSubstituteViewModel
+
+@{
+    ViewData["Title"] = $"Náhradník - {Model.User.Name}";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card bg-dark text-light">
+                <div class="card-header">
+                    <h4>Nastavit náhradníka pro uživatele @Model.User.Name</h4>
+                </div>
+                <div class="card-body">
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger">
+                            @TempData["Error"]
+                        </div>
+                    }
+
+                    <div class="alert alert-info">
+                        <strong>Co je náhradník?</strong><br/>
+                        Náhradník je osoba, která může zastoupit uživatele v případě nepřítomnosti.
+                        Náhradník může spravovat rezervace a žádosti daného uživatele.
+                    </div>
+
+                    <form method="post" asp-action="EditSubstitute" asp-route-id="@Model.User.Id">
+                        @Html.AntiForgeryToken()
+
+                        <div class="mb-3">
+                            <label class="form-label">U�ivatel:</label>
+                            <input type="text" class="form-control" 
+                                   value="@Model.User.Name (@Model.User.Email)" disabled />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Aktu�ln� role:</label>
+                            <div>
+                                @if (Model.User.Role.Name == "Administrator")
+                                {
+                                    <span class="badge bg-danger fs-6">Administrator</span>
+                                }
+                                else if (Model.User.Role.Name == "User")
+                                {
+                                    <span class="badge bg-primary fs-6">User</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary fs-6">Guest</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Aktuální náhradník:</label>
+                            <div>
+                                @if (Model.User.Substitute != null)
+                                {
+                                    <span class="badge bg-success fs-6">
+                                        @Model.User.Substitute.Name (@Model.User.Substitute.Email)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary fs-6">Nen� nastaven</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="substituteId" class="form-label">Nový náhradník:</label>
+                            <select id="substituteId" name="substituteId" class="form-select">
+                                <option value="">-- Žádný náhradník --</option>
+                                @foreach (var substitute in Model.PotentialSubstitutes)
+                                {
+                                    var isSelected = substitute.Id == Model.CurrentSubstituteId;
+                                    <option value="@substitute.Id" selected="@isSelected">
+                                        @substitute.Name (@substitute.Email) - @substitute.Role.Name
+                                    </option>
+                                }
+                            </select>
+                            <div class="form-text text-muted">
+                                Vyberte osobu, která bude moci zastoupit tohoto uživatele.
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                Uložit změnu
+                            </button>
+                            <a href="/User/Index" class="btn btn-secondary">
+                                Zpět na seznam
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

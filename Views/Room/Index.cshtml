@@ -1,16 +1,19 @@
-﻿@model List<WebApp.Models.Room>
+﻿@model IEnumerable<WebApp.Models.Room>
 
 @{
-    ViewData["Title"] = "Mistnosti";
+    ViewData["Title"] = "Místnosti";
+    var isGuest = ViewBag.IsGuest ?? false;
+    var isAdmin = ViewBag.IsAdmin ?? false;
+    var currentUserId = ViewBag.CurrentUserId ?? 0;
 }
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="bi bi-door-open"></i> Mistnosti</h2>
-        @if (User.IsInRole("Administrator"))
+        <h2>@ViewData["Title"]</h2>
+        @if (!isGuest)
         {
-            <a asp-action="Create" class="btn btn-success">
-                <i class="bi bi-plus-circle"></i> Pridat mistnost
+            <a asp-controller="Room" asp-action="Create" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Přidat novou místnost
             </a>
         }
     </div>
@@ -18,7 +21,7 @@
     @if (TempData["Success"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show">
-            <i class="bi bi-check-circle"></i> @TempData["Success"]
+            @TempData["Success"]
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
@@ -26,208 +29,76 @@
     @if (TempData["Error"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show">
-            <i class="bi bi-exclamation-triangle"></i> @TempData["Error"]
+            @TempData["Error"]
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
 
-    <div class="row">
-        @foreach (var room in Model)
-        {
-            <div class="col-md-4 col-lg-3 mb-4">
-                <div class="card bg-secondary text-light h-100">
-                    <div class="position-relative">
-                        <img src="@Url.Action("GetRoomImage", "Image", new { roomId = room.Id })" 
-                             class="card-img-top" 
-                             alt="@room.Name"
-                             style="height: 200px; object-fit: cover;" 
-                             onerror="this.onerror=null; this.src='/images/no-image.svg';" />
-                        
-                        @if (User.IsInRole("Administrator"))
+    <table class="table table-dark table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Název</th>
+                <th>Kapacita</th>
+                <th>Typ</th>
+                <th>Lokace</th>
+                <th>Vlastník</th>
+                <th class="text-center">Akce</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var room in Model)
+            {
+                var canEdit = (isAdmin || room.Organiser.Id == currentUserId) && !isGuest;
+                <tr>
+                    <td>@room.Name</td>
+                    <td>@room.Capacity</td>
+                    <td>
+                        @if (room.Type == "MEETING_ROOM")
                         {
-                            <div class="position-absolute top-0 end-0 p-2">
-                                <button type="button" 
-                                        class="btn btn-sm btn-primary upload-btn" 
-                                        data-room-id="@room.Id"
-                                        data-room-name="@room.Name">
-                                    <i class="bi bi-camera"></i>
+                            <span class="badge bg-primary">Jednací místnost</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-info">Prezentacní místnost</span>
+                        }
+                    </td>
+                    <td>@room.Location.Name</td>
+                    <td>
+                        @if (isAdmin)
+                        {
+                            <span class="badge bg-secondary">@room.Organiser.Name</span>
+                        }
+                        else
+                        {
+                            <text>@room.Organiser.Name</text>
+                        }
+                    </td>
+                    <td class="text-center">
+                        @if (canEdit)
+                        {
+                            <a href="/Room/Edit?id=@room.Id" class="btn btn-warning btn-sm" title="Upravit">
+                                <i class="bi bi-pencil"></i> Upravit
+                            </a>
+                            <form asp-action="Delete" asp-controller="Room" method="post" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@room.Id" />
+                                <button type="submit" class="btn btn-danger btn-sm" 
+                                        onclick="return confirm('Opravdu chcete smazat tuto místnost?');">
+                                    <i class="bi bi-trash"></i> Smazat
                                 </button>
-                            </div>
+                            </form>
                         }
-                    </div>
-                    
-                    <div class="card-body d-flex flex-column">
-                        <h5 class="card-title">@room.Name</h5>
-                        <p class="card-text">
-                            <small>
-                                <i class="bi bi-people"></i> <strong>Kapacita:</strong> @room.Capacity<br/>
-                                <i class="bi bi-tag"></i> <strong>Typ:</strong> 
-                                @(room.Type == "MEETING_ROOM" ? "Jednaci mistnost" : "Prezentacni mistnost")<br/>
-                                <i class="bi bi-building"></i> <strong>Budova:</strong> @room.Location.Name<br/>
-                                <i class="bi bi-geo-alt"></i> @room.Location.City.Name, @room.Location.City.Country.Name
-                            </small>
-                        </p>
-                        
-                        <div class="mt-auto">
-                            @if (room is WebApp.Models.MeetingRoom mr)
-                            {
-                                <span class="badge bg-info">
-                                    <i class="bi bi-camera-video"></i> VC: @(mr.VideoCallReady ? "Ano" : "Ne")
-                                </span>
-                            }
-                            else if (room is WebApp.Models.PresentationRoom pr)
-                            {
-                                <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-projector"></i> Podium: @pr.PodiumSize m2
-                                </span>
-                            }
-                        </div>
-
-                        @if (User.IsInRole("Administrator"))
+                        else if (isGuest)
                         {
-                            <div class="mt-3">
-                                <form method="post" asp-action="Delete" asp-controller="Room" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@room.Id" />
-                                    <button type="submit" 
-                                            class="btn btn-danger btn-sm w-100" 
-                                            onclick="return confirm('Opravdu chcete smazat mistnost @room.Name?')">
-                                        <i class="bi bi-trash"></i> Smazat
-                                    </button>
-                                </form>
-                            </div>
+                            <span class="text-muted" title="Jako Guest můžete pouze prohlížet">Pouze čtení</span>
                         }
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
-
-    @if (!Model.Any())
-    {
-        <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i> Zatim nejsou zadne mistnosti.
-        </div>
-    }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
 </div>
-
-@* UNIVERZALNI MODAL PRO UPLOAD *@
-@if (User.IsInRole("Administrator"))
-{
-    <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content bg-dark text-light">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="uploadModalLabel">Nahrat obrazek</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form id="uploadForm" method="post" 
-                      asp-controller="Image" 
-                      asp-action="UploadRoomImage" 
-                      enctype="multipart/form-data">
-                    @Html.AntiForgeryToken()
-                    <div class="modal-body">
-                        <input type="hidden" name="roomId" id="modalRoomId" value="" />
-                        
-                        <div class="mb-3">
-                            <label for="modalImageFile" class="form-label">
-                                Vyberte obrazek
-                            </label>
-                            <input type="file" 
-                                   class="form-control" 
-                                   id="modalImageFile" 
-                                   name="imageFile" 
-                                   accept="image/jpeg,image/png,image/gif,image/webp" 
-                                   required />
-                            <div class="form-text text-light">
-                                Povolene formaty: JPEG, PNG, GIF, WEBP<br/>
-                                Maximalni velikost: 5 MB
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            Zrusit
-                        </button>
-                        <button type="submit" class="btn btn-success">
-                            <i class="bi bi-upload"></i> Nahrat
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-}
-
-@section Scripts {
-    <script>
-        (function() {
-            'use strict';
-            
-            // Pockame na nacteni DOMu
-            document.addEventListener('DOMContentLoaded', function() {
-                console.log('DOM loaded, initializing upload functionality...');
-                
-                // Najdeme modal element
-                var modalElement = document.getElementById('uploadModal');
-                if (!modalElement) {
-                    console.error('Upload modal not found!');
-                    return;
-                }
-                
-                // Vytvorime Bootstrap modal instanci
-                var uploadModal = new bootstrap.Modal(modalElement);
-                
-                // Najdeme vsechna upload tlacitka
-                var uploadButtons = document.querySelectorAll('.upload-btn');
-                console.log('Found ' + uploadButtons.length + ' upload buttons');
-                
-                // Priradime event listener kazdemu tlacitku
-                uploadButtons.forEach(function(button) {
-                    button.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        var roomId = this.getAttribute('data-room-id');
-                        var roomName = this.getAttribute('data-room-name');
-                        
-                        console.log('Opening upload modal for room:', roomId, roomName);
-                        
-                        // Nastavime roomId do hidden inputu
-                        document.getElementById('modalRoomId').value = roomId;
-                        
-                        // Aktualizujeme titulek modalu
-                        document.getElementById('uploadModalLabel').textContent = 'Nahrat obrazek - ' + roomName;
-                        
-                        // Vymazeme predchozi vyber souboru
-                        document.getElementById('modalImageFile').value = '';
-                        
-                        // Otevreme modal
-                        uploadModal.show();
-                    });
-                });
-                
-                // Debug: Po uspesnem uploadu
-                var uploadForm = document.getElementById('uploadForm');
-                if (uploadForm) {
-                    uploadForm.addEventListener('submit', function(e) {
-                        var roomId = document.getElementById('modalRoomId').value;
-                        var fileInput = document.getElementById('modalImageFile');
-                        
-                        if (!fileInput.files || fileInput.files.length === 0) {
-                            e.preventDefault();
-                            alert('Prosim vyberte soubor!');
-                            return false;
-                        }
-                        
-                        console.log('Submitting upload for room:', roomId);
-                        console.log('File:', fileInput.files[0].name, fileInput.files[0].size, 'bytes');
-                        
-                        // Nechame formular submitnout normalne (page refresh)
-                        return true;
-                    });
-                }
-            });
-        })();
-    </script>
-}

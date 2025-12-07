@@ -163,14 +163,6 @@ public class RequestController : Controller
 
         var organiserIdString = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
         var isAdmin = User.IsInRole("Administrator");
-        var isGuest = User.IsInRole("Guest");
-        
-        // Guest nemůže editovat
-        if (isGuest)
-        {
-            TempData["Error"] = "Uživatelé s rolí Guest nemohou editovat žádosti.";
-            return RedirectToAction("Index");
-        }
         
         // Admin může editovat vše, ostatní jen své
         if (!isAdmin && request.Organiser.Id != int.Parse(organiserIdString))
@@ -205,16 +197,8 @@ public class RequestController : Controller
 
         var organiserIdString = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
         var isAdmin = User.IsInRole("Administrator");
-        var isGuest = User.IsInRole("Guest");
         
-        // Guest nemůže editovat
-        if (isGuest)
-        {
-            TempData["Error"] = "Uživatelé s rolí Guest nemohou editovat žádosti.";
-            return RedirectToAction("Index");
-        }
-        
-        // Admin může editovat vše, ostatní jen své
+        // OPRAVA: Admin může editovat vše, ostatní jen své
         if (!isAdmin && request.Organiser.Id != int.Parse(organiserIdString))
         {
             return Unauthorized();
@@ -244,18 +228,9 @@ public class RequestController : Controller
         {
             RoomRequest request = RoomRequest.GetRequest(id);
             
+            // OPRAVA: Kontrola vlastnictví nebo admin práv
             var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var isAdmin = User.IsInRole("Administrator");
-            var isGuest = User.IsInRole("Guest");
-            
-            // Guest nemůže mazat
-            if (isGuest)
-            {
-                _logger.LogWarning("Guest user {UserId} attempted to delete request {RequestId}", 
-                    currentUserId, id);
-                TempData["Error"] = "Uživatelé s rolí Guest nemohou mazat žádosti.";
-                return RedirectToAction("Index");
-            }
             
             if (!isAdmin && request.Organiser.Id != currentUserId)
             {
@@ -265,12 +240,10 @@ public class RequestController : Controller
             }
             
             request.Delete();
-            TempData["Success"] = "Žádost byla úspěšně smazána.";
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting request.");
-            TempData["Error"] = "Chyba při mazání žádosti.";
         }
         return RedirectToAction("Index");
     }

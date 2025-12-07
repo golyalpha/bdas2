@@ -19,6 +19,9 @@ public class Organiser
     [Required]
     public Role Role { get; set; }
 
+    // Náhradník (substitute)
+    public Organiser? Substitute { get; set; }
+
     public void Persist()
     {
         using (OracleConnection conn = DBManager.GetConnection())
@@ -39,13 +42,31 @@ public class Organiser
         }
     }
 
+    /// <summary>
+    /// Aktualizuje pouze náhradníka organizátora (obchází trigger pro non-transferable FK)
+    /// </summary>
+    public void UpdateSubstitute(int? substituteId)
+    {
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            OracleCommand cmd = conn.CreateCommand();
+            cmd.CommandType = System.Data.CommandType.StoredProcedure;
+            cmd.CommandText = "reservations_pkg.update_organizer_substitute";
+            cmd.Parameters.Add("id_organizer", Id);
+            cmd.Parameters.Add("id_organizer_substitute", substituteId.HasValue ? (object)substituteId.Value : DBNull.Value);
+            cmd.ExecuteNonQuery();
+        }
+    }
+
     public static Organiser GetOrganiser(int Id)
     {
         using (OracleConnection conn = DBManager.GetConnection())
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = @"SELECT id_organizer, ""name"", email, id_role FROM ORGANIZERS_V WHERE id_organizer = :id";
+            cmd.CommandText = @"SELECT id_organizer, ""name"", email, id_role, id_organizer_substitute 
+                               FROM ORGANIZERS_V WHERE id_organizer = :id";
             cmd.Parameters.Add("id", Id);
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
@@ -59,11 +80,42 @@ public class Organiser
                     Id = reader.GetInt32(0),
                     Name = reader.GetString(1),
                     Email = reader.GetString(2),
-                    Role = Role.GetRole(reader.GetInt32(3))
+                    Role = Role.GetRole(reader.GetInt32(3)),
+                    Substitute = reader.IsDBNull(4) ? null : GetOrganiserBasic(reader.GetInt32(4))
                 };
                 reader.Close();
                 conn.Close();
                 return org;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Získá základní info o organizátorovi bez rekurzivního načítání náhradníka
+    /// </summary>
+    private static Organiser GetOrganiserBasic(int Id)
+    {
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            OracleCommand cmd = conn.CreateCommand();
+            cmd.CommandText = @"SELECT id_organizer, ""name"", email, id_role 
+                               FROM ORGANIZERS_V WHERE id_organizer = :id";
+            cmd.Parameters.Add("id", Id);
+            cmd.CommandType = System.Data.CommandType.Text;
+            using (OracleDataReader reader = cmd.ExecuteReader())
+            {
+                if (!reader.Read())
+                {
+                    return null;
+                }
+                return new Organiser
+                {
+                    Id = reader.GetInt32(0),
+                    Name = reader.GetString(1),
+                    Email = reader.GetString(2),
+                    Role = Role.GetRole(reader.GetInt32(3))
+                };
             }
         }
     }
@@ -104,7 +156,7 @@ public class Organiser
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = @"SELECT id_organizer, ""name"", email, id_role FROM ORGANIZERS_V";
+            cmd.CommandText = @"SELECT id_organizer, ""name"", email, id_role, id_organizer_substitute FROM ORGANIZERS_V";
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {
@@ -115,12 +167,39 @@ public class Organiser
                         Id = reader.GetInt32(0),
                         Name = reader.GetString(1),
                         Email = reader.GetString(2),
-                        Role = Role.GetRole(reader.GetInt32(3))
+                        Role = Role.GetRole(reader.GetInt32(3)),
+                        Substitute = reader.IsDBNull(4) ? null : new Organiser { Id = reader.GetInt32(4) }
                     });
                 }
             }
         }
+        
+        // Doplnění jmen náhradníků
+        var orgDict = list.ToDictionary(o => o.Id);
+        foreach (var org in list)
+        {
+            if (org.Substitute != null && orgDict.TryGetValue(org.Substitute.Id, out var sub))
+            {
+                org.Substitute = new Organiser 
+                { 
+                    Id = sub.Id, 
+                    Name = sub.Name, 
+                    Email = sub.Email,
+                    Role = sub.Role
+                };
+            }
+        }
+        
         return list;
+    }
+
+    /// <summary>
+    /// Vrátí seznam organizátorů, kteří mohou být náhradníky pro daného uživatele
+    /// (všichni kromě sebe sama)
+    /// </summary>
+    public static List<Organiser> GetPotentialSubstitutes(int excludeOrganiserId)
+    {
+        return ListOrganisers().Where(o => o.Id != excludeOrganiserId).ToList();
     }
 
     public static List<Organiser> GetNonAdminOrganisers()

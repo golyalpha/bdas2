@@ -1,22 +1,36 @@
 @model IEnumerable<WebApp.Models.Organiser>
 
 @{
-    ViewData["Title"] = "User List";
+    ViewData["Title"] = "Uživatelé";
     var isAdmin = User.IsInRole("Administrator");
+    var allUsers = ViewBag.AllUsers as List<WebApp.Models.Organiser> ?? Model.ToList();
 }
 
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="bi bi-people"></i> @ViewData["Title"]</h2>
+        <h2>@ViewData["Title"]</h2>
     </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
 
     <form asp-action="Index" method="get" class="mb-4">
         <div class="row">
-            <div class="col-md-8">
+            <div class="col-md-6">
                 <div class="input-group">
-                    <span class="input-group-text bg-secondary text-light">
-                        <i class="bi bi-search"></i>
-                    </span>
                     <input type="text" id="searchString" name="searchString" 
                            value="@ViewData["CurrentFilter"]" 
                            class="form-control" 
@@ -34,12 +48,13 @@
     <table class="table table-dark table-striped table-hover">
         <thead>
             <tr>
-                <th><i class="bi bi-person"></i> Jméno</th>
-                <th><i class="bi bi-envelope"></i> Email</th>
-                <th><i class="bi bi-shield"></i> Role</th>
+                <th>Jméno</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Náhradník</th>
                 @if (isAdmin)
                 {
-                    <th class="text-center"><i class="bi bi-gear"></i> Akce</th>
+                    <th class="text-center">Akce</th>
                 }
             </tr>
         </thead>
@@ -56,30 +71,38 @@
                     <td>
                         @if (organiser.Role.Name == "Administrator")
                         {
-                            <span class="badge bg-danger"><i class="bi bi-shield-fill-check"></i> Administrator</span>
+                            <span class="badge bg-danger">Administrator</span>
                         }
                         else if (organiser.Role.Name == "User")
                         {
-                            <span class="badge bg-primary"><i class="bi bi-person-check"></i> User</span>
+                            <span class="badge bg-primary">User</span>
                         }
                         else
                         {
-                            <span class="badge bg-secondary"><i class="bi bi-person"></i> Guest</span>
+                            <span class="badge bg-secondary">Guest</span>
+                        }
+                    </td>
+                    <td>
+                        @if (organiser.Substitute != null)
+                        {
+                            <span class="badge bg-info">@organiser.Substitute.Name</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Není nastaven</span>
                         }
                     </td>
                     @if (isAdmin)
                     {
                         <td class="text-center">
-                            @if (organiser.Role.Name != "Administrator")
-                            {
-                                <a href="/User/EditRole?id=@organiser.Id" class="btn btn-warning btn-sm" title="Změnit roli">
-                                    <i class="bi bi-shield-fill-check"></i> Změnit roli
+                            <div class="btn-group btn-group-sm">
+                                <a href="/User/EditRole/@organiser.Id" class="btn btn-warning" title="Změnit roli">
+                                    Role
                                 </a>
-                            }
-                            else
-                            {
-                                <span class="text-muted"><i class="bi bi-lock"></i> Admin</span>
-                            }
+                                <a href="/User/EditSubstitute/@organiser.Id" class="btn btn-info" title="Změnit náhradníka">
+                                    Náhradník
+                                </a>
+                            </div>
                         </td>
                     }
                 </tr>

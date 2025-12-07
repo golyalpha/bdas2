@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Oracle.ManagedDataAccess.Client;
+using System.Security.Claims;
 using WebApp.Models;
 
 [Authorize]
@@ -17,6 +18,14 @@ public class RoomController : Controller
     public IActionResult Index()
     {
         var rooms = WebApp.Models.Room.ListRooms();
+        var isGuest = User.IsInRole("Guest");
+        var isAdmin = User.IsInRole("Administrator");
+        var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+        ViewBag.IsGuest = isGuest;
+        ViewBag.IsAdmin = isAdmin;
+        ViewBag.CurrentUserId = currentUserId;
+
         return View(rooms);
     }
 
@@ -24,6 +33,12 @@ public class RoomController : Controller
     [HttpGet]
     public IActionResult Create()
     {
+        if (User.IsInRole("Guest"))
+        {
+            TempData["Error"] = "Uživatelé s rolí Guest nemohou vytvářet místnosti.";
+            return RedirectToAction("Index");
+        }
+
         var model = new RoomViewModel
         {
             Room = new Room  
@@ -48,6 +63,12 @@ public class RoomController : Controller
     [HttpPost]
     public IActionResult Create(RoomViewModel roomViewModel)
     {
+        if (User.IsInRole("Guest"))
+        {
+            TempData["Error"] = "Uživatelé s rolí Guest nemohou vytvářet místnosti.";
+            return RedirectToAction("Index");
+        }
+
         // Validace modelu
         if (!ModelState.IsValid)
         {
@@ -120,8 +141,8 @@ public class RoomController : Controller
             // Zpracování specifických DB chyb
             if (ex.Message.Contains("rooms_name_un"))
             {
-                ModelState.AddModelError("Room.Name", 
-                    "M�stnost s t�mto n�zvem ji� existuje (IO7)");
+                ModelState.AddModelError("Room.Name",
+                    "Místnost s tímto názvem již existuje (IO7)");
             }
             else if (ex.Message.Contains("chk_room_capacity_positive"))
             {
@@ -149,6 +170,12 @@ public class RoomController : Controller
     [HttpGet]
     public IActionResult Edit(int id)
     {
+        if (User.IsInRole("Guest"))
+        {
+            TempData["Error"] = "Uživatelé s rolí Guest nemohou editovat místnosti.";
+            return RedirectToAction("Index");
+        }
+
         var room = Room.GetRoom(id);
         if (room == null)
         {
@@ -169,6 +196,12 @@ public class RoomController : Controller
     [HttpPost]
     public IActionResult Edit(RoomViewModel roomViewModel, int id)
     {
+        if (User.IsInRole("Guest"))
+        {
+            TempData["Error"] = "Uživatelé s rolí Guest nemohou editovat místnosti.";
+            return RedirectToAction("Index");
+        }
+
         try
         {
             var room = roomViewModel.Room;
@@ -219,6 +252,13 @@ public class RoomController : Controller
     [HttpPost]
     public IActionResult Delete(int id)
     {
+        if (User.IsInRole("Guest"))
+        {
+            _logger.LogWarning("Guest user attempted to delete room {RoomId}", id);
+            TempData["Error"] = "Uživatelé s rolí Guest nemohou mazat místnosti.";
+            return RedirectToAction("Index");
+        }
+
         try
         {
             Room room = Room.GetRoom(id);

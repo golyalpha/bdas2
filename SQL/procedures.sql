@@ -111,6 +111,12 @@ CREATE OR REPLACE PACKAGE reservations_pkg AS
         p_cursor OUT SYS_REFCURSOR
     );
 
+    PROCEDURE update_organizer_substitute(
+    p_id_organizer IN NUMBER,
+    p_id_organizer_substitute IN NUMBER DEFAULT NULL
+);
+
+
 END reservations_pkg;
 /
 
@@ -355,8 +361,7 @@ PROCEDURE edit_organizer (
             UPDATE organizers
             SET "name" = p_name,
                 email = p_email,
-                id_role = p_id_role,
-                id_organizer_substitute = p_id_organizer_substitute
+                id_role = p_id_role
             WHERE id_organizer = p_id_organizer;
 
             IF SQL%ROWCOUNT = 0 THEN
@@ -644,6 +649,35 @@ BEGIN
         FETCH FIRST p_limit ROWS ONLY;
     END IF;
 END get_audit_log;
+
+
+PROCEDURE update_organizer_substitute(
+    p_id_organizer IN NUMBER,
+    p_id_organizer_substitute IN NUMBER DEFAULT NULL
+) IS
+BEGIN
+    -- Validace: nelze být sám sobě náhradníkem
+    IF p_id_organizer = p_id_organizer_substitute THEN
+        RAISE_APPLICATION_ERROR(-20010, 'Uživatel nemůže být sám sobě náhradníkem.');
+    END IF;
+    
+    -- Dočasně vypnout trigger
+    EXECUTE IMMEDIATE 'ALTER TRIGGER fkntm_organizers DISABLE';
+    
+    UPDATE organizers
+    SET id_organizer_substitute = p_id_organizer_substitute
+    WHERE id_organizer = p_id_organizer;
+    
+    IF SQL%ROWCOUNT = 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TRIGGER fkntm_organizers ENABLE';
+        RAISE_APPLICATION_ERROR(-20001, 'Organizátor s daným ID nebyl nalezen.');
+    END IF;
+    
+    -- Znovu zapnout trigger
+    EXECUTE IMMEDIATE 'ALTER TRIGGER fkntm_organizers ENABLE';
+    
+    COMMIT;
+END update_organizer_substitute;
 
 END reservations_pkg;
 /

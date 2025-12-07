@@ -1,24 +1,38 @@
 @model IEnumerable<WebApp.Models.Location>
 
-
 @{
-    ViewData["Title"] = "Locations";
+    ViewData["Title"] = "Budovy";
+    var isGuest = ViewBag.IsGuest ?? false;
+    var isAdmin = ViewBag.IsAdmin ?? false;
+    var currentUserId = ViewBag.CurrentUserId ?? 0;
 }
 
 <div class="container mt-4">
-    <h2>@ViewData["Title"]</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>@ViewData["Title"]</h2>
+        @if (isAdmin)
+        {
+            <a asp-controller="Location" asp-action="Create" class="btn btn-success">Přidat novou lokaci</a>
+        }
+    </div>
 
-    <a asp-controller="Location" asp-action="Create" class="btn btn-primary">Add new Location</a>
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
 
-    <table class="table table-dark table-striped">
+    <table class="table table-dark table-striped table-hover">
         <thead>
             <tr>
-                <th>Name</th>
-                <th>Availability Start</th>
-                <th>Availability End</th>
-                <th>City</th>
-                <th>Country</th>
-                <th>Actions</th>
+                <th>Název</th>
+                <th>Dostupnost začátek</th>
+                <th>Dostupnost konec</th>
+                <th>Město</th>
+                <th>Země</th>
+                <th class="text-center">Akce</th>
             </tr>
         </thead>
         <tbody>
@@ -30,14 +44,22 @@
                     <td>@location.AvailabilityEnd.ToString("HH:mm")</td>
                     <td>@location.City.Name</td>
                     <td>@location.City.Country.Name</td>
-                    <td>
-                        <a href="/Location/Edit?id=@location.Id" class="btn btn-warning">Edit</a>
-                        <form asp-action="Delete" asp-controller="Location" method="post" style="display:inline;">
-                            <input type="hidden" name="id" value="@location.Id" />
-                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this location?');">
-                                Delete
-                            </button>
-                        </form>
+                    <td class="text-center">
+                        @if (!isGuest)
+                        {
+                            <a href="/Location/Edit?id=@location.Id" class="btn btn-warning btn-sm">Upravit</a>
+                            <form asp-action="Delete" asp-controller="Location" method="post" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@location.Id" />
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Opravdu chcete smazat tuto lokaci?');">
+                                    Smazat
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <span class="text-muted" title="Jako Guest můžete pouze prohlížet">Pouze čtení</span>
+                        }
                     </td>
                 </tr>
             }

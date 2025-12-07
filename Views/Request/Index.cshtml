@@ -1,10 +1,9 @@
 @model IEnumerable<WebApp.Models.RoomRequest>
 
 @{
-    ViewData["Title"] = "Moje ��dosti o rezervace";
+    ViewData["Title"] = "Moje žádosti o rezervace";
     var isAdmin = ViewBag.IsAdmin ?? false;
     var currentUserId = ViewBag.CurrentUserId ?? 0;
-    var isGuest = User.IsInRole("Guest");
 }
 
 <div class="container mt-5">
@@ -13,11 +12,11 @@
             <i class="bi bi-calendar-check"></i> 
             @if (isAdmin)
             {
-                <text>V�echny ��dosti o rezervace</text>
+                <text>Všechny žádosti o rezervace</text>
             }
             else
             {
-                <text>Moje ��dosti o rezervace</text>
+                <text>Moje žádosti o rezervace</text>
             }
         </h2>
         <a asp-controller="Request" asp-action="Create" class="btn btn-success">
@@ -29,14 +28,6 @@
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             @TempData["Success"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-
-    @if (TempData[key: "Error"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @TempData["Error"]
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
@@ -73,7 +64,7 @@
             <tbody>
                 @foreach (var request in Model)
                 {
-                    var canEdit = (isAdmin || request.Organiser.Id == currentUserId) && !isGuest;
+                    var canEdit = isAdmin || request.Organiser.Id == currentUserId;
                     <tr>
                         <td>@request.Start.ToString("dd.MM.yyyy HH:mm")</td>
                         <td>@request.End.ToString("dd.MM.yyyy HH:mm")</td>
@@ -91,11 +82,11 @@
                         <td>
                             @if (request.Type == "MEETING_RREQUEST")
                             {
-                                <span class="badge bg-primary"><i class="bi bi-people"></i> Meetingov� m�stnost</span>
+                                <span class="badge bg-primary"><i class="bi bi-people"></i> Meetingová místnost</span>
                             }
                             else if (request.Type == "PRESENTATION_RREQUEST")
                             {
-                                <span class="badge bg-info"><i class="bi bi-projector"></i> Prezenta�n� m�stnost</span>
+                                <span class="badge bg-info"><i class="bi bi-projector"></i> Prezentační místnost</span>
                             }
                         </td>
                         <td class="text-center">
@@ -107,16 +98,10 @@
                                 <form asp-action="Delete" asp-controller="Request" method="post" style="display:inline;">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@request.Id" />
-                                    <button type="submit" class="btn btn-danger btn-sm" title="Smazat" onclick="return confirm('Opravdu chcete smazat tuto ��dost?');">
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Smazat" onclick="return confirm('Opravdu chcete smazat tuto žádost?');">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
-                            }
-                            else if (isGuest)
-                            {
-                                <span class="text-muted" title="Jako Guest nemůžete editovat žádosti">
-                                    <i class="bi bi-lock"></i> Pouze čtení
-                                </span>
                             }
                             else
                             {
