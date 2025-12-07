@@ -106,7 +106,7 @@ public class Reservation
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.CommandText = "reservations_pkg.edit_reservation";
+            cmd.CommandText = "reservations_pkg.persist_reservation";
             cmd.Parameters.Add("p_id_reservation", Id == 0 ? (object)DBNull.Value : Id);
             cmd.Parameters.Add("p_start", OracleDbType.Date).Value = Start;
             cmd.Parameters.Add("p_end", OracleDbType.Date).Value = End;

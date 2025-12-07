@@ -18,7 +18,7 @@ public class Credential
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.CommandText = "reservations_pkg.edit_credential";
+            cmd.CommandText = "user_management_pkg.edit_credential";
             cmd.Parameters.Add("id_credential", Id);
             cmd.Parameters.Add("credential_type", CredentialType);
             cmd.Parameters.Add("data", Data);

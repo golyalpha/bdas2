@@ -14,7 +14,7 @@ public class PresentationRoom : Room
             conn.Open();
             var cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.CommandText = "reservations_pkg.edit_room";
+            cmd.CommandText = "rooms_pkg.persist_room";
 
             cmd.Parameters.Add("p_id_room", Id == 0 ? (object)DBNull.Value : Id);
             cmd.Parameters.Add("p_name", Name);

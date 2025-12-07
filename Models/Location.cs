@@ -34,7 +34,7 @@ public class Location
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.CommandText = "reservations_pkg.edit_location";
+            cmd.CommandText = "locations_pkg.persist_location";
             cmd.Parameters.Add("location_id", Id == 0 ? (object)DBNull.Value : Id);
             cmd.Parameters.Add("name", Name);
             cmd.Parameters.Add("availability_start", new DateTime(2000,1,1) + AvailabilityStart.ToTimeSpan());

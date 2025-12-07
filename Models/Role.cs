@@ -20,7 +20,7 @@ public class Role
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = CommandType.StoredProcedure;
-            cmd.CommandText = "edit_role";
+            cmd.CommandText = "persist_role";
             cmd.Parameters.Add("id_role", Id);
             cmd.Parameters.Add("name", Name);
             int rows = cmd.ExecuteNonQuery();

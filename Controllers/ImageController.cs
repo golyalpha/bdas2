@@ -17,7 +17,7 @@ public class ImageController : Controller
     }
 
     /// <summary>
-    /// Upload obrázku pro místnost
+    /// Upload obrÃ¡zku pro mÃ­stnost
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -25,27 +25,27 @@ public class ImageController : Controller
     {
         if (imageFile == null || imageFile.Length == 0)
         {
-            TempData["Error"] = "Vyberte platný soubor obrázku.";
+            TempData["Error"] = "Vyberte platnÃ½ soubor obrÃ¡zku.";
             return RedirectToAction("Index", "Room");
         }
 
         // Validace typu souboru
         if (!AllowedContentTypes.Contains(imageFile.ContentType.ToLower()))
         {
-            TempData["Error"] = "Povolené formáty jsou pouze: JPEG, PNG, GIF, WEBP.";
+            TempData["Error"] = "PovolenÃ© formÃ¡ty jsou pouze: JPEG, PNG, GIF, WEBP.";
             return RedirectToAction("Index", "Room");
         }
 
         // Validace velikosti
         if (imageFile.Length > MaxImageSizeBytes)
         {
-            TempData["Error"] = "Maximální velikost souboru je 5 MB.";
+            TempData["Error"] = "MaximÃ¡lnÃ­ velikost souboru je 5 MB.";
             return RedirectToAction("Index", "Room");
         }
 
         try
         {
-            // Získáme místnost pro ID organizátora a lokace
+            // ZÃ­skÃ¡me mÃ­stnost pro ID organizÃ¡tora a lokace
             var room = Room.GetRoom(roomId);
             
             using (var memoryStream = new MemoryStream())
@@ -63,20 +63,20 @@ public class ImageController : Controller
                 image.Persist();
             }
 
-            TempData["Success"] = "Obrázek byl úspìšnì nahrán.";
+            TempData["Success"] = "ObrÃ¡zek byl ÃºspÄ›Å¡nÄ› nahrÃ¡n.";
             _logger.LogInformation($"Image uploaded for room {roomId} by user {User.Identity?.Name}");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error uploading image for room {roomId}");
-            TempData["Error"] = "Chyba pøi nahrávání obrázku.";
+            TempData["Error"] = "Chyba pÅ™i nahrÃ¡vÃ¡nÃ­ obrÃ¡zku.";
         }
 
         return RedirectToAction("Index", "Room");
     }
 
     /// <summary>
-    /// Zobrazí obrázek místnosti
+    /// ZobrazÃ­ obrÃ¡zek mÃ­stnosti
     /// </summary>
     [AllowAnonymous]
     [HttpGet]
@@ -88,7 +88,7 @@ public class ImageController : Controller
             
             if (image == null || image.Data == null || image.Data.Length == 0)
             {
-                // DÙLEŽITÉ: vrátit redirect na SVG
+                // DÅ®LEÅ½ITÃ‰: vrÃ¡tit redirect na SVG
                 return Redirect("/images/no-image.svg");
             }
 
@@ -112,7 +112,7 @@ public class ImageController : Controller
     }
 
     /// <summary>
-    /// Smazání obrázku místnosti
+    /// SmazÃ¡nÃ­ obrÃ¡zku mÃ­stnosti
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -125,18 +125,18 @@ public class ImageController : Controller
             if (image != null)
             {
                 image.Delete();
-                TempData["Success"] = "Obrázek byl úspìšnì smazán.";
+                TempData["Success"] = "ObrÃ¡zek byl ÃºspÄ›Å¡nÄ› smazÃ¡n.";
                 _logger.LogInformation($"Image deleted for room {roomId} by user {User.Identity?.Name}");
             }
             else
             {
-                TempData["Warning"] = "Místnost nemá pøiøazený obrázek.";
+                TempData["Warning"] = "MÃ­stnost nemÃ¡ pÅ™iÅ™azenÃ½ obrÃ¡zek.";
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error deleting image for room {roomId}");
-            TempData["Error"] = "Chyba pøi mazání obrázku.";
+            TempData["Error"] = "Chyba pÅ™i mazÃ¡nÃ­ obrÃ¡zku.";
         }
 
         return RedirectToAction("Index", "Room");

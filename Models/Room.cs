@@ -137,17 +137,6 @@ public class Room
         return list;
     }
 
-    public void Create()
-    {
-        throw new Exception("Not implemented");
-    }
-
-
-    public void Update()
-    {
-        throw new Exception("Not implemented");
-    }
-
     public void Delete()
     {
         using (OracleConnection conn = DBManager.GetConnection())
@@ -155,7 +144,7 @@ public class Room
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.CommandText = "reservations_pkg.delete_room";
+            cmd.CommandText = "rooms_pkg.delete_room";
             cmd.Parameters.Add("p_id_room", Id);
 
             cmd.ExecuteNonQuery();

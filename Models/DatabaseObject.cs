@@ -21,7 +21,7 @@ public class DatabaseObject
             conn.Open();
             using var cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.CommandText = "reservations_pkg.list_database_objects";
+            cmd.CommandText = "admin_pkg.list_database_objects";
             
             var cursorParam = new OracleParameter
             {

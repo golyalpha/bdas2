@@ -100,7 +100,7 @@ public class Notification
             {
                 using var cmd = conn.CreateCommand();
                 cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                cmd.CommandText = "reservations_pkg.mark_notification_delivered";  // SINGULAR!
+                cmd.CommandText = "notifications_pkg.mark_notification_delivered"; 
                 
                 cmd.Parameters.Add(new OracleParameter
                 {

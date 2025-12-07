@@ -11,19 +11,19 @@ public class RoomRequest
     public int Id { get; set; }
 
     [Required(ErrorMessage = "Start Time is required")]
-    [Display(Name = "Start Time")]
+    [Display(Name = "Začátek rezervace")]
     public DateTime Start { get; set; }
 
-    [Display(Name = "End Time")]
+    [Display(Name = "Konec rezervace")]
     public DateTime End { get; set; }
     
-    [Display(Name = "Reservation Length")]
+    [Display(Name = "Délka rezervace")]
     public DateTime Length { get; set; }
 
-    [Display(Name = "Minimum Capacity")]
+    [Display(Name = "Minimální kapacita")]
     public int MinimumCapacity { get; set; }
 
-    [Display(Name = "Room Request Type")]
+    [Display(Name = "Požadavek na typ místnosti")]
     public String Type { get; set; }
 
     public Location Location { get; set; }
@@ -38,7 +38,7 @@ public class RoomRequest
             conn.Open();
             using var cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.CommandText = "reservations_pkg.edit_request";
+            cmd.CommandText = "requests_pkg.persist_request";
             cmd.BindByName = true;
 
             // Mapování na parametr names v balíčku
@@ -200,7 +200,7 @@ public class RoomRequest
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.CommandText = "reservations_pkg.delete_room_request";
+            cmd.CommandText = "requests_pkg.delete_request";
             cmd.Parameters.Add("p_id_request", Id);
 
             cmd.ExecuteNonQuery();

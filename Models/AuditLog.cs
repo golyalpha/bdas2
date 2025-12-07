@@ -25,7 +25,7 @@ public class AuditLog
             conn.Open();
             using var cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.CommandText = "reservations_pkg.get_audit_log";
+            cmd.CommandText = "admin_pkg.get_audit_log";
             
             cmd.Parameters.Add(new OracleParameter
             {

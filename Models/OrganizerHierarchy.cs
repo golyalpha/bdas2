@@ -24,7 +24,7 @@ public class OrganizerHierarchy
             
             // ZMÌNA: Volání stored procedury místo VIEW
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.CommandText = "reservations_pkg.get_organizers_hierarchy";
+            cmd.CommandText = "user_management_pkg.get_organizers_hierarchy";
             
             // OUT parametr s kurzorem
             var cursorParam = new OracleParameter
