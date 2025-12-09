@@ -114,7 +114,7 @@ public class Location
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.CommandText = "reservations_pkg.delete_location";
+            cmd.CommandText = "locations_pkg.delete_location";
             cmd.Parameters.Add("p_id_location", Id);
 
             cmd.ExecuteNonQuery();

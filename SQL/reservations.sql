@@ -98,7 +98,17 @@ CREATE OR REPLACE PACKAGE BODY reservations_pkg AS
     ) IS
         v_organizer_id room_requests.id_organizer%TYPE;
         v_rows NUMBER;
+        v_success_type_id notification_types.id_notification_type%TYPE;
+        v_fail_type_id notification_types.id_notification_type%TYPE;
     BEGIN
+        -- Získej ID typů notifikací
+        SELECT id_notification_type INTO v_success_type_id 
+        FROM notification_types WHERE "code" = 'ALLOC_SUCCESS';
+        
+        SELECT id_notification_type INTO v_fail_type_id 
+        FROM notification_types WHERE "code" = 'ALLOC_FAIL';
+
+
         -- kdo podal žádost
         SELECT id_organizer
         INTO v_organizer_id
@@ -151,11 +161,11 @@ CREATE OR REPLACE PACKAGE BODY reservations_pkg AS
         v_rows := SQL%ROWCOUNT;
 
         IF v_rows > 0 THEN
-            INSERT INTO notifications (notification_type, delivered, id_organizer, id_room_request)
-            VALUES ('ALLOC_SUCCESS', 'N', v_organizer_id, p_id_room_request);
+            INSERT INTO notifications (id_notification_type, delivered, id_organizer, id_room_request)
+            VALUES (v_success_type_id, 'N', v_organizer_id, p_id_room_request);
         ELSE
-            INSERT INTO notifications (notification_type, delivered, id_organizer, id_room_request)
-            VALUES ('ALLOC_FAIL', 'N', v_organizer_id, p_id_room_request);
+            INSERT INTO notifications (id_notification_type, delivered, id_organizer, id_room_request)
+            VALUES (v_fail_type_id, 'N', v_organizer_id, p_id_room_request);
         END IF;
     END process_request;
 

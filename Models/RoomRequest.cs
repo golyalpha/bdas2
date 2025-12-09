@@ -64,12 +64,6 @@ public class RoomRequest
                 cmd.Parameters.Add("p_vc_ready", mr.VideoCallReady ? "Y" : "N");
                 cmd.Parameters.Add("p_podium_size", DBNull.Value);
             }
-            else
-            {
-                // čistý ROOM_REQUEST bez subtype
-                cmd.Parameters.Add("p_vc_ready", DBNull.Value);
-                cmd.Parameters.Add("p_podium_size", DBNull.Value);
-            }
 
             int rows = cmd.ExecuteNonQuery();
             if (rows == 0)

@@ -11,6 +11,11 @@ CREATE OR REPLACE PACKAGE notifications_pkg AS
         p_id_organizer IN NUMBER
     ) RETURN NUMBER;
 
+    PROCEDURE send_notification(
+        p_id_organizer IN NUMBER,
+        p_notification_type_id IN NUMBER
+    );
+
 END notifications_pkg;
 /
 
@@ -46,5 +51,17 @@ CREATE OR REPLACE PACKAGE BODY notifications_pkg AS
         
         COMMIT;
     END mark_notification_delivered;
+
+    PROCEDURE send_notification(
+        p_id_organizer IN NUMBER,
+        p_notification_type_id IN NUMBER
+    ) IS
+    BEGIN
+        INSERT INTO notifications (id_organizer, id_notification_type, delivered)
+        VALUES (p_id_organizer, p_notification_type_id, 'N');
+        
+    END send_notification;
+
+
     
 END notifications_pkg;

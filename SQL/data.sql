@@ -8,6 +8,11 @@ INSERT INTO cities ("name", id_country) VALUES ('Prague', 1);
 INSERT INTO cities ("name", id_country) VALUES ('Bratislava', 2);
 INSERT INTO cities ("name", id_country) VALUES ('Berlin', 3);
 
+
+INSERT INTO notification_types ("code", "name", "description" ) VALUES ('ALLOC_SUCCESS', 'Alokace úspěšná', 'Vaše žádost o rezervaci místnosti byla úspěšně alokována.');
+
+INSERT INTO notification_types ("code", "name", "description" ) VALUES ('ALLOC_FAIL', 'Alokace neúspěšná', 'Vaše žádost o rezervaci místnosti nebyla alokována.');
+
 -- Roles
 INSERT INTO roles ("name") VALUES ('Administrator');
 INSERT INTO roles ("name") VALUES ('User');
@@ -34,7 +39,7 @@ VALUES ('Room 202', 30, 'PRESENTATION_ROOM', 2, 2);
 INSERT INTO rooms ("name", capacity, "type", id_location, id_organizer) 
 VALUES ('Room 303', 20, 'MEETING_ROOM', 3, 3);
 
--- Meeting Rooms (nav�z�n� p�es poddotaz na ID m�stnosti)
+-- Meeting Rooms (navázání přes poddotaz na ID místnosti)
 INSERT INTO meeting_rooms (id_room, vc_ready) 
 SELECT id_room, 'Y' FROM rooms WHERE "name" = 'Room 101';
 INSERT INTO meeting_rooms (id_room, vc_ready) 
@@ -46,7 +51,7 @@ SELECT id_room, 10 FROM rooms WHERE "name" = 'Room 202';
 
 -- Room Requests
 -- Room Requests
--- MEETING_RREQUEST, po�adavek na VC = Y -> vybere se Room 101 (mr.vc_ready = 'Y', kapacita 50)
+-- MEETING_RREQUEST, požadavek na VC = Y -> vybere se Room 101 (mr.vc_ready = 'Y', kapacita 50)
 INSERT INTO room_requests (id_room_request, min_capacity, "type", reservation_start, reservation_end, reservation_length, id_location, id_organizer) 
 VALUES (room_requests_id_room_request.NEXTVAL, 20, 'MEETING_RREQUEST',
         TO_DATE('2024-12-07 09:00', 'YYYY-MM-DD HH24:MI'),
@@ -55,7 +60,7 @@ VALUES (room_requests_id_room_request.NEXTVAL, 20, 'MEETING_RREQUEST',
 INSERT INTO meeting_rrequests (id_room_request, vc_ready)
 VALUES (room_requests_id_room_request.CURRVAL, 'Y');
 
--- PRESENTATION_RREQUEST, p�dium 10 -> vybere se Room 202 (podium_size = 10, kapacita 30)
+-- PRESENTATION_RREQUEST, p�dium 10 -> vybere se Room 202 (podium_size = 10, kapacita 30)
 INSERT INTO room_requests (id_room_request, min_capacity, "type", reservation_start, reservation_end, reservation_length, id_location, id_organizer) 
 VALUES (room_requests_id_room_request.NEXTVAL, 15, 'PRESENTATION_RREQUEST',
         TO_DATE('2024-12-08 10:00', 'YYYY-MM-DD HH24:MI'),
@@ -80,4 +85,5 @@ INSERT INTO images ("data", id_organizer, id_location, id_room)
 VALUES (EMPTY_BLOB(), 2, 2, 2);
 INSERT INTO images ("data", id_organizer, id_location, id_room) 
 VALUES (EMPTY_BLOB(), 3, 3, 3);
+
 COMMIT;

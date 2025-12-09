@@ -77,4 +77,16 @@ public class LocationController : Controller
         return View("Create", model); // Zobrazí formulář Edit.cshtml s předvyplněnými hodnotami
     }
 
+    [HttpPost]
+    public IActionResult Delete(int id) {
+        var location = Location.GetLocation(id);
+        if (location == null)
+        {
+            return NotFound();
+        }
+        else {
+            location.Delete();
+            return RedirectToAction("Index");
+        }
+    }
 }

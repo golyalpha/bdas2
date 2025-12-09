@@ -25,6 +25,10 @@ DROP SEQUENCE room_requests_id_room_request;
 
 DROP SEQUENCE rooms_id_room_seq;
 
+DROP SEQUENCE notification_types_id_notifica;
+
+DROP SEQUENCE audit_log_seq;
+
 DROP VIEW CITIES_V CASCADE CONSTRAINTS 
 ;
 
@@ -91,6 +95,11 @@ DROP TABLE room_requests CASCADE CONSTRAINTS;
 
 DROP TABLE rooms CASCADE CONSTRAINTS;
 
+DROP TABLE notification_types CASCADE CONSTRAINTS;
+
+DROP TABLE audit_log;
+
+
 -- predefined type, no DDL - MDSYS.SDO_GEOMETRY
 
 -- predefined type, no DDL - XMLTYPE
@@ -130,7 +139,10 @@ CREATE TABLE images (
     "data"         BLOB NOT NULL,
     id_organizer NUMBER NOT NULL,
     id_location  NUMBER NOT NULL,
-    id_room      NUMBER NOT NULL
+    id_room      NUMBER NOT NULL,
+    file_name    VARCHAR2(255),
+    file_suffix  VARCHAR2(10),
+    created_at   DATE
 );
 
 CREATE UNIQUE INDEX image__idx ON
@@ -179,11 +191,11 @@ CREATE TABLE meeting_rrequests (
 ALTER TABLE meeting_rrequests ADD CONSTRAINT meeting_rrequest_pk PRIMARY KEY ( id_room_request );
 
 CREATE TABLE notifications (
-    id_notification   INTEGER NOT NULL,
-    notification_type VARCHAR2(16) NOT NULL,
-    delivered         CHAR(1) NOT NULL,
-    id_organizer      NUMBER NOT NULL,
-    id_room_request   NUMBER NOT NULL
+    id_notification      INTEGER NOT NULL,
+    delivered            CHAR(1) NOT NULL,
+    id_organizer         NUMBER NOT NULL,
+    id_room_request      NUMBER NOT NULL,
+    id_notification_type INTEGER NOT NULL
 );
 
 CREATE UNIQUE INDEX notification__idx ON
@@ -204,8 +216,8 @@ CREATE TABLE organizers (
 ALTER TABLE organizers ADD CONSTRAINT organizers_pk PRIMARY KEY ( id_organizer );
 
 ALTER TABLE organizers
-    ADD CONSTRAINT organizers_organizers_fk FOREIGN KEY ( id_organizer )
-        REFERENCES organizers ( id_organizer );
+    ADD CONSTRAINT organizers_substitute_fk FOREIGN KEY ( id_organizer_substitute )
+        REFERENCES organizers ( id_organizer ) ON DELETE SET NULL; 
 
 CREATE TABLE presentation_rooms (
     id_room     NUMBER NOT NULL,
@@ -266,6 +278,15 @@ CREATE TABLE rooms (
     id_organizer NUMBER NOT NULL
 );
 
+CREATE TABLE notification_types (
+    id_notification_type INTEGER NOT NULL,
+    "code"                 VARCHAR2(20) NOT NULL,
+    "name"                 VARCHAR2(50) NOT NULL,
+    "description"          VARCHAR2(200)
+);
+
+ALTER TABLE notification_types ADD CONSTRAINT notification_type_pk PRIMARY KEY ( id_notification_type );
+
 ALTER TABLE rooms
     ADD CONSTRAINT ch_inh_room CHECK ( "type" IN ( 'MEETING_ROOM', 'PRESENTATION_ROOM', 'ROOM' ) );
 
@@ -307,8 +328,12 @@ ALTER TABLE meeting_rooms
 
 --  ERROR: FK name length exceeds maximum allowed length(30) 
 ALTER TABLE meeting_rrequests
-    ADD CONSTRAINT meeting_rrequest_room_request_fk FOREIGN KEY ( id_room_request )
+    ADD CONSTRAINT meeting_rrequest_fk FOREIGN KEY ( id_room_request )
         REFERENCES room_requests ( id_room_request ) ON DELETE CASCADE;
+
+ALTER TABLE notifications
+    ADD CONSTRAINT notification_type_fk FOREIGN KEY ( id_notification_type )
+        REFERENCES notification_types ( id_notification_type );
 
 ALTER TABLE notifications
     ADD CONSTRAINT notification_organizers_fk FOREIGN KEY ( id_organizer )
@@ -317,10 +342,6 @@ ALTER TABLE notifications
 ALTER TABLE notifications
     ADD CONSTRAINT notification_room_request_fk FOREIGN KEY ( id_room_request )
         REFERENCES room_requests ( id_room_request ) ON DELETE CASCADE;
-
-ALTER TABLE organizers
-    ADD CONSTRAINT organizers_organizers_fk FOREIGN KEY ( id_organizer_substitute )
-        REFERENCES organizers ( id_organizer ) ON DELETE CASCADE;
 
 ALTER TABLE organizers
     ADD CONSTRAINT organizers_role_fk FOREIGN KEY ( id_role )
@@ -332,7 +353,7 @@ ALTER TABLE presentation_rooms
 
 --  ERROR: FK name length exceeds maximum allowed length(30) 
 ALTER TABLE presentation_rrequests
-    ADD CONSTRAINT presentation_rrequest_room_request_fk FOREIGN KEY ( id_room_request )
+    ADD CONSTRAINT presentation_rrequest_fk FOREIGN KEY ( id_room_request )
         REFERENCES room_requests ( id_room_request ) ON DELETE CASCADE;
 
 ALTER TABLE reservations
@@ -399,14 +420,20 @@ CREATE OR REPLACE VIEW CREDENTIALS_V ( ID_CREDENTIAL
     CREDENTIALS 
 ;
 
-CREATE OR REPLACE VIEW IMAGES_V ( ID_IMAGE
+CREATE VIEW IMAGES_V ( ID_IMAGE
    , "data"
+   , file_name
+   , file_suffix
+   , created_at
    , ID_ORGANIZER
    , ID_LOCATION
    , ID_ROOM )
  AS SELECT
     ID_IMAGE
    , "data"
+   , file_name
+   , file_suffix
+   , created_at
    , ID_ORGANIZER
    , ID_LOCATION
    , ID_ROOM
@@ -431,19 +458,18 @@ CREATE OR REPLACE VIEW LOCATIONS_V ( ID_LOCATION
     LOCATIONS 
 ;
 
-CREATE OR REPLACE VIEW NOTIFICATIONS_V ( ID_NOTIFICATION
-   , notification_type
-   , delivered
-   , ID_ORGANIZER
-   , ID_ROOM_REQUEST )
- AS SELECT
-    ID_NOTIFICATION
-   , notification_type
-   , delivered
+CREATE OR REPLACE VIEW NOTIFICATIONS_V ( 
+    delivered
    , ID_ORGANIZER
    , ID_ROOM_REQUEST
+   , ID_NOTIFICATION_TYPE )
+ AS SELECT
+    delivered
+   , ID_ORGANIZER
+   , ID_ROOM_REQUEST
+   , ID_NOTIFICATION_TYPE 
  FROM 
-    NOTIFICATIONS 
+    NOTIFICATIONS
 ;
 
 CREATE OR REPLACE VIEW ORGANIZERS_V ( ID_ORGANIZER
@@ -692,6 +718,17 @@ CREATE OR REPLACE TRIGGER cities_id_city_trg BEFORE
     WHEN ( new.id_city IS NULL )
 BEGIN
     :new.id_city := cities_id_city_seq.nextval;
+END;
+/
+
+CREATE SEQUENCE notification_types_id_notifica START WITH 1 NOCACHE ORDER;
+
+CREATE OR REPLACE TRIGGER notification_types_id_notifica BEFORE
+    INSERT ON notification_types
+    FOR EACH ROW
+    WHEN ( new.id_notification_type IS NULL )
+BEGIN
+    :new.id_notification_type := notification_types_id_notifica.nextval;
 END;
 /
 
