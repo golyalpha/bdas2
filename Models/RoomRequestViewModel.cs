@@ -8,7 +8,7 @@ public class RoomRequestViewModel
     public MeetingRequest? MeetingRequest { get; set; }
     public PresentationRequest? PresentationRequest { get; set; }
 
-    [Required]
+    [Required(ErrorMessage = "The Location field is required.")]
     [Display(Name = "Location")]
     public int LocationId { get; set; }
 

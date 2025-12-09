@@ -49,26 +49,57 @@ SELECT id_room, 'N' FROM rooms WHERE "name" = 'Room 303';
 INSERT INTO presentation_rooms (id_room, podium_size) 
 SELECT id_room, 10 FROM rooms WHERE "name" = 'Room 202';
 
--- Room Requests
--- Room Requests
--- MEETING_RREQUEST, požadavek na VC = Y -> vybere se Room 101 (mr.vc_ready = 'Y', kapacita 50)
+-- MEETING_RREQUEST #1: 2 hodiny (09:00 - 11:00)
+-- Požadavek na VC = Y -> vybere se Room 101 (mr.vc_ready = 'Y', kapacita 50)
 INSERT INTO room_requests (id_room_request, min_capacity, "type", reservation_start, reservation_end, reservation_length, id_location, id_organizer) 
 VALUES (room_requests_id_room_request.NEXTVAL, 20, 'MEETING_RREQUEST',
         TO_DATE('2024-12-07 09:00', 'YYYY-MM-DD HH24:MI'),
         TO_DATE('2024-12-07 11:00', 'YYYY-MM-DD HH24:MI'),
-        TO_DATE('02:00', 'HH24:MI'), 1, 1);
+        INTERVAL '2' HOUR,  -- ZMĚNA: INTERVAL místo TO_DATE
+        1, 1);
 INSERT INTO meeting_rrequests (id_room_request, vc_ready)
 VALUES (room_requests_id_room_request.CURRVAL, 'Y');
 
--- PRESENTATION_RREQUEST, p�dium 10 -> vybere se Room 202 (podium_size = 10, kapacita 30)
+-- PRESENTATION_RREQUEST #1: 2 hodiny (10:00 - 12:00)
+-- Pódium 10 -> vybere se Room 202 (podium_size = 10, kapacita 30)
 INSERT INTO room_requests (id_room_request, min_capacity, "type", reservation_start, reservation_end, reservation_length, id_location, id_organizer) 
 VALUES (room_requests_id_room_request.NEXTVAL, 15, 'PRESENTATION_RREQUEST',
         TO_DATE('2024-12-08 10:00', 'YYYY-MM-DD HH24:MI'),
         TO_DATE('2024-12-08 12:00', 'YYYY-MM-DD HH24:MI'),
-        TO_DATE('02:00', 'HH24:MI'), 2, 2);
+        INTERVAL '2' HOUR,  -- ZMĚNA: INTERVAL místo TO_DATE
+        2, 2);
 INSERT INTO presentation_rrequests (id_room_request, podium_size)
 VALUES (room_requests_id_room_request.CURRVAL, 10);
 
+-- MEETING_RREQUEST #2: 3 hodiny 30 minut (13:00 - 16:30) - test různých délek
+INSERT INTO room_requests (id_room_request, min_capacity, "type", reservation_start, reservation_end, reservation_length, id_location, id_organizer) 
+VALUES (room_requests_id_room_request.NEXTVAL, 25, 'MEETING_RREQUEST',
+        TO_DATE('2024-12-09 13:00', 'YYYY-MM-DD HH24:MI'),
+        TO_DATE('2024-12-09 16:30', 'YYYY-MM-DD HH24:MI'),
+        INTERVAL '3:30' HOUR TO MINUTE,  -- 3 hodiny 30 minut
+        1, 1);
+INSERT INTO meeting_rrequests (id_room_request, vc_ready)
+VALUES (room_requests_id_room_request.CURRVAL, 'N');
+
+-- PRESENTATION_RREQUEST #2: 1 hodina 15 minut (14:00 - 15:15)
+INSERT INTO room_requests (id_room_request, min_capacity, "type", reservation_start, reservation_end, reservation_length, id_location, id_organizer) 
+VALUES (room_requests_id_room_request.NEXTVAL, 20, 'PRESENTATION_RREQUEST',
+        TO_DATE('2024-12-10 14:00', 'YYYY-MM-DD HH24:MI'),
+        TO_DATE('2024-12-10 15:15', 'YYYY-MM-DD HH24:MI'),
+        INTERVAL '1:15' HOUR TO MINUTE,  -- 1 hodina 15 minut
+        2, 2);
+INSERT INTO presentation_rrequests (id_room_request, podium_size)
+VALUES (room_requests_id_room_request.CURRVAL, 15);
+
+-- MEETING_RREQUEST #3: Celý den (8 hodin)
+INSERT INTO room_requests (id_room_request, min_capacity, "type", reservation_start, reservation_end, reservation_length, id_location, id_organizer) 
+VALUES (room_requests_id_room_request.NEXTVAL, 30, 'MEETING_RREQUEST',
+        TO_DATE('2024-12-11 09:00', 'YYYY-MM-DD HH24:MI'),
+        TO_DATE('2024-12-11 17:00', 'YYYY-MM-DD HH24:MI'),
+        INTERVAL '8' HOUR,  -- Celý pracovní den
+        3, 3);
+INSERT INTO meeting_rrequests (id_room_request, vc_ready)
+VALUES (room_requests_id_room_request.CURRVAL, 'Y');
 
 -- Credentials
 INSERT INTO credentials (credential_type, "data", created_at, id_organizer) 
@@ -78,12 +109,14 @@ VALUES ('PASSWORD', 'hashed_password_456', SYSTIMESTAMP, 2);
 INSERT INTO credentials (credential_type, "data", created_at, id_organizer) 
 VALUES ('PASSWORD', 'hashed_password_789', SYSTIMESTAMP, 3);
 
--- Images
-INSERT INTO images ("data", id_organizer, id_location, id_room) 
-VALUES (EMPTY_BLOB(), 1, 1, 1);
-INSERT INTO images ("data", id_organizer, id_location, id_room) 
-VALUES (EMPTY_BLOB(), 2, 2, 2);
-INSERT INTO images ("data", id_organizer, id_location, id_room) 
-VALUES (EMPTY_BLOB(), 3, 3, 3);
+-- Images s novými poli: file_name, file_suffix, created_at
+INSERT INTO images ("data", file_name, file_suffix, created_at, id_organizer, id_location, id_room) 
+VALUES (EMPTY_BLOB(), 'room_101_default', 'jpg', SYSDATE, 1, 1, 1);
+
+INSERT INTO images ("data", file_name, file_suffix, created_at, id_organizer, id_location, id_room) 
+VALUES (EMPTY_BLOB(), 'room_202_default', 'png', SYSDATE, 2, 2, 2);
+
+INSERT INTO images ("data", file_name, file_suffix, created_at, id_organizer, id_location, id_room) 
+VALUES (EMPTY_BLOB(), 'room_303_default', 'jpg', SYSDATE, 3, 3, 3);
 
 COMMIT;

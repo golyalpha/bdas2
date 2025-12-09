@@ -52,7 +52,7 @@ public class Organiser
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.CommandText = "user_management_pkg.update_organizer_substitute";
+            cmd.CommandText = "user_management_pkg.set_organizer_substitute";
             cmd.Parameters.Add("id_organizer", Id);
             cmd.Parameters.Add("id_organizer_substitute", substituteId.HasValue ? (object)substituteId.Value : DBNull.Value);
             cmd.ExecuteNonQuery();

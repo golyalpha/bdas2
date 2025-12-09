@@ -5,14 +5,20 @@
 }
 
 <div class="container mt-5">
-    <h2>@ViewData["Title"]</h2>
+    <h2><i class="bi bi-bell"></i> @ViewData["Title"]</h2>
 
     @if (Model.Any())
     {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> 
+            Celkem <strong>@Model.Count()</strong> notifikací, 
+            z toho <strong>@Model.Count(n => !n.Delivered)</strong> nových
+        </div>
+
         <table class="table table-dark table-striped">
             <thead>
                 <tr>
-                    <th>Typ</th>
+                    <th>Typ notifikace</th>
                     <th>Požadavek</th>
                     <th>Místo</th>
                     <th>Datum zaèátku</th>
@@ -24,9 +30,20 @@
                 @foreach (var notification in Model)
                 {
                     <tr class="@(notification.Delivered ? "" : "table-primary")">
-                        <td>@notification.NotificationType</td>
                         <td>
-                            <a href="/Request/Edit/@notification.Request.Id">
+                            <strong>@notification.NotificationType.Name</strong>
+                            @if (!string.IsNullOrEmpty(notification.NotificationType.Description))
+                            {
+                                <i class="bi bi-info-circle text-info ms-2" 
+                                   data-bs-toggle="tooltip" 
+                                   data-bs-placement="top" 
+                                   title="@notification.NotificationType.Description"></i>
+                            }
+                            <br />
+                            <small class="text-muted">(@notification.NotificationType.Code)</small>
+                        </td>
+                        <td>
+                            <a href="/Request/Edit/@notification.Request.Id" class="text-decoration-none">
                                 @notification.Request.Type
                             </a>
                         </td>
@@ -35,16 +52,16 @@
                         <td>
                             @if (notification.Delivered)
                             {
-                                <span class="badge bg-secondary">Pøeèteno</span>
+                                <span class="badge bg-secondary"><i class="bi bi-check-circle"></i> Pøeèteno</span>
                             }
                             else
                             {
-                                <span class="badge bg-primary">Nové</span>
+                                <span class="badge bg-primary"><i class="bi bi-bell-fill"></i> Nové</span>
                             }
                         </td>
                         <td>
                             <a href="/Request/Detail/@notification.Request.Id" class="btn btn-sm btn-primary">
-                                Detail
+                                <i class="bi bi-eye"></i> Detail
                             </a>
                         </td>
                     </tr>
@@ -54,6 +71,20 @@
     }
     else
     {
-        <p class="text-muted">Nemáte žádné notifikace.</p>
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> Nemáte žádné notifikace.
+        </div>
     }
 </div>
+
+@section Scripts {
+    <script>
+        // Inicializace Bootstrap tooltipù
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
+}

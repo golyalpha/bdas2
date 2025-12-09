@@ -9,7 +9,7 @@ namespace WebApp.Models;
 public class Notification
 {
     public int Id { get; set; }
-    public required string NotificationType { get; set; }
+    public required NotificationType NotificationType { get; set; }
     public required bool Delivered { get; set; }
     public required Organiser Organiser { get; set; }
     public required RoomRequest Request { get; set; }
@@ -24,7 +24,7 @@ public class Notification
             conn.Open();
             using var cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.Text;
-            cmd.CommandText = "SELECT RESERVATIONS_PKG.get_unread_notification_count(:id_organizer) FROM DUAL";
+            cmd.CommandText = "SELECT notifications_pkg.get_unread_notification_count(:id_organizer) FROM DUAL";
             cmd.Parameters.Add("id_organizer", organiserId);
             
             var result = cmd.ExecuteScalar();
@@ -32,28 +32,29 @@ public class Notification
         }
     }
 
-    public static Notification GetNotification(int Id)
+    public static Notification GetNotification(int id)
     {
         using (OracleConnection conn = DBManager.GetConnection())
         {
             conn.Open();
             using var cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.Text;
-            cmd.CommandText = @"SELECT id_notification, notification_type, delivered, id_organizer, id_room_request FROM NOTIFICATIONS_V WHERE id_notification = :id";
-            cmd.Parameters.Add("id", Id);
+            cmd.CommandText = @"SELECT id_notification, delivered, id_organizer, id_room_request, id_notification_type 
+                               FROM notifications_v WHERE id_notification = :id";
+            cmd.Parameters.Add("id", id);
             using var reader = cmd.ExecuteReader();
             if (!reader.Read())
             {
-                throw new KeyNotFoundException();
+                throw new KeyNotFoundException($"Notification with ID {id} not found.");
             }
 
             return new Notification
             {
-                Id = reader.GetInt32(0),
-                NotificationType = reader.GetString(1),
-                Delivered = reader.GetString(2) == "Y",
-                Organiser = Organiser.GetOrganiser(reader.GetInt32(3)),
-                Request = RoomRequest.GetRequest(reader.GetInt32(4))
+                Id = reader.GetInt32(0),                                              // id_notification
+                Delivered = reader.GetString(1) == "Y",                               // delivered
+                Organiser = Organiser.GetOrganiser(reader.GetInt32(2)),              // id_organizer
+                Request = RoomRequest.GetRequest(reader.GetInt32(3)),                 // id_room_request
+                NotificationType = NotificationType.GetNotificationType(reader.GetInt32(4))  // id_notification_type
             };
         }
     }
@@ -66,18 +67,21 @@ public class Notification
             conn.Open();
             using var cmd = conn.CreateCommand();
             cmd.CommandType = System.Data.CommandType.Text;
-            cmd.CommandText = @"SELECT id_notification, notification_type, delivered, id_organizer, id_room_request FROM NOTIFICATIONS_V WHERE id_organizer = :id ORDER BY id_notification DESC";
+            cmd.CommandText = @"SELECT id_notification, delivered, id_organizer, id_room_request, id_notification_type 
+                               FROM notifications 
+                               WHERE id_organizer = :id 
+                               ORDER BY id_notification DESC";
             cmd.Parameters.Add("id", organiserId);
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
                 list.Add(new Notification
                 {
-                    Id = reader.GetInt32(0),
-                    NotificationType = reader.GetString(1),
-                    Delivered = reader.GetString(2) == "Y",
-                    Organiser = Organiser.GetOrganiser(reader.GetInt32(3)),
-                    Request = RoomRequest.GetRequest(reader.GetInt32(4))
+                    Id = reader.GetInt32(0),                                              // id_notification
+                    Delivered = reader.GetString(1) == "Y",                               // delivered
+                    Organiser = Organiser.GetOrganiser(reader.GetInt32(2)),              // id_organizer
+                    Request = RoomRequest.GetRequest(reader.GetInt32(3)),                 // id_room_request
+                    NotificationType = NotificationType.GetNotificationType(reader.GetInt32(4))  // id_notification_type
                 });
             }
         }

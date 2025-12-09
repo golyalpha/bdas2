@@ -1,7 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
-
 using Oracle.ManagedDataAccess.Client;
+using Oracle.ManagedDataAccess.Types;
 using WebApp.Util;
 
 namespace WebApp.Models;
@@ -18,7 +18,7 @@ public class RoomRequest
     public DateTime End { get; set; }
     
     [Display(Name = "Délka rezervace")]
-    public DateTime Length { get; set; }
+    public TimeSpan Length { get; set; }
 
     [Display(Name = "Minimální kapacita")]
     public int MinimumCapacity { get; set; }
@@ -28,8 +28,38 @@ public class RoomRequest
 
     public Location Location { get; set; }
 
-    [Required]
     public Organiser Organiser { get; set; }
+
+
+   
+    /// <summary>
+    /// Formátované zobrazení délky jako "HH:MMh" (např. "2:30h")
+    /// </summary>
+    public string GetFormattedLength()
+    {
+        int totalHours = (int)Length.TotalHours;
+        int minutes = Length.Minutes;
+        return $"{totalHours}:{minutes:00}h";
+    }
+
+    /// <summary>
+    /// Výpočet délky pomocí DB funkce - vrací TimeSpan
+    /// </summary>
+    public static TimeSpan CalculateLength(DateTime start, DateTime end)
+    {
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandType = System.Data.CommandType.Text;
+            cmd.CommandText = "SELECT requests_pkg.calculate_length(:p_start, :p_end) FROM DUAL";
+            cmd.Parameters.Add("p_start", OracleDbType.Date).Value = start;
+            cmd.Parameters.Add("p_end", OracleDbType.Date).Value = end;
+            
+            OracleIntervalDS interval = (OracleIntervalDS)cmd.ExecuteScalar();
+            return interval.Value;
+        }
+    }
 
     public void Persist()
     {
@@ -41,17 +71,26 @@ public class RoomRequest
             cmd.CommandText = "requests_pkg.persist_request";
             cmd.BindByName = true;
 
-            // Mapování na parametr names v balíčku
             cmd.Parameters.Add("p_id_room_request", Id == 0 ? (object)DBNull.Value : Id);
             cmd.Parameters.Add("p_min_capacity", MinimumCapacity);
             cmd.Parameters.Add("p_type", Type);
-            cmd.Parameters.Add("p_reservation_start", Start);
-            cmd.Parameters.Add("p_reservation_end", End);
-            cmd.Parameters.Add("p_reservation_length", Length);
+            cmd.Parameters.Add("p_reservation_start", OracleDbType.Date).Value = Start;
+            cmd.Parameters.Add("p_reservation_end", OracleDbType.Date).Value = End;
+            
+            // 🔥 OPRAVA: Správná konverze TimeSpan na OracleIntervalDS
+            if (Length != TimeSpan.Zero)
+            {
+                cmd.Parameters.Add("p_reservation_length", OracleDbType.IntervalDS).Value = 
+                    new OracleIntervalDS(Length.Days, Length.Hours, Length.Minutes, Length.Seconds, 0);
+            }
+            else
+            {
+                cmd.Parameters.Add("p_reservation_length", OracleDbType.IntervalDS).Value = DBNull.Value;
+            }
+            
             cmd.Parameters.Add("p_id_location", Location.Id);
             cmd.Parameters.Add("p_id_organizer", Organiser.Id);
 
-            // Subtypové parametry (volitelné podle typu)
             if (Type == "PRESENTATION_RREQUEST")
             {
                 var pr = (PresentationRequest)this;
@@ -90,6 +129,14 @@ public class RoomRequest
                 {
                     throw new KeyNotFoundException();
                 }
+                
+                TimeSpan length = TimeSpan.Zero;
+                if (!reader.IsDBNull(5))
+                {
+                    OracleIntervalDS intervalValue = reader.GetOracleIntervalDS(5);
+                    length = intervalValue.Value;
+                }
+                
                 if (reader.GetString(7) == "PRESENTATION_RREQUEST")
                 {
                     request = new PresentationRequest
@@ -97,7 +144,7 @@ public class RoomRequest
                         Id = reader.GetInt32(2),
                         MinimumCapacity = reader.GetInt32(3),
                         Start = reader.GetDateTime(4),
-                        Length = reader.GetDateTime(5),
+                        Length = length,
                         End = reader.GetDateTime(6),
                         Type = reader.GetString(7),
                         PodiumSize = reader.GetInt32(9),
@@ -105,17 +152,17 @@ public class RoomRequest
                         Organiser = Organiser.GetOrganiser(reader.GetInt32(0))
                     };
                 }
-                if (reader.GetString(7) == "MEETING_RREQUEST")
+                else if (reader.GetString(7) == "MEETING_RREQUEST")
                 {
                     request = new MeetingRequest
                     {
                         Id = reader.GetInt32(2),
                         MinimumCapacity = reader.GetInt32(3),
                         Start = reader.GetDateTime(4),
-                        Length = reader.GetDateTime(5),
+                        Length = length,
                         End = reader.GetDateTime(6),
                         Type = reader.GetString(7),
-                        VideoCallReady = reader.GetBoolean(8),
+                        VideoCallReady = reader.GetString(8) == "Y",
                         Location = Location.GetLocation(reader.GetInt32(1)),
                         Organiser = Organiser.GetOrganiser(reader.GetInt32(0))
                     };
@@ -145,8 +192,15 @@ public class RoomRequest
                 while (reader.Read())
                 {
                     RoomRequest? request = null;
+                    
+                    // ZMĚNA: Načtení INTERVAL jako TimeSpan
+                    TimeSpan length = TimeSpan.Zero;
+                    if (!reader.IsDBNull(6))
+                    {
+                        OracleIntervalDS intervalValue = reader.GetOracleIntervalDS(6);
+                        length = intervalValue.Value;
+                    }
 
-                    // P�ekontrolujeme typ po�adavku
                     if (reader.GetString(7) == "PRESENTATION_RREQUEST")
                     {
                         request = new PresentationRequest
@@ -155,14 +209,14 @@ public class RoomRequest
                             MinimumCapacity = reader.GetInt32(3),
                             Start = reader.GetDateTime(4),
                             End = reader.GetDateTime(5),
-                            Length = reader.GetDateTime(6),
+                            Length = length,
                             Type = reader.GetString(7),
                             PodiumSize = reader.GetInt32(9),
                             Location = Location.GetLocation(reader.GetInt32(1)),
                             Organiser = Organiser.GetOrganiser(reader.GetInt32(0))
                         };
                     }
-                    if (reader.GetString(7) == "MEETING_RREQUEST")
+                    else if (reader.GetString(7) == "MEETING_RREQUEST")
                     {
                         request = new MeetingRequest
                         {
@@ -170,9 +224,9 @@ public class RoomRequest
                             MinimumCapacity = reader.GetInt32(3),
                             Start = reader.GetDateTime(4),
                             End = reader.GetDateTime(5),
-                            Length = reader.GetDateTime(6),
+                            Length = length,
                             Type = reader.GetString(7),
-                            VideoCallReady = reader.GetString(8) == "Y", // Convert CHAR(1) to Boolean
+                            VideoCallReady = !reader.IsDBNull(8) && reader.GetString(8) == "Y",
                             Location = Location.GetLocation(reader.GetInt32(1)),
                             Organiser = Organiser.GetOrganiser(reader.GetInt32(0))
                         };
@@ -216,8 +270,14 @@ public class RoomRequest
                 while (reader.Read())
                 {
                     RoomRequest? request = null;
+                    
+                    TimeSpan length = TimeSpan.Zero;
+                    if (!reader.IsDBNull(6))
+                    {
+                        OracleIntervalDS intervalValue = reader.GetOracleIntervalDS(6);
+                        length = intervalValue.Value;
+                    }
 
-                    // Překontrolujeme typ požadavku
                     if (reader.GetString(7) == "PRESENTATION_RREQUEST")
                     {
                         request = new PresentationRequest
@@ -226,14 +286,14 @@ public class RoomRequest
                             MinimumCapacity = reader.GetInt32(3),
                             Start = reader.GetDateTime(4),
                             End = reader.GetDateTime(5),
-                            Length = reader.GetDateTime(6), // Convert INTERVAL to TimeSpan
+                            Length = length,
                             Type = reader.GetString(7),
                             PodiumSize = reader.GetInt32(9),
                             Location = Location.GetLocation(reader.GetInt32(1)),
                             Organiser = Organiser.GetOrganiser(reader.GetInt32(0))
                         };
                     }
-                    if (reader.GetString(7) == "MEETING_RREQUEST")
+                    else if (reader.GetString(7) == "MEETING_RREQUEST")
                     {
                         request = new MeetingRequest
                         {
@@ -241,7 +301,7 @@ public class RoomRequest
                             MinimumCapacity = reader.GetInt32(3),
                             Start = reader.GetDateTime(4),
                             End = reader.GetDateTime(5),
-                            Length = reader.GetDateTime(6), // Convert INTERVAL to TimeSpan
+                            Length = length,
                             Type = reader.GetString(7),
                             VideoCallReady = reader.GetString(8) == "Y",
                             Location = Location.GetLocation(reader.GetInt32(1)),

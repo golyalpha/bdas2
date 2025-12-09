@@ -1,124 +1,130 @@
 ﻿@model WebApp.Models.RoomRequestViewModel
 
 @{
-    ViewData["Title"] = "Create Request";
+    ViewData["Title"] = "Vytvořit žádost o rezervaci";
 }
 
 <div class="container mt-5">
-    <h2>Create Request</h2>
-    <form id="createRequestForm" method="post" action="/Request/Create">
+    <h2>Vytvořit žádost o rezervaci</h2>
+    
+    @* Zobrazení chyb *@
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            <ul>
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@error.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
+    
+    <form id="createRequestForm" method="post" asp-controller="Request" asp-action="Create">
         @Html.AntiForgeryToken()
         
-        <div class="form-group">
-            @Html.LabelFor(m => m.Request.Start, "Start Time", new { @class = "control-label" })
-            <div>
-                <input type="datetime-local"
-                       name="@Html.NameFor(m => m.Request.Start)"
-                       value="@(Model.Request?.Start.ToString("yyyy-MM-ddTHH:mm"))"
-                       id="@Html.IdFor(m => m.Request.Start)"
-                       class="form-control"
-                       required />
-                @Html.ValidationMessageFor(m => m.Request.Start, "", new { @class = "text-danger" })
-            </div>
+        <div class="form-group mb-3">
+            <label asp-for="Request.Start" class="form-label">Začátek rezervace</label>
+            <input type="datetime-local"
+                   asp-for="Request.Start"
+                   class="form-control"
+                   required />
+            <span asp-validation-for="Request.Start" class="text-danger"></span>
         </div>
 
-        <div class="form-group">
-            @Html.LabelFor(m => m.Request.End, "End Time", new { @class = "control-label" })
-            <div>
-                <input type="datetime-local"
-                       name="@Html.NameFor(m => m.Request.End)"
-                       value="@(Model.Request?.End.ToString("yyyy-MM-ddTHH:mm"))"
-                       id="@Html.IdFor(m => m.Request.End)"
-                       class="form-control"
-                       required />
-                <small class="form-text text-muted">Konec musí být po začátku (IO5/SP5)</small>
-                @Html.ValidationMessageFor(m => m.Request.End, "", new { @class = "text-danger" })
-            </div>
+        <div class="form-group mb-3">
+            <label asp-for="Request.End" class="form-label">Konec rezervace</label>
+            <input type="datetime-local"
+                   asp-for="Request.End"
+                   class="form-control"
+                   required />
+            <small class="form-text text-muted">Konec musí být po začátku (IO5/SP5)</small>
+            <span asp-validation-for="Request.End" class="text-danger"></span>
         </div>
 
-        <!-- DÉLKA - HIDDEN FIELD, VYPOČÍTANÁ V JAVASCRIPTU -->
-        <div class="form-group">
-            <label class="control-label">Délka (vypočítaná automaticky)</label>
-            <div>
-                <input type="text"
-                       id="lengthDisplay"
-                       class="form-control"
-                       readonly
-                       placeholder="Bude vypočítána automaticky" />
-            </div>
-        </div>
-        
-        <!-- HIDDEN: Skutečná hodnota délky pro odeslání -->
-        <input type="hidden" 
-               name="@Html.NameFor(m => m.Request.Length)" 
-               id="@Html.IdFor(m => m.Request.Length)" />
-
-        <div class="form-group">
-            @Html.LabelFor(m => m.Request.MinimumCapacity)
-            <div>
-                <input type="number"
-                       name="@Html.NameFor(m => m.Request.MinimumCapacity)"
-                       value="@Html.ValueFor(m => m.Request.MinimumCapacity)"
-                       id="@Html.IdFor(m => m.Request.MinimumCapacity)"
-                       class="form-control"
-                       required />
-                @Html.ValidationMessageFor(m => m.Request.MinimumCapacity, "", new { @class = "text-danger" })
-            </div>
+        <!-- DÉLKA - READ-ONLY PREVIEW + HIDDEN INPUT -->
+        <div class="form-group mb-3">
+            <label class="form-label">
+                Délka (vypočítaná automaticky)
+                <i class="bi bi-calculator text-muted"></i>
+            </label>
+            <input type="text"
+                   id="lengthDisplay"
+                   class="form-control bg-light"
+                   readonly
+                   placeholder="Bude vypočítána po zadání začátku a konce" />
+            <small class="form-text text-muted">
+                Preview se zobrazí okamžitě, finální výpočet proběhne v databázi
+            </small>
         </div>
 
-        <div class="form-group">
-            @Html.LabelFor(m => m.Request.Type)
-            <select id="@Html.IdFor(m => m.Request.Type)" name="@Html.NameFor(m => m.Request.Type)" class="form-control" required>
+        <div class="form-group mb-3">
+            <label asp-for="Request.MinimumCapacity" class="form-label">Minimální kapacita</label>
+            <input type="number"
+                   asp-for="Request.MinimumCapacity"
+                   class="form-control"
+                   min="1"
+                   required />
+            <span asp-validation-for="Request.MinimumCapacity" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="Request.Type" class="form-label">Typ místnosti</label>
+            <select asp-for="Request.Type" class="form-control" required>
                 <option value="">-- Vyberte typ --</option>
-                <option value="MEETING_RREQUEST" selected="@(Model.Request?.Type == "MEETING_RREQUEST")">Meeting Room</option>
-                <option value="PRESENTATION_RREQUEST" selected="@(Model.Request?.Type == "PRESENTATION_RREQUEST")">Presentation Room</option>
+                <option value="MEETING_RREQUEST">Meeting Room</option>
+                <option value="PRESENTATION_RREQUEST">Presentation Room</option>
             </select>
+            <span asp-validation-for="Request.Type" class="text-danger"></span>
         </div>
         
-        <div class="form-group">
-            @Html.LabelFor(m => m.LocationId)
-            <div>
-                <select id="@Html.IdFor(m => m.LocationId)" name="@Html.NameFor(m => m.LocationId)" class="form-control" required>
-                    @foreach (var location in Model.Locations)
-                    {
-                        @if (location.Id == Model.LocationId)
-                        {
-                            <option value="@location.Id.ToString()" selected>@location.Name, @location.City.Name, @location.City.Country.Name</option>
-                        }
-                        else
-                        {
-                            <option value="@location.Id.ToString()">@location.Name, @location.City.Name, @location.City.Country.Name</option>
-                        }
-                    }
-                </select>
+        <div class="form-group mb-3">
+            <label asp-for="LocationId" class="form-label">Lokace</label>
+            <select asp-for="LocationId" class="form-control" required>
+                <option value="">-- Vyberte lokaci --</option>
+                @foreach (var location in Model.Locations)
+                {
+                    <option value="@location.Id">
+                        @location.Name, @location.City?.Name, @location.City?.Country?.Name
+                    </option>
+                }
+            </select>
+            <span asp-validation-for="LocationId" class="text-danger"></span>
+        </div>
+
+        <div id="meetingRequestFields" style="display: none;" class="mb-3">
+            <div class="form-check">
+                <input type="checkbox"
+                       asp-for="MeetingRequest.VideoCallReady"
+                       class="form-check-input" />
+                <label asp-for="MeetingRequest.VideoCallReady" class="form-check-label">
+                    Video Call Ready
+                </label>
             </div>
         </div>
 
-        <div id="meetingRequestFields" style="display: none;">
+        <div id="presentationRequestFields" style="display: none;" class="mb-3">
             <div class="form-group">
-                @Html.LabelFor(m => m.MeetingRequest.VideoCallReady)
-                @Html.CheckBoxFor(m => m.MeetingRequest.VideoCallReady)
-                @Html.ValidationMessageFor(m => m.MeetingRequest.VideoCallReady, "", new { @class = "text-danger" })
-            </div>
-        </div>
-
-        <div id="presentationRequestFields" style="display: none;">
-            <div class="form-group">
-                @Html.LabelFor(m => m.PresentationRequest.PodiumSize)
+                <label asp-for="PresentationRequest.PodiumSize" class="form-label">
+                    Velikost pódia (m²)
+                </label>
                 <input type="number"
-                       name="@Html.NameFor(m => m.PresentationRequest.PodiumSize)"
-                       value="@Html.ValueFor(m => m.PresentationRequest.PodiumSize)"
-                       id="@Html.IdFor(m => m.PresentationRequest.PodiumSize)"
-                       class="form-control" />
-                @Html.ValidationMessageFor(m => m.PresentationRequest.PodiumSize, "", new { @class = "text-danger" })
+                       asp-for="PresentationRequest.PodiumSize"
+                       class="form-control"
+                       min="1" />
+                <span asp-validation-for="PresentationRequest.PodiumSize" class="text-danger"></span>
             </div>
         </div>
 
-        <button type="submit" class="btn btn-primary">Save</button>
+        <div class="mt-4">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-save"></i> Vytvořit žádost
+            </button>
+            <a asp-controller="Request" asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Zpět
+            </a>
+        </div>
     </form>
-    <div>
-        <a href="/Request/Index" class="btn btn-link">Back to List</a>
-    </div>
 </div>
 
 @section Scripts {
@@ -128,11 +134,10 @@
             const meetingRequestFields = document.getElementById("meetingRequestFields");
             const presentationRequestFields = document.getElementById("presentationRequestFields");
             
-            // Elementy pro výpočet délky
             const startInput = document.getElementById("Request_Start");
             const endInput = document.getElementById("Request_End");
-            const lengthHiddenInput = document.getElementById("Request_Length");  // Hidden field pro odeslání
-            const lengthDisplay = document.getElementById("lengthDisplay");        // Readonly zobrazení
+            const lengthDisplay = document.getElementById("lengthDisplay");
+            const lengthHidden = document.getElementById("lengthHidden");
 
             function toggleFields() {
                 const selectedType = requestTypeSelect.value;
@@ -149,44 +154,56 @@
                 }
             }
 
-            // Výpočet délky v reálném čase
-            function calculateLength() {
+            function calculateLengthInterval() {
                 if (startInput.value && endInput.value) {
                     const start = new Date(startInput.value);
                     const end = new Date(endInput.value);
                     
                     if (end > start) {
                         const diffMs = end - start;
-                        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-                        const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                        const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+                        const totalMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
                         
-                        // Zobrazení pro uživatele
-                        lengthDisplay.value = `${diffHours}h ${diffMinutes}min`;
-                        lengthDisplay.classList.remove('text-danger');
+                        // 🔥 OPRAVA: Správný výpočet dnů, hodin, minut
+                        const days = Math.floor(totalHours / 24);
+                        const hours = totalHours % 24;
                         
-                        // Hodnota pro odeslání do DB (formát pro Oracle DATE: '1000-01-01 HH:MI')
-                        const lengthFormatted = `1000-01-01 ${String(diffHours).padStart(2, '0')}:${String(diffMinutes).padStart(2, '0')}:00`;
-                        lengthHiddenInput.value = lengthFormatted;
+                        let displayText = "✓ ";
+                        if (days > 0) {
+                            displayText += `${days}d `;
+                        }
+                        displayText += `${hours}h ${totalMinutes}min`;
                         
+                        lengthDisplay.value = displayText;
+                        lengthDisplay.classList.remove('is-invalid');
+                        lengthDisplay.classList.add('is-valid');
+                        
+                        console.log(`Calculated: ${days} days, ${hours} hours, ${totalMinutes} minutes`);
                     } else {
-                        lengthDisplay.value = "Konec musí být po začátku!";
-                        lengthDisplay.classList.add('text-danger');
-                        lengthHiddenInput.value = "";  // Nevyplníme, pokud je chyba
+                        lengthDisplay.value = "⚠️ Konec musí být po začátku!";
+                        lengthDisplay.classList.add('is-invalid');
+                        lengthDisplay.classList.remove('is-valid');
+                        lengthHidden.value = "";
                     }
                 } else {
                     lengthDisplay.value = "";
-                    lengthHiddenInput.value = "";
+                    lengthDisplay.classList.remove('is-invalid', 'is-valid');
+                    lengthHidden.value = "";
                 }
             }
 
-            // Event listenery
             toggleFields();
             requestTypeSelect.addEventListener("change", toggleFields);
-            startInput.addEventListener("change", calculateLength);
-            endInput.addEventListener("change", calculateLength);
             
-            // Inicializace při načtení stránky
-            calculateLength();
+            startInput.addEventListener("change", calculateLengthInterval);
+            endInput.addEventListener("change", calculateLengthInterval);
+            startInput.addEventListener("input", calculateLengthInterval);
+            endInput.addEventListener("input", calculateLengthInterval);
+            
+            calculateLengthInterval();
         });
     </script>
+    
+    @* Client-side validation *@
+    <partial name="_ValidationScriptsPartial" />
 }

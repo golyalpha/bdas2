@@ -52,9 +52,16 @@ public class ImageController : Controller
             {
                 await imageFile.CopyToAsync(memoryStream);
                 
+                // NOVÉ: Extrahujeme název souboru a příponu
+                var fileName = Path.GetFileNameWithoutExtension(imageFile.FileName);
+                var fileExtension = Path.GetExtension(imageFile.FileName)?.TrimStart('.').ToLowerInvariant() ?? "jpg";
+                
                 var image = new Image
                 {
                     Data = memoryStream.ToArray(),
+                    FileName = fileName,           // PŘIDÁNO
+                    FileSuffix = fileExtension,    // PŘIDÁNO
+                    CreatedAt = DateTime.Now,      // PŘIDÁNO
                     IdRoom = roomId,
                     IdOrganizer = room.Organiser.Id,
                     IdLocation = room.Location.Id
@@ -140,5 +147,27 @@ public class ImageController : Controller
         }
 
         return RedirectToAction("Index", "Room");
+    }
+
+    /// <summary>
+    /// Zobrazí seznam všech obrázků s informacemi z více tabulek
+    /// </summary>
+    [HttpGet]
+    public IActionResult Index(string searchString)
+    {
+        var images = Image.ListAllImagesWithDetails();
+        
+        // Vyhledávání
+        if (!string.IsNullOrEmpty(searchString))
+        {
+            images = images.Where(i => 
+                i.FileName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                i.RoomName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                i.LocationName.Contains(searchString, StringComparison.OrdinalIgnoreCase)
+            ).ToList();
+        }
+        
+        ViewData["CurrentFilter"] = searchString;
+        return View(images);
     }
 }

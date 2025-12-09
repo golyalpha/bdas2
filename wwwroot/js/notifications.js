@@ -34,7 +34,6 @@
         fetch('/Notification/GetUnreadCount')
             .then(response => {
                 if (response.status === 401) {
-                    // Uživatel není pøihlášený - skryjeme badge
                     badge.style.display = 'none';
                     return null;
                 }
@@ -44,9 +43,8 @@
                 return response.json();
             })
             .then(data => {
-                if (data === null) return; // Uživatel není pøihlášený
+                if (data === null) return;
 
-                // Zobrazit badge pouze pokud count > 0
                 if (data.count > 0) {
                     badge.textContent = data.count;
                     badge.style.display = 'inline-block';
@@ -58,7 +56,6 @@
             })
             .catch(error => {
                 console.error('Error loading notification count:', error);
-                // V pøípadì chyby schováme badge
                 badge.style.display = 'none';
             });
     }
@@ -112,15 +109,13 @@
                 <li>
                     <a class="dropdown-item notification-item" href="/Notification/Index">
                         <div>
-                            <strong>${getNotificationTypeText(n.notificationType)}</strong>
+                            <strong>${n.notificationType.code}</strong>
                             <div class="small text-muted">${n.locationName || 'Neznámá lokace'}</div>
                             <div class="small">${formatDateTime(n.requestStart)}</div>
                         </div>
                     </a>
                 </li>
             `).join('');
-
-            // ŽÁDNÉ event listenery pro kliknutí - prostì pøesmìrujeme na seznam
         }
     }
 
@@ -146,7 +141,6 @@
         .then(response => {
             if (response.ok) {
                 console.log(`Successfully marked ${notificationIds.length} notification(s) as delivered`);
-                // Aktualizujeme badge
                 updateNotificationBadge();
             } else {
                 console.error('Failed to mark notifications as delivered');
@@ -155,18 +149,6 @@
         .catch(error => {
             console.error('Error marking notifications as delivered:', error);
         });
-    }
-
-    function getNotificationTypeText(type) {
-        const types = {
-            'ALLOC_SUCCESS': 'Místnost pøidìlena',
-            'ALLOC_FAIL': 'Pøidìlení selhalo',
-            'APPROVED': 'Schváleno',
-            'REJECTED': 'Zamítnuto',
-            'PENDING': 'Èeká na schválení',
-            'CANCELLED': 'Zrušeno'
-        };
-        return types[type] || type;
     }
 
     function formatDateTime(dateString) {
@@ -195,13 +177,12 @@
                 loadNotifications();
             });
 
-            // KLÍÈOVÁ OPRAVA: Pøi zavøení dropdownu oznaèíme VŠECHNY zobrazené notifikace jako delivered
             notificationDropdown.addEventListener('hide.bs.dropdown', function() {
                 console.log('Closing notification dropdown');
                 if (currentNotificationIds.length > 0) {
                     console.log(`Marking ${currentNotificationIds.length} notifications as delivered`);
                     markAsDelivered(currentNotificationIds);
-                    currentNotificationIds = []; // Vyèistíme seznam
+                    currentNotificationIds = [];
                 }
             });
             
@@ -221,7 +202,6 @@
         }
     });
 
-    // Cleanup
     window.addEventListener('beforeunload', function() {
         if (notificationCheckInterval) {
             clearInterval(notificationCheckInterval);

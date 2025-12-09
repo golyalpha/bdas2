@@ -68,7 +68,7 @@
                     <tr>
                         <td>@request.Start.ToString("dd.MM.yyyy HH:mm")</td>
                         <td>@request.End.ToString("dd.MM.yyyy HH:mm")</td>
-                        <td>@request.Length.ToString("H:mm")h</td>
+                        <td>@request.GetFormattedLength()</td>
                         <td>
                             @if (isAdmin)
                             {

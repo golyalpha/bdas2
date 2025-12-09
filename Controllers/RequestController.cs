@@ -36,6 +36,9 @@ public class RequestController : Controller
     {
         var model = new RoomRequestViewModel
         {
+            Request = new RoomRequest(),
+            MeetingRequest = new MeetingRequest { VideoCallReady = false }, // defaultní hodnota
+            PresentationRequest = new PresentationRequest { PodiumSize = 0 }, // defaultní hodnota
             Locations = Location.ListLocations()
         };
         return View(model);
@@ -43,18 +46,13 @@ public class RequestController : Controller
 
     // POST: Request/Create
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public IActionResult Create(RoomRequestViewModel model)
     {
-        if (!ModelState.IsValid)
-        {
-            model.Locations = Location.ListLocations();
-            return View(model);
-        }
-
         // SP6: Musí být zadána buď délka nebo konec
         if (model.Request.End == default)
         {
-            ModelState.AddModelError("", 
+            ModelState.AddModelError("Request.End", 
                 "Musíte zadat konec rezervace (SP6)");
             model.Locations = Location.ListLocations();
             return View(model);
@@ -85,21 +83,32 @@ public class RequestController : Controller
             var organiser = Organiser.GetOrganiser(Int32.Parse(organiserIdString));
             
             RoomRequest request = null;
+            
+            // Vytvoření instance podle typu
             if (model.Request.Type == "MEETING_RREQUEST") 
             {
-                request = model.MeetingRequest;
+                request = new MeetingRequest 
+                { 
+                    VideoCallReady = model.MeetingRequest?.VideoCallReady ?? false 
+                };
             }
             else if (model.Request.Type == "PRESENTATION_RREQUEST") 
             {
+                var podiumSize = model.PresentationRequest?.PodiumSize ?? 0;
+                
                 // SP3: Validace velikosti pódia
-                if (model.PresentationRequest.PodiumSize <= 0)
+                if (podiumSize <= 0)
                 {
                     ModelState.AddModelError("PresentationRequest.PodiumSize", 
                         "Velikost pódia musí být kladná (SP3)");
                     model.Locations = Location.ListLocations();
                     return View(model);
                 }
-                request = model.PresentationRequest; 
+                
+                request = new PresentationRequest 
+                { 
+                    PodiumSize = podiumSize 
+                };
             }
             
             if (request == null)
@@ -109,13 +118,20 @@ public class RequestController : Controller
                 return View(model);
             }
             
+            // Nastavení všech vlastností
             request.Location = Location.GetLocation(model.LocationId);
             request.MinimumCapacity = model.Request.MinimumCapacity;
             request.Start = model.Request.Start;
             request.End = model.Request.End;
-            request.Length = model.Request.Length;
-            request.Organiser = organiser;
             request.Type = model.Request.Type;
+            request.Organiser = organiser;
+            
+            request.Length = model.Request.End - model.Request.Start;
+            
+            _logger.LogInformation("Creating request with Length: {Length} (from {Start} to {End})", 
+                request.Length, request.Start, request.End);
+            
+            // Uložení do databáze
             request.Persist();
             
             TempData["Success"] = "Žádost byla úspěšně vytvořena";
@@ -123,6 +139,8 @@ public class RequestController : Controller
         }
         catch (OracleException ex)
         {
+            _logger.LogError(ex, "Chyba při vytváření žádosti");
+            
             // Zpracování DB chyb
             if (ex.Number == 20001)
             {
@@ -142,9 +160,16 @@ public class RequestController : Controller
             else
             {
                 ModelState.AddModelError("", 
-                    "Nastala chyba: " + ex.Message);
+                    $"Nastala chyba: {ex.Message}");
             }
             
+            model.Locations = Location.ListLocations();
+            return View(model);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Neočekávaná chyba při vytváření žádosti");
+            ModelState.AddModelError("", $"Neočekávaná chyba: {ex.Message}");
             model.Locations = Location.ListLocations();
             return View(model);
         }
@@ -172,7 +197,8 @@ public class RequestController : Controller
 
         var model = new RoomRequestViewModel {
             Request = request,
-            LocationId = request.Location.Id
+            LocationId = request.Location.Id,
+            Locations = Location.ListLocations()
         };
         if (request.Type == "MEETING_RREQUEST") {
             model.MeetingRequest = (MeetingRequest)request;
@@ -185,6 +211,7 @@ public class RequestController : Controller
 
     // POST: Request/Edit/5
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public IActionResult Edit(int id, RoomRequestViewModel model)
     {
 
@@ -222,6 +249,7 @@ public class RequestController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public IActionResult Delete(int id)
     {
         try

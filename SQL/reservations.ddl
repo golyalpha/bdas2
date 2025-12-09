@@ -140,9 +140,9 @@ CREATE TABLE images (
     id_organizer NUMBER NOT NULL,
     id_location  NUMBER NOT NULL,
     id_room      NUMBER NOT NULL,
-    file_name    VARCHAR2(255),
-    file_suffix  VARCHAR2(10),
-    created_at   DATE
+    file_name    VARCHAR2(255) NOT NULL,
+    file_suffix  VARCHAR2(10) NOT NULL,
+    created_at   DATE  NOT NULL
 );
 
 CREATE UNIQUE INDEX image__idx ON
@@ -1032,3 +1032,5 @@ BEGIN
     );
 END;
 /
+
+ALTER TABLE room_requests MODIFY reservation_length INTERVAL DAY(3) TO SECOND(0);
