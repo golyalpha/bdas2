@@ -42,11 +42,7 @@
                             <br />
                             <small class="text-muted">(@notification.NotificationType.Code)</small>
                         </td>
-                        <td>
-                            <a href="/Request/Edit/@notification.Request.Id" class="text-decoration-none">
-                                @notification.Request.Type
-                            </a>
-                        </td>
+                        <td>@notification.Request.Type</td>
                         <td>@notification.Request.Location?.Name</td>
                         <td>@notification.Request.Start.ToString("dd.MM.yyyy HH:mm")</td>
                         <td>

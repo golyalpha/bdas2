@@ -27,6 +27,23 @@ CREATE OR REPLACE PACKAGE user_management_pkg AS
     PROCEDURE get_non_admin_organizers(
         p_cursor OUT SYS_REFCURSOR
     );
+
+    FUNCTION hash_password(
+        p_password IN VARCHAR2
+    ) RETURN VARCHAR2;
+
+    PROCEDURE register_user(
+        p_name IN VARCHAR2,
+        p_email IN VARCHAR2,
+        p_password IN VARCHAR2,
+        p_id_role IN NUMBER DEFAULT 3,  -- Default = Guest
+        o_organizer_id OUT NUMBER
+    );
+
+    FUNCTION verify_password(
+        p_email IN VARCHAR2,
+        p_password IN VARCHAR2
+    ) RETURN NUMBER;
     
 END user_management_pkg;
 /
@@ -147,6 +164,106 @@ CREATE OR REPLACE PACKAGE BODY user_management_pkg AS
             WHERE r."name" != 'Administrator'
             ORDER BY o."name";
     END get_non_admin_organizers;
+
+    
+    FUNCTION hash_password(
+        p_password VARCHAR2
+    ) RETURN VARCHAR2
+    IS
+        v_password_raw RAW(2000);
+        v_hash RAW(2000);
+    BEGIN
+        -- Konverze stringu na RAW
+        v_password_raw := UTL_RAW.CAST_TO_RAW(p_password);
+        
+        -- MD5 hash pomocí DBMS_OBFUSCATION_TOOLKIT
+        DBMS_OBFUSCATION_TOOLKIT.MD5(
+            input => v_password_raw,
+            checksum => v_hash
+        );
+        
+        -- Vrátí hash jako HEX string (32 znaků pro MD5)
+        RETURN RAWTOHEX(v_hash);
+    EXCEPTION
+        WHEN OTHERS THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Chyba při hashování hesla: ' || SQLERRM);
+    END hash_password;
+    
+
+    PROCEDURE register_user(
+        p_name VARCHAR2,
+        p_email VARCHAR2,
+        p_password VARCHAR2,
+        p_id_role NUMBER DEFAULT 3,  -- Default = Guest
+        o_organizer_id OUT NUMBER
+    )
+    IS
+        v_hashed_password VARCHAR2(256);
+        v_email_exists NUMBER;
+    BEGIN
+        -- 1. Kontrola existence emailu
+        SELECT COUNT(*) INTO v_email_exists
+        FROM organizers
+        WHERE email = p_email;
+        
+        IF v_email_exists > 0 THEN
+            RAISE_APPLICATION_ERROR(-20100, 'Email již existuje');
+        END IF;
+        
+        -- 2. Vložení organizátora
+        INSERT INTO organizers ("name", email, id_role)
+        VALUES (p_name, p_email, p_id_role)
+        RETURNING id_organizer INTO o_organizer_id;
+        
+        -- 3. Hashování hesla pomocí funkce
+        v_hashed_password := hash_password(p_password);
+        
+        -- 4. Uložení credentials
+        INSERT INTO credentials (credential_type, "data", created_at, id_organizer)
+        VALUES ('PASSWORD', v_hashed_password, SYSTIMESTAMP, o_organizer_id);
+        
+        COMMIT;
+        
+        DBMS_OUTPUT.PUT_LINE('Uživatel ' || p_name || ' byl úspěšně zaregistrován s ID: ' || o_organizer_id);
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END register_user;
+
+    FUNCTION verify_password(
+        p_email VARCHAR2,
+        p_password VARCHAR2
+    ) RETURN NUMBER
+    IS
+        v_stored_hash VARCHAR2(256);
+        v_computed_hash VARCHAR2(256);
+        v_organizer_id NUMBER;
+    BEGIN
+        -- Načtení hashe z databáze
+        SELECT c."data", o.id_organizer
+        INTO v_stored_hash, v_organizer_id
+        FROM credentials c
+        JOIN organizers o ON c.id_organizer = o.id_organizer
+        WHERE o.email = p_email
+        AND c.credential_type = 'PASSWORD';
+        
+        -- Výpočet hashe ze zadaného hesla
+        v_computed_hash := hash_password(p_password);
+        
+        -- Porovnání hashů
+        IF v_stored_hash = v_computed_hash THEN
+            RETURN v_organizer_id;  -- Úspěch - vrátí ID uživatele
+        ELSE
+            RETURN NULL;  -- Neúspěch - neplatné heslo
+        END IF;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RETURN NULL;  -- Uživatel neexistuje
+        WHEN OTHERS THEN
+            RAISE;
+    END verify_password;
+
 
 END user_management_pkg;
 

@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Oracle.ManagedDataAccess.Client;
 using System.Security.Claims;
 using WebApp.Models;
+using WebApp.Util;  
 
 namespace WebApp.Controllers;
 
@@ -47,27 +49,27 @@ public class UserController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [AllowAnonymous]
-    public async Task<IActionResult> Login(LoginViewModel request) {
-        if (ModelState.IsValid) {
-            Organiser user;
-            try
+    public async Task<IActionResult> Login(LoginViewModel request) 
+    {
+        if (!ModelState.IsValid) 
+        {
+            return View(request);
+        }
+
+        try
+        {
+            // Ověření hesla pomocí DB funkce
+            int? userId = Credential.VerifyPassword(request.Email, request.Password);
+            
+            if (userId == null)
             {
-                user = Organiser.FindOrganiser(request.Email);
-            }
-            catch (KeyNotFoundException)
-            {
-                ModelState.AddModelError("Email", "Invalid User");
+                ModelState.AddModelError("", "Neplatný email nebo heslo");
                 return View(request);
             }
-
-            Credential cred = Credential.ListCredentials().Where((c) => c.IdOrganizer == user.Id).Last();
-
-            if (cred.Data != request.Password)
-            {
-                ModelState.AddModelError("Password", "Invalid Password");
-                return View(request);
-            }
-
+            
+            // Načtení uživatele
+            var user = Organiser.GetOrganiser(userId.Value);
+            
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -78,10 +80,15 @@ public class UserController : Controller
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
             
-            // Přesměrování na domovskou stránku po úspěšném přihlášení
+            _logger.LogInformation("Uživatel {Email} se úspěšně přihlásil", request.Email);
             return RedirectToAction("Index", "Request");
         }
-        return View(request);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Chyba při přihlášení");
+            ModelState.AddModelError("", "Chyba při přihlášení");
+            return View(request);
+        }
     }
 
     [HttpPost]
@@ -101,39 +108,122 @@ public class UserController : Controller
 
     [AllowAnonymous]
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public IActionResult Register(RegisterViewModel request)
     {
+        _logger.LogInformation("=== REGISTRACE START ===");
+        _logger.LogInformation("Email: {Email}, Name: {Name}", request.Email, request.Name);
+        
         if (!ModelState.IsValid)
         {
+            _logger.LogWarning("ModelState není validní");
+            foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+            {
+                _logger.LogWarning("Validation error: {Error}", error.ErrorMessage);
+            }
             return View(request);
         }
 
         try
         {
-            var user = Organiser.FindOrganiser(request.Email);
-            ModelState.AddModelError("Email", "Email already taken");
+            // KROK 1: Kontrola existence emailu
+            _logger.LogInformation("KROK 1: Kontrola existence emailu...");
+            try
+            {
+                var existingUser = Organiser.FindOrganiser(request.Email);
+                _logger.LogWarning("Email {Email} již existuje!", request.Email);
+                ModelState.AddModelError("Email", "Email již existuje");
+                return View(request);
+            }
+            catch (KeyNotFoundException) 
+            { 
+                _logger.LogInformation("Email {Email} je volný", request.Email);
+            }
+
+            // KROK 2: Vytvoření organizátora
+            _logger.LogInformation("KROK 2: Vytváření organizátora...");
+            var role = Role.ListRoles().FirstOrDefault(r => r.Name == "Guest");
+            if (role == null)
+            {
+                _logger.LogError("Role 'Guest' nebyla nalezena!");
+                throw new Exception("Role 'Guest' nebyla nalezena v databázi");
+            }
+            _logger.LogInformation("Role Guest nalezena: ID={RoleId}", role.Id);
+
+            var organiser = new Organiser
+            {
+                Email = request.Email,
+                Name = request.Name,
+                Role = role
+            };
+            
+            _logger.LogInformation("Volám organiser.Persist()...");
+            organiser.Persist();
+            _logger.LogInformation("Organiser.Persist() dokončen");
+            
+            // KROK 3: Načtení ID nově vytvořeného organizátora
+            _logger.LogInformation("KROK 3: Načítání ID nově vytvořeného organizátora...");
+            organiser = Organiser.FindOrganiser(request.Email);
+            _logger.LogInformation("Načten organiser s ID: {OrganiserId}", organiser.Id);
+            
+            if (organiser.Id == null)
+            {
+                _logger.LogError("ID organizátora je NULL!");
+                throw new Exception("Nepodařilo se získat ID nově vytvořeného uživatele");
+            }
+
+            // KROK 4: Hashování hesla
+            _logger.LogInformation("KROK 4: Hashování hesla...");
+            _logger.LogInformation("Heslo (plain): {Password}", request.Password);
+            
+            string hashedPassword;
+            try
+            {
+                hashedPassword = Credential.HashPassword(request.Password);
+                _logger.LogInformation("Hash hesla: {Hash} (délka: {Length})", 
+                    hashedPassword, hashedPassword.Length);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Chyba při hashování hesla!");
+                throw new Exception($"Chyba při hashování hesla: {ex.Message}", ex);
+            }
+
+            // KROK 5: Uložení credentials
+            _logger.LogInformation("KROK 5: Ukládání credentials...");
+            var credential = new Credential
+            {
+                CredentialType = "PASSWORD",
+                Data = hashedPassword,
+                IdOrganizer = organiser.Id
+            };
+            
+            _logger.LogInformation("Volám credential.Persist()...");
+            credential.Persist();
+            _logger.LogInformation("Credential.Persist() dokončen");
+
+            _logger.LogInformation("=== REGISTRACE ÚSPĚŠNÁ ===");
+            _logger.LogInformation("Email: {Email}, ID: {Id}", request.Email, organiser.Id);
+            
+            TempData["Success"] = "Registrace úspěšná! Můžete se přihlásit.";
+            return RedirectToAction("Login");
+        }
+        catch (OracleException ex)
+        {
+            _logger.LogError(ex, "Oracle chyba při registraci");
+            _logger.LogError("Oracle Error Number: {Number}", ex.Number);
+            _logger.LogError("Oracle Error Message: {Message}", ex.Message);
+            ModelState.AddModelError("", $"Chyba databáze: {ex.Message}");
             return View(request);
         }
-        catch (KeyNotFoundException) { }
-
-        var role = Role.ListRoles().Where(r => r.Name == "Guest").First();
-        var organiser = new Organiser
+        catch (Exception ex)
         {
-            Email = request.Email,
-            Name = request.Name,
-            Role = role
-        };
-        organiser.Persist();
-        organiser = Organiser.FindOrganiser(request.Email);  // Gotta grab the ID from DB
-
-        var credential = new Credential
-        {
-            CredentialType = "PASSWORD",
-            Data = request.Password,
-            IdOrganizer = (int)organiser.Id
-        };
-        credential.Persist();
-        return RedirectToAction("Login");
+            _logger.LogError(ex, "Obecná chyba při registraci");
+            _logger.LogError("Exception Type: {Type}", ex.GetType().Name);
+            _logger.LogError("Stack Trace: {StackTrace}", ex.StackTrace);
+            ModelState.AddModelError("", $"Chyba: {ex.Message}");
+            return View(request);
+        }
     }
 
 
