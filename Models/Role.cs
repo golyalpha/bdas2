@@ -13,24 +13,6 @@ public class Role
     [Required]
     public string Name { get; set; }
 
-    public void Persist()
-    {
-        using (OracleConnection conn = DBManager.GetConnection())
-        {
-            conn.Open();
-            OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.CommandText = "persist_role";
-            cmd.Parameters.Add("id_role", Id);
-            cmd.Parameters.Add("name", Name);
-            int rows = cmd.ExecuteNonQuery();
-            if (rows == 0)
-            {
-                throw new ApplicationException("Persisting entity failed, no rows were updated.");
-            }
-        }
-    }
-
     public static Role GetRole(int Id)
     {
         using (OracleConnection conn = DBManager.GetConnection())

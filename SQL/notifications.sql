@@ -5,7 +5,6 @@ CREATE OR REPLACE PACKAGE notifications_pkg AS
         p_notification_id IN NUMBER  -- JEN JEDNO ID
     );
 
-
         -- Získání počtu nepřečtených notifikací pro organizátora
     FUNCTION get_unread_notification_count(
         p_id_organizer IN NUMBER

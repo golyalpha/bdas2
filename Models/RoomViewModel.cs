@@ -1,5 +1,5 @@
 ﻿namespace WebApp.Models
-    {
+{
         public class RoomViewModel
         {
             public Room? Room { get; set; }

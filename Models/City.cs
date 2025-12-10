@@ -10,8 +10,6 @@ namespace WebApp.Models
         public string Name { get; set; }
         public Country Country { get; set; }
 
-
-
         public void Persist()
         {
             using (OracleConnection conn = DBManager.GetConnection())

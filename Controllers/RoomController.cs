@@ -87,7 +87,7 @@ public class RoomController : Controller
             return View(roomViewModel);
         }
 
-        // SP3: Velikost p�dia pro presentation room
+        // SP3: Velikost pódia pro presentation room
         if (roomViewModel.Room.Type == "PRESENTATION_ROOM")
         {
             if (!roomViewModel.PodiumSize.HasValue || roomViewModel.PodiumSize.Value <= 0)
@@ -146,13 +146,11 @@ public class RoomController : Controller
             }
             else if (ex.Message.Contains("chk_room_capacity_positive"))
             {
-                ModelState.AddModelError("Room.Capacity", 
-                    "Kapacita musí být kladná (IO1)");
+                ModelState.AddModelError("Room.Capacity", "Kapacita musí být kladná (IO1)");
             }
             else if (ex.Message.Contains("chk_podium_size_positive"))
             {
-                ModelState.AddModelError("PodiumSize", 
-                    "Velikost pódia musí být kladná (IO3)");
+                ModelState.AddModelError("PodiumSize", "Velikost pódia musí být kladná (IO3)");
             }
             else
             {

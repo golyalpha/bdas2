@@ -77,7 +77,7 @@ public class RoomRequest
             cmd.Parameters.Add("p_reservation_start", OracleDbType.Date).Value = Start;
             cmd.Parameters.Add("p_reservation_end", OracleDbType.Date).Value = End;
             
-            // 🔥 OPRAVA: Správná konverze TimeSpan na OracleIntervalDS
+            //  OPRAVA: Správná konverze TimeSpan na OracleIntervalDS
             if (Length != TimeSpan.Zero)
             {
                 cmd.Parameters.Add("p_reservation_length", OracleDbType.IntervalDS).Value = 

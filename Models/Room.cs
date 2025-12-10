@@ -27,11 +27,6 @@ public class Room
     [Required]
     public Organiser Organiser { get; set; }
 
-
-
-    public void Persist()
-    {
-    }
     public static Room GetRoom(int Id)
     {
         using (OracleConnection conn = DBManager.GetConnection())

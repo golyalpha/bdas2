@@ -18,10 +18,57 @@ INSERT INTO roles ("name") VALUES ('Administrator');
 INSERT INTO roles ("name") VALUES ('User');
 INSERT INTO roles ("name") VALUES ('Guest');
 
--- Organizers
-INSERT INTO organizers ("name", email, id_role) VALUES ('John Doe', 'john.doe@example.com', 1);
-INSERT INTO organizers ("name", email, id_role, id_organizer_substitute) VALUES ('Jane Smith', 'jane.smith@example.com', 2, 1);
-INSERT INTO organizers ("name", email, id_role, id_organizer_substitute) VALUES ('Peter Parker', 'peter.parker@.com', 3, 1);
+-- Organizers - ZMĚNA: používáme register_user proceduru
+DECLARE
+    v_organizer_id NUMBER;
+BEGIN
+    -- Administrator: John Doe
+    user_management_pkg.register_user(
+        p_name => 'John Doe',
+        p_email => 'john.doe@example.com',
+        p_password => 'admin123',
+        p_id_role => 1,  -- Administrator
+        o_organizer_id => v_organizer_id
+    );
+    DBMS_OUTPUT.PUT_LINE('John Doe ID: ' || v_organizer_id);
+    
+    -- User: Jane Smith
+    user_management_pkg.register_user(
+        p_name => 'Jane Smith',
+        p_email => 'jane.smith@example.com',
+        p_password => 'user123',
+        p_id_role => 2,  -- User
+        o_organizer_id => v_organizer_id
+    );
+    DBMS_OUTPUT.PUT_LINE('Jane Smith ID: ' || v_organizer_id);
+    
+    -- Guest: Peter Parker
+    user_management_pkg.register_user(
+        p_name => 'Peter Parker',
+        p_email => 'peter.parker@example.com',
+        p_password => 'guest123',
+        p_id_role => 3,  -- Guest
+        o_organizer_id => v_organizer_id
+    );
+    DBMS_OUTPUT.PUT_LINE('Peter Parker ID: ' || v_organizer_id);
+END;
+/
+
+-- Nastavení náhradníků (až POTOM co jsou všichni vytvořeni)
+BEGIN
+    -- Jane Smith má náhradníka John Doe (ID=1)
+    user_management_pkg.set_organizer_substitute(
+        p_id_organizer => 2,
+        p_id_organizer_substitute => 1
+    );
+    
+    -- Peter Parker má náhradníka John Doe (ID=1)
+    user_management_pkg.set_organizer_substitute(
+        p_id_organizer => 3,
+        p_id_organizer_substitute => 1
+    );
+END;
+/
 
 -- Locations
 INSERT INTO locations ("name", availability_start, availability_end, id_city, id_organizer) 
@@ -55,7 +102,7 @@ INSERT INTO room_requests (id_room_request, min_capacity, "type", reservation_st
 VALUES (room_requests_id_room_request.NEXTVAL, 20, 'MEETING_RREQUEST',
         TO_DATE('2024-12-07 09:00', 'YYYY-MM-DD HH24:MI'),
         TO_DATE('2024-12-07 11:00', 'YYYY-MM-DD HH24:MI'),
-        INTERVAL '2' HOUR,  -- ZMĚNA: INTERVAL místo TO_DATE
+        INTERVAL '2' HOUR,
         1, 1);
 INSERT INTO meeting_rrequests (id_room_request, vc_ready)
 VALUES (room_requests_id_room_request.CURRVAL, 'Y');
@@ -66,7 +113,7 @@ INSERT INTO room_requests (id_room_request, min_capacity, "type", reservation_st
 VALUES (room_requests_id_room_request.NEXTVAL, 15, 'PRESENTATION_RREQUEST',
         TO_DATE('2024-12-08 10:00', 'YYYY-MM-DD HH24:MI'),
         TO_DATE('2024-12-08 12:00', 'YYYY-MM-DD HH24:MI'),
-        INTERVAL '2' HOUR,  -- ZMĚNA: INTERVAL místo TO_DATE
+        INTERVAL '2' HOUR,
         2, 2);
 INSERT INTO presentation_rrequests (id_room_request, podium_size)
 VALUES (room_requests_id_room_request.CURRVAL, 10);
@@ -100,14 +147,6 @@ VALUES (room_requests_id_room_request.NEXTVAL, 30, 'MEETING_RREQUEST',
         3, 3);
 INSERT INTO meeting_rrequests (id_room_request, vc_ready)
 VALUES (room_requests_id_room_request.CURRVAL, 'Y');
-
--- Credentials
-INSERT INTO credentials (credential_type, "data", created_at, id_organizer) 
-VALUES ('PASSWORD', 'hashed_password_123', SYSTIMESTAMP, 1);
-INSERT INTO credentials (credential_type, "data", created_at, id_organizer) 
-VALUES ('PASSWORD', 'hashed_password_456', SYSTIMESTAMP, 2);
-INSERT INTO credentials (credential_type, "data", created_at, id_organizer) 
-VALUES ('PASSWORD', 'hashed_password_789', SYSTIMESTAMP, 3);
 
 -- Images s novými poli: file_name, file_suffix, created_at
 INSERT INTO images ("data", file_name, file_suffix, created_at, id_organizer, id_location, id_room) 

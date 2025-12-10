@@ -1034,3 +1034,41 @@ END;
 /
 
 ALTER TABLE room_requests MODIFY reservation_length INTERVAL DAY(3) TO SECOND(0);
+
+CREATE OR REPLACE VIEW IMAGES_WITH_DETAIL_V (
+    ID_IMAGE
+   , "data"
+   , file_name
+   , file_suffix
+   , created_at
+   , ID_ORGANIZER
+   , organizer_name
+   , ID_LOCATION
+   , location_name
+   , ID_ROOM
+   , room_name
+   , id_city
+   , city_name
+) AS
+SELECT 
+    i.ID_IMAGE,
+    i."data",
+    i.file_name,
+    i.file_suffix,
+    i.created_at,
+    i.ID_ORGANIZER,
+    o."name" as organizer_name,
+    i.ID_LOCATION,
+    l."name" as location_name,
+    i.ID_ROOM,
+    r."name" as room_name,
+    c.id_city,
+    c."name" as city_name
+FROM IMAGES i
+INNER JOIN rooms r ON i.id_room = r.id_room
+INNER JOIN locations l ON i.id_location = l.id_location
+INNER JOIN cities c ON l.id_city = c.id_city
+INNER JOIN organizers o ON i.id_organizer = o.id_organizer;
+
+
+

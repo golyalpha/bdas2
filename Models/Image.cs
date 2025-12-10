@@ -45,19 +45,19 @@ public class Image
                     OracleCommand cmd = conn.CreateCommand();
                     cmd.Transaction = transaction;
 
-                    // Smaûeme existujÌcÌ obr·zek
+                    // Sma≈æeme existuj√≠c√≠ obr√°zek
                     cmd.CommandText = "DELETE FROM images WHERE id_room = :id_room";
                     cmd.Parameters.Add("id_room", IdRoom);
                     int deleted = cmd.ExecuteNonQuery();
                     Console.WriteLine($"[DEBUG] Deleted {deleted} old images");
                     cmd.Parameters.Clear();
 
-                    // ZMÃNA: VloûÌme data p¯Ìmo pomocÌ OracleBlob parametru
+                    // ZMƒöNA: Vlo≈æ√≠me data p≈ô√≠mo pomoc√≠ OracleBlob parametru
                     cmd.CommandText = @"INSERT INTO images (""data"", file_name, file_suffix, created_at, id_organizer, id_location, id_room) 
                                        VALUES (:blob_data, :file_name, :file_suffix, :created_at, :id_organizer, :id_location, :id_room) 
                                        RETURNING id_image INTO :id_image";
                     
-                    // BLOB parametr - p¯Ìmo vloûÌme data
+                    // BLOB parametr - p≈ô√≠mo vlo≈æ√≠me data
                     var blobParam = new OracleParameter("blob_data", OracleDbType.Blob)
                     {
                         Value = Data
@@ -99,9 +99,8 @@ public class Image
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            // ZMÃNA: P¯id·ny file_name, file_suffix, created_at do SELECT
             cmd.CommandText = @"SELECT id_image, ""data"", file_name, file_suffix, created_at, id_organizer, id_location, id_room 
-                               FROM images WHERE id_room = :id_room";
+                               FROM images_v WHERE id_room = :id_room";
             cmd.Parameters.Add("id_room", roomId);
 
             using (OracleDataReader reader = cmd.ExecuteReader())
@@ -120,9 +119,9 @@ public class Image
                 {
                     Id = reader.GetInt32(0),
                     Data = data,
-                    FileName = reader.GetString(2),      // PÿID¡NO
-                    FileSuffix = reader.GetString(3),    // PÿID¡NO
-                    CreatedAt = reader.GetDateTime(4),   // PÿID¡NO
+                    FileName = reader.GetString(2),
+                    FileSuffix = reader.GetString(3),
+                    CreatedAt = reader.GetDateTime(4),
                     IdOrganizer = reader.GetInt32(5),
                     IdLocation = reader.GetInt32(6),
                     IdRoom = reader.GetInt32(7)
@@ -150,7 +149,7 @@ public class Image
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT COUNT(*) FROM images WHERE id_room = :id_room";
+            cmd.CommandText = "SELECT COUNT(*) FROM images_v WHERE id_room = :id_room";
             cmd.Parameters.Add("id_room", roomId);
             
             var count = Convert.ToInt32(cmd.ExecuteScalar());
@@ -159,7 +158,7 @@ public class Image
     }
 
 /// <summary>
-/// NaËte vöechny obr·zky s daty z vÌce tabulek pro zobrazenÌ v seznamu
+/// Naƒçte v≈°echny obr√°zky s daty z v√≠ce tabulek pro zobrazen√≠ v seznamu
 /// </summary>
 public static List<ImageViewModel> ListAllImagesWithDetails()
 {
@@ -170,21 +169,17 @@ public static List<ImageViewModel> ListAllImagesWithDetails()
         OracleCommand cmd = conn.CreateCommand();
         cmd.CommandText = @"
             SELECT 
-                i.id_image, 
-                i.file_name, 
-                i.file_suffix, 
-                i.created_at,
-                r.id_room,
-                r.""name"" as room_name,
-                l.""name"" as location_name,
-                c.""name"" as city_name,
-                o.""name"" as organizer_name
-            FROM images i
-            INNER JOIN rooms r ON i.id_room = r.id_room
-            INNER JOIN locations l ON i.id_location = l.id_location
-            INNER JOIN cities c ON l.id_city = c.id_city
-            INNER JOIN organizers o ON i.id_organizer = o.id_organizer
-            ORDER BY i.created_at DESC";
+                id_image, 
+                file_name, 
+                file_suffix, 
+                created_at,
+                id_room,
+                room_name,
+                location_name,
+                city_name,
+                organizer_name
+            FROM images_with_detail_v
+            ORDER BY created_at DESC";
         cmd.CommandType = System.Data.CommandType.Text;
         
         using (OracleDataReader reader = cmd.ExecuteReader())
