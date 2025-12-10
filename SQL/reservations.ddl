@@ -459,12 +459,14 @@ CREATE OR REPLACE VIEW LOCATIONS_V ( ID_LOCATION
 ;
 
 CREATE OR REPLACE VIEW NOTIFICATIONS_V ( 
-    delivered
+    ID_NOTIFICATION
+    , delivered
    , ID_ORGANIZER
    , ID_ROOM_REQUEST
    , ID_NOTIFICATION_TYPE )
  AS SELECT
-    delivered
+  ID_NOTIFICATION
+    , delivered
    , ID_ORGANIZER
    , ID_ROOM_REQUEST
    , ID_NOTIFICATION_TYPE 
@@ -944,11 +946,6 @@ CREATE TABLE audit_log (
 
 CREATE SEQUENCE audit_log_seq START WITH 1 NOCACHE ORDER;
 
--- Index pro rychlejší vyhledávání
-CREATE INDEX idx_audit_log_table ON audit_log(table_name, changed_at DESC);
-CREATE INDEX idx_audit_log_organizer ON audit_log(id_organizer, changed_at DESC);
-
-
 -- Audit trigger pro tabulku RESERVATIONS
 CREATE OR REPLACE TRIGGER trg_audit_reservations
 AFTER INSERT OR UPDATE OR DELETE ON reservations
@@ -1071,4 +1068,602 @@ INNER JOIN cities c ON l.id_city = c.id_city
 INNER JOIN organizers o ON i.id_organizer = o.id_organizer;
 
 
+-- Audit trigger pro tabulku ORGANIZERS
+CREATE OR REPLACE TRIGGER trg_audit_organizers
+AFTER INSERT OR UPDATE OR DELETE ON organizers
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10);
+    v_old_values VARCHAR2(1000);
+    v_new_values VARCHAR2(1000);
+BEGIN
+    IF INSERTING THEN
+        v_operation := 'INSERT';
+        v_new_values := 'Name:' || :NEW."name" || 
+                       ',Email:' || :NEW.email ||
+                       ',Role:' || :NEW.id_role;
+    ELSIF UPDATING THEN
+        v_operation := 'UPDATE';
+        v_old_values := 'Name:' || :OLD."name" || 
+                       ',Email:' || :OLD.email ||
+                       ',Role:' || :OLD.id_role;
+        v_new_values := 'Name:' || :NEW."name" || 
+                       ',Email:' || :NEW.email ||
+                       ',Role:' || :NEW.id_role;
+    ELSIF DELETING THEN
+        v_operation := 'DELETE';
+        v_old_values := 'Name:' || :OLD."name" || 
+                       ',Email:' || :OLD.email ||
+                       ',Role:' || :OLD.id_role;
+    END IF;
+    
+    INSERT INTO audit_log (
+        id_log, table_name, operation, record_id, id_organizer, 
+        old_values, new_values
+    ) VALUES (
+        audit_log_seq.NEXTVAL,
+        'ORGANIZERS',
+        v_operation,
+        COALESCE(:NEW.id_organizer, :OLD.id_organizer),
+        COALESCE(:NEW.id_organizer, :OLD.id_organizer),
+        v_old_values,
+        v_new_values
+    );
+END;
+/
 
+-- Audit trigger pro tabulku LOCATIONS
+CREATE OR REPLACE TRIGGER trg_audit_locations
+AFTER INSERT OR UPDATE OR DELETE ON locations
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10);
+    v_old_values VARCHAR2(1000);
+    v_new_values VARCHAR2(1000);
+BEGIN
+    IF INSERTING THEN
+        v_operation := 'INSERT';
+        v_new_values := 'Name:' || :NEW."name" || 
+                       ',City:' || :NEW.id_city ||
+                       ',Start:' || TO_CHAR(:NEW.availability_start, 'DD.MM.YYYY') ||
+                       ',End:' || TO_CHAR(:NEW.availability_end, 'DD.MM.YYYY');
+    ELSIF UPDATING THEN
+        v_operation := 'UPDATE';
+        v_old_values := 'Name:' || :OLD."name" || 
+                       ',City:' || :OLD.id_city ||
+                       ',Start:' || TO_CHAR(:OLD.availability_start, 'DD.MM.YYYY');
+        v_new_values := 'Name:' || :NEW."name" || 
+                       ',City:' || :NEW.id_city ||
+                       ',Start:' || TO_CHAR(:NEW.availability_start, 'DD.MM.YYYY');
+    ELSIF DELETING THEN
+        v_operation := 'DELETE';
+        v_old_values := 'Name:' || :OLD."name" || 
+                       ',City:' || :OLD.id_city ||
+                       ',Start:' || TO_CHAR(:OLD.availability_start, 'DD.MM.YYYY') ||
+                       ',End:' || TO_CHAR(:OLD.availability_end, 'DD.MM.YYYY');
+    END IF;
+    
+    INSERT INTO audit_log (
+        id_log, table_name, operation, record_id, id_organizer, 
+        old_values, new_values
+    ) VALUES (
+        audit_log_seq.NEXTVAL,
+        'LOCATIONS',
+        v_operation,
+        COALESCE(:NEW.id_location, :OLD.id_location),
+        COALESCE(:NEW.id_organizer, :OLD.id_organizer),
+        v_old_values,
+        v_new_values
+    );
+END;
+/
+
+-- Audit trigger pro tabulku ROOM_REQUESTS
+CREATE OR REPLACE TRIGGER trg_audit_room_requests
+AFTER INSERT OR UPDATE OR DELETE ON room_requests
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10);
+    v_old_values VARCHAR2(1000);
+    v_new_values VARCHAR2(1000);
+BEGIN
+    IF INSERTING THEN
+        v_operation := 'INSERT';
+        v_new_values := 'Type:' || :NEW."type" || 
+                       ',MinCap:' || :NEW.min_capacity ||
+                       ',Start:' || TO_CHAR(:NEW.reservation_start, 'DD.MM.YYYY HH24:MI') ||
+                       ',Location:' || :NEW.id_location;
+    ELSIF UPDATING THEN
+        v_operation := 'UPDATE';
+        v_old_values := 'Type:' || :OLD."type" || 
+                       ',MinCap:' || :OLD.min_capacity ||
+                       ',Start:' || TO_CHAR(:OLD.reservation_start, 'DD.MM.YYYY HH24:MI');
+        v_new_values := 'Type:' || :NEW."type" || 
+                       ',MinCap:' || :NEW.min_capacity ||
+                       ',Start:' || TO_CHAR(:NEW.reservation_start, 'DD.MM.YYYY HH24:MI');
+    ELSIF DELETING THEN
+        v_operation := 'DELETE';
+        v_old_values := 'Type:' || :OLD."type" || 
+                       ',MinCap:' || :OLD.min_capacity ||
+                       ',Start:' || TO_CHAR(:OLD.reservation_start, 'DD.MM.YYYY HH24:MI') ||
+                       ',Location:' || :OLD.id_location;
+    END IF;
+    
+    INSERT INTO audit_log (
+        id_log, table_name, operation, record_id, id_organizer, 
+        old_values, new_values
+    ) VALUES (
+        audit_log_seq.NEXTVAL,
+        'ROOM_REQUESTS',
+        v_operation,
+        COALESCE(:NEW.id_room_request, :OLD.id_room_request),
+        COALESCE(:NEW.id_organizer, :OLD.id_organizer),
+        v_old_values,
+        v_new_values
+    );
+END;
+/
+
+-- Audit trigger pro tabulku CREDENTIALS
+CREATE OR REPLACE TRIGGER trg_audit_credentials
+AFTER INSERT OR UPDATE OR DELETE ON credentials
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10);
+    v_old_values VARCHAR2(1000);
+    v_new_values VARCHAR2(1000);
+BEGIN
+    IF INSERTING THEN
+        v_operation := 'INSERT';
+        v_new_values := 'Type:' || :NEW.credential_type || 
+                       ',Created:' || TO_CHAR(:NEW.created_at, 'DD.MM.YYYY HH24:MI:SS');
+    ELSIF UPDATING THEN
+        v_operation := 'UPDATE';
+        v_old_values := 'Type:' || :OLD.credential_type || 
+                       ',Created:' || TO_CHAR(:OLD.created_at, 'DD.MM.YYYY HH24:MI:SS');
+        v_new_values := 'Type:' || :NEW.credential_type || 
+                       ',Created:' || TO_CHAR(:NEW.created_at, 'DD.MM.YYYY HH24:MI:SS');
+    ELSIF DELETING THEN
+        v_operation := 'DELETE';
+        v_old_values := 'Type:' || :OLD.credential_type || 
+                       ',Created:' || TO_CHAR(:OLD.created_at, 'DD.MM.YYYY HH24:MI:SS');
+    END IF;
+    
+    INSERT INTO audit_log (
+        id_log, table_name, operation, record_id, id_organizer, 
+        old_values, new_values
+    ) VALUES (
+        audit_log_seq.NEXTVAL,
+        'CREDENTIALS',
+        v_operation,
+        COALESCE(:NEW.id_credential, :OLD.id_credential),
+        COALESCE(:NEW.id_organizer, :OLD.id_organizer),
+        v_old_values,
+        v_new_values
+    );
+END;
+/
+
+-- Audit trigger pro tabulku NOTIFICATIONS
+CREATE OR REPLACE TRIGGER trg_audit_notifications
+AFTER INSERT OR UPDATE OR DELETE ON notifications
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10);
+    v_old_values VARCHAR2(1000);
+    v_new_values VARCHAR2(1000);
+BEGIN
+    IF INSERTING THEN
+        v_operation := 'INSERT';
+        v_new_values := 'Delivered:' || :NEW.delivered || 
+                       ',Type:' || :NEW.id_notification_type ||
+                       ',Request:' || :NEW.id_room_request;
+    ELSIF UPDATING THEN
+        v_operation := 'UPDATE';
+        v_old_values := 'Delivered:' || :OLD.delivered || 
+                       ',Type:' || :OLD.id_notification_type;
+        v_new_values := 'Delivered:' || :NEW.delivered || 
+                       ',Type:' || :NEW.id_notification_type;
+    ELSIF DELETING THEN
+        v_operation := 'DELETE';
+        v_old_values := 'Delivered:' || :OLD.delivered || 
+                       ',Type:' || :OLD.id_notification_type ||
+                       ',Request:' || :OLD.id_room_request;
+    END IF;
+    
+    INSERT INTO audit_log (
+        id_log, table_name, operation, record_id, id_organizer, 
+        old_values, new_values
+    ) VALUES (
+        audit_log_seq.NEXTVAL,
+        'NOTIFICATIONS',
+        v_operation,
+        COALESCE(:NEW.id_notification, :OLD.id_notification),
+        COALESCE(:NEW.id_organizer, :OLD.id_organizer),
+        v_old_values,
+        v_new_values
+    );
+END;
+/
+
+-- Audit trigger pro tabulku IMAGES
+CREATE OR REPLACE TRIGGER trg_audit_images
+AFTER INSERT OR UPDATE OR DELETE ON images
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10);
+    v_old_values VARCHAR2(1000);
+    v_new_values VARCHAR2(1000);
+BEGIN
+    IF INSERTING THEN
+        v_operation := 'INSERT';
+        v_new_values := 'File:' || :NEW.file_name || '.' || :NEW.file_suffix || 
+                       ',Room:' || :NEW.id_room ||
+                       ',Location:' || :NEW.id_location ||
+                       ',Created:' || TO_CHAR(:NEW.created_at, 'DD.MM.YYYY');
+    ELSIF UPDATING THEN
+        v_operation := 'UPDATE';
+        v_old_values := 'File:' || :OLD.file_name || '.' || :OLD.file_suffix || 
+                       ',Room:' || :OLD.id_room;
+        v_new_values := 'File:' || :NEW.file_name || '.' || :NEW.file_suffix || 
+                       ',Room:' || :NEW.id_room;
+    ELSIF DELETING THEN
+        v_operation := 'DELETE';
+        v_old_values := 'File:' || :OLD.file_name || '.' || :OLD.file_suffix || 
+                       ',Room:' || :OLD.id_room ||
+                       ',Location:' || :OLD.id_location ||
+                       ',Created:' || TO_CHAR(:OLD.created_at, 'DD.MM.YYYY');
+    END IF;
+    
+    INSERT INTO audit_log (
+        id_log, table_name, operation, record_id, id_organizer, 
+        old_values, new_values
+    ) VALUES (
+        audit_log_seq.NEXTVAL,
+        'IMAGES',
+        v_operation,
+        COALESCE(:NEW.id_image, :OLD.id_image),
+        COALESCE(:NEW.id_organizer, :OLD.id_organizer),
+        v_old_values,
+        v_new_values
+    );
+END;
+/
+
+-- Audit trigger pro tabulku ROLES
+CREATE OR REPLACE TRIGGER trg_audit_roles
+AFTER INSERT OR UPDATE OR DELETE ON roles
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10);
+    v_old_values VARCHAR2(1000);
+    v_new_values VARCHAR2(1000);
+BEGIN
+    IF INSERTING THEN
+        v_operation := 'INSERT';
+        v_new_values := 'Name:' || :NEW."name";
+    ELSIF UPDATING THEN
+        v_operation := 'UPDATE';
+        v_old_values := 'Name:' || :OLD."name";
+        v_new_values := 'Name:' || :NEW."name";
+    ELSIF DELETING THEN
+        v_operation := 'DELETE';
+        v_old_values := 'Name:' || :OLD."name";
+    END IF;
+    
+    INSERT INTO audit_log (
+        id_log, table_name, operation, record_id, id_organizer, 
+        old_values, new_values
+    ) VALUES (
+        audit_log_seq.NEXTVAL,
+        'ROLES',
+        v_operation,
+        COALESCE(:NEW.id_role, :OLD.id_role),
+        NULL,
+        v_old_values,
+        v_new_values
+    );
+END;
+/
+
+-- Audit trigger pro MEETING_ROOMS
+CREATE OR REPLACE TRIGGER trg_audit_meeting_rooms
+AFTER INSERT OR UPDATE OR DELETE ON meeting_rooms
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10);
+    v_old_values VARCHAR2(1000);
+    v_new_values VARCHAR2(1000);
+    v_organizer_id NUMBER;
+BEGIN
+    -- Získání id_organizer z hlavní tabulky rooms
+    IF INSERTING OR UPDATING THEN
+        SELECT id_organizer INTO v_organizer_id 
+        FROM rooms WHERE id_room = :NEW.id_room;
+    ELSE
+        SELECT id_organizer INTO v_organizer_id 
+        FROM rooms WHERE id_room = :OLD.id_room;
+    END IF;
+    
+    IF INSERTING THEN
+        v_operation := 'INSERT';
+        v_new_values := 'VCReady:' || :NEW.vc_ready;
+    ELSIF UPDATING THEN
+        v_operation := 'UPDATE';
+        v_old_values := 'VCReady:' || :OLD.vc_ready;
+        v_new_values := 'VCReady:' || :NEW.vc_ready;
+    ELSIF DELETING THEN
+        v_operation := 'DELETE';
+        v_old_values := 'VCReady:' || :OLD.vc_ready;
+    END IF;
+    
+    INSERT INTO audit_log (
+        id_log, table_name, operation, record_id, id_organizer, 
+        old_values, new_values
+    ) VALUES (
+        audit_log_seq.NEXTVAL,
+        'MEETING_ROOMS',
+        v_operation,
+        COALESCE(:NEW.id_room, :OLD.id_room),
+        v_organizer_id,
+        v_old_values,
+        v_new_values
+    );
+END;
+/
+
+-- Audit trigger pro PRESENTATION_ROOMS
+CREATE OR REPLACE TRIGGER trg_audit_presentation_rooms
+AFTER INSERT OR UPDATE OR DELETE ON presentation_rooms
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10);
+    v_old_values VARCHAR2(1000);
+    v_new_values VARCHAR2(1000);
+    v_organizer_id NUMBER;
+BEGIN
+    -- Získání id_organizer z hlavní tabulky rooms
+    IF INSERTING OR UPDATING THEN
+        SELECT id_organizer INTO v_organizer_id 
+        FROM rooms WHERE id_room = :NEW.id_room;
+    ELSE
+        SELECT id_organizer INTO v_organizer_id 
+        FROM rooms WHERE id_room = :OLD.id_room;
+    END IF;
+    
+    IF INSERTING THEN
+        v_operation := 'INSERT';
+        v_new_values := 'PodiumSize:' || :NEW.podium_size;
+    ELSIF UPDATING THEN
+        v_operation := 'UPDATE';
+        v_old_values := 'PodiumSize:' || :OLD.podium_size;
+        v_new_values := 'PodiumSize:' || :NEW.podium_size;
+    ELSIF DELETING THEN
+        v_operation := 'DELETE';
+        v_old_values := 'PodiumSize:' || :OLD.podium_size;
+    END IF;
+    
+    INSERT INTO audit_log (
+        id_log, table_name, operation, record_id, id_organizer, 
+        old_values, new_values
+    ) VALUES (
+        audit_log_seq.NEXTVAL,
+        'PRESENTATION_ROOMS',
+        v_operation,
+        COALESCE(:NEW.id_room, :OLD.id_room),
+        v_organizer_id,
+        v_old_values,
+        v_new_values
+    );
+END;
+/
+
+-- Audit trigger pro MEETING_RREQUESTS
+CREATE OR REPLACE TRIGGER trg_audit_meeting_rrequests
+AFTER INSERT OR UPDATE OR DELETE ON meeting_rrequests
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10);
+    v_old_values VARCHAR2(1000);
+    v_new_values VARCHAR2(1000);
+    v_organizer_id NUMBER;
+BEGIN
+    -- Získání id_organizer z hlavní tabulky room_requests
+    IF INSERTING OR UPDATING THEN
+        SELECT id_organizer INTO v_organizer_id 
+        FROM room_requests WHERE id_room_request = :NEW.id_room_request;
+    ELSE
+        SELECT id_organizer INTO v_organizer_id 
+        FROM room_requests WHERE id_room_request = :OLD.id_room_request;
+    END IF;
+    
+    IF INSERTING THEN
+        v_operation := 'INSERT';
+        v_new_values := 'VCReady:' || :NEW.vc_ready;
+    ELSIF UPDATING THEN
+        v_operation := 'UPDATE';
+        v_old_values := 'VCReady:' || :OLD.vc_ready;
+        v_new_values := 'VCReady:' || :NEW.vc_ready;
+    ELSIF DELETING THEN
+        v_operation := 'DELETE';
+        v_old_values := 'VCReady:' || :OLD.vc_ready;
+    END IF;
+    
+    INSERT INTO audit_log (
+        id_log, table_name, operation, record_id, id_organizer, 
+        old_values, new_values
+    ) VALUES (
+        audit_log_seq.NEXTVAL,
+        'MEETING_RREQUESTS',
+        v_operation,
+        COALESCE(:NEW.id_room_request, :OLD.id_room_request),
+        v_organizer_id,
+        v_old_values,
+        v_new_values
+    );
+END;
+/
+
+-- Audit trigger pro PRESENTATION_RREQUESTS
+CREATE OR REPLACE TRIGGER trg_audit_presentation_rrequests
+AFTER INSERT OR UPDATE OR DELETE ON presentation_rrequests
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10);
+    v_old_values VARCHAR2(1000);
+    v_new_values VARCHAR2(1000);
+    v_organizer_id NUMBER;
+BEGIN
+    -- Získání id_organizer z hlavní tabulky room_requests
+    IF INSERTING OR UPDATING THEN
+        SELECT id_organizer INTO v_organizer_id 
+        FROM room_requests WHERE id_room_request = :NEW.id_room_request;
+    ELSE
+        SELECT id_organizer INTO v_organizer_id 
+        FROM room_requests WHERE id_room_request = :OLD.id_room_request;
+    END IF;
+    
+    IF INSERTING THEN
+        v_operation := 'INSERT';
+        v_new_values := 'PodiumSize:' || :NEW.podium_size;
+    ELSIF UPDATING THEN
+        v_operation := 'UPDATE';
+        v_old_values := 'PodiumSize:' || :OLD.podium_size;
+        v_new_values := 'PodiumSize:' || :NEW.podium_size;
+    ELSIF DELETING THEN
+        v_operation := 'DELETE';
+        v_old_values := 'PodiumSize:' || :OLD.podium_size;
+    END IF;
+    
+    INSERT INTO audit_log (
+        id_log, table_name, operation, record_id, id_organizer, 
+        old_values, new_values
+    ) VALUES (
+        audit_log_seq.NEXTVAL,
+        'PRESENTATION_RREQUESTS',
+        v_operation,
+        COALESCE(:NEW.id_room_request, :OLD.id_room_request),
+        v_organizer_id,
+        v_old_values,
+        v_new_values
+    );
+END;
+/
+
+-- Audit trigger pro tabulku CITIES
+CREATE OR REPLACE TRIGGER trg_audit_cities
+AFTER INSERT OR UPDATE OR DELETE ON cities
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10);
+    v_old_values VARCHAR2(1000);
+    v_new_values VARCHAR2(1000);
+BEGIN
+    IF INSERTING THEN
+        v_operation := 'INSERT';
+        v_new_values := 'Name:' || :NEW."name" || 
+                       ',Country:' || :NEW.id_country;
+    ELSIF UPDATING THEN
+        v_operation := 'UPDATE';
+        v_old_values := 'Name:' || :OLD."name" || 
+                       ',Country:' || :OLD.id_country;
+        v_new_values := 'Name:' || :NEW."name" || 
+                       ',Country:' || :NEW.id_country;
+    ELSIF DELETING THEN
+        v_operation := 'DELETE';
+        v_old_values := 'Name:' || :OLD."name" || 
+                       ',Country:' || :OLD.id_country;
+    END IF;
+    
+    INSERT INTO audit_log (
+        id_log, table_name, operation, record_id, id_organizer, 
+        old_values, new_values
+    ) VALUES (
+        audit_log_seq.NEXTVAL,
+        'CITIES',
+        v_operation,
+        COALESCE(:NEW.id_city, :OLD.id_city),
+        NULL,  -- Cities nemají vztah k organizátorům
+        v_old_values,
+        v_new_values
+    );
+END;
+/
+
+-- Audit trigger pro tabulku COUNTRIES
+CREATE OR REPLACE TRIGGER trg_audit_countries
+AFTER INSERT OR UPDATE OR DELETE ON countries
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10);
+    v_old_values VARCHAR2(1000);
+    v_new_values VARCHAR2(1000);
+BEGIN
+    IF INSERTING THEN
+        v_operation := 'INSERT';
+        v_new_values := 'Name:' || :NEW."name";
+    ELSIF UPDATING THEN
+        v_operation := 'UPDATE';
+        v_old_values := 'Name:' || :OLD."name";
+        v_new_values := 'Name:' || :NEW."name";
+    ELSIF DELETING THEN
+        v_operation := 'DELETE';
+        v_old_values := 'Name:' || :OLD."name";
+    END IF;
+    
+    INSERT INTO audit_log (
+        id_log, table_name, operation, record_id, id_organizer, 
+        old_values, new_values
+    ) VALUES (
+        audit_log_seq.NEXTVAL,
+        'COUNTRIES',
+        v_operation,
+        COALESCE(:NEW.id_country, :OLD.id_country),
+        NULL,  -- Countries nemají vztah k organizátorům
+        v_old_values,
+        v_new_values
+    );
+END;
+/
+
+-- Audit trigger pro tabulku NOTIFICATION_TYPES
+CREATE OR REPLACE TRIGGER trg_audit_notification_types
+AFTER INSERT OR UPDATE OR DELETE ON notification_types
+FOR EACH ROW
+DECLARE
+    v_operation VARCHAR2(10);
+    v_old_values VARCHAR2(1000);
+    v_new_values VARCHAR2(1000);
+BEGIN
+    IF INSERTING THEN
+        v_operation := 'INSERT';
+        v_new_values := 'Code:' || :NEW."code" || 
+                       ',Name:' || :NEW."name" ||
+                       ',Desc:' || :NEW."description";
+    ELSIF UPDATING THEN
+        v_operation := 'UPDATE';
+        v_old_values := 'Code:' || :OLD."code" || 
+                       ',Name:' || :OLD."name";
+        v_new_values := 'Code:' || :NEW."code" || 
+                       ',Name:' || :NEW."name";
+    ELSIF DELETING THEN
+        v_operation := 'DELETE';
+        v_old_values := 'Code:' || :OLD."code" || 
+                       ',Name:' || :OLD."name" ||
+                       ',Desc:' || :OLD."description";
+    END IF;
+    
+    INSERT INTO audit_log (
+        id_log, table_name, operation, record_id, id_organizer, 
+        old_values, new_values
+    ) VALUES (
+        audit_log_seq.NEXTVAL,
+        'NOTIFICATION_TYPES',
+        v_operation,
+        COALESCE(:NEW.id_notification_type, :OLD.id_notification_type),
+        NULL,  -- Notification types nemají vztah k organizátorům
+        v_old_values,
+        v_new_values
+    );
+END;
+/
