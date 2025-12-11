@@ -83,10 +83,19 @@
             </div>
         </div>
 
+        <!-- PRESENTATION ROOM FIELDS -->
         <div id="presentationRoomFields" style="display: none;">
             <div class="form-group">
-                @Html.LabelFor(model => model.PodiumSize, "Podium Size", new { @class = "control-label" })
-                @Html.TextBoxFor(model => model.PodiumSize, new { @class = "form-control", type = "number" })
+                @Html.LabelFor(model => model.PodiumSize, "Velikost pódia (m²)", new { @class = "control-label" })
+                @Html.TextBoxFor(model => model.PodiumSize, new { 
+                    @class = "form-control", 
+                    type = "number",
+                    min = "1",
+                    step = "0.1",
+                    required = "required"
+                })
+                <small class="form-text text-muted">Musí být kladné číslo (SP3)</small>
+                <span asp-validation-for="PodiumSize" class="text-danger"></span>
             </div>
         </div>
 

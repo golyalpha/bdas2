@@ -34,15 +34,24 @@ public class ReservationController : Controller
     [Route("Reservation/Create")]
     public IActionResult Persist(int? id)
     {
+        // Připrav data pro dropdowny (PP19)
+        ViewBag.Rooms = Room.ListRooms();
+        ViewBag.Requests = RoomRequest.ListRequests();
+        ViewBag.Organisers = Organiser.ListOrganisers();
+        
         if (id == null || id == 0)
         {
+            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var currentUser = Organiser.GetOrganiser(currentUserId);
+            
             var newReservation = new Reservation
             {
                 Id = 0,
-                Start = new DateTime(),
-                End = new DateTime(),
+                Start = DateTime.Now,
+                End = DateTime.Now.AddHours(1),
                 Room = new Room { Id = 0 },
-                Organiser = new Organiser { Id = 0 },
+                Request = new RoomRequest { Id = 0 },
+                Organiser = currentUser // Automaticky přiřazen
             };
             return View("Persist", newReservation); // Načte formulář Persist.cshtml
         }
@@ -71,6 +80,19 @@ public class ReservationController : Controller
     [HttpPost]
     public IActionResult Persist(Reservation reservation)
     {
+        // SP5: Server-side validace
+        if (reservation.End <= reservation.Start)
+        {
+            ModelState.AddModelError("End", "Konec rezervace musí být po začátku (SP5)");
+            
+            // Obnov dropdowny
+            ViewBag.Rooms = Room.ListRooms();
+            ViewBag.Requests = RoomRequest.ListRequests();
+            ViewBag.Organisers = Organiser.ListOrganisers();
+            
+            return View(reservation);
+        }
+        
         if (reservation.Id != 0)
         {
             var existing = Reservation.GetReservation(reservation.Id);
@@ -83,8 +105,23 @@ public class ReservationController : Controller
             }
         }
         
-        reservation.Persist();
-        return RedirectToAction("Index");
+        try
+        {
+            reservation.Persist();
+            TempData["Success"] = "Rezervace byla úspěšně uložena";
+            return RedirectToAction("Index");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Chyba při ukládání rezervace");
+            ModelState.AddModelError("", $"Chyba: {ex.Message}");
+            
+            ViewBag.Rooms = Room.ListRooms();
+            ViewBag.Requests = RoomRequest.ListRequests();
+            ViewBag.Organisers = Organiser.ListOrganisers();
+            
+            return View(reservation);
+        }
     }
 
     [HttpPost]
