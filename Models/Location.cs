@@ -20,7 +20,7 @@ public class Location
 
     public City? City { get; set; }
 
-    public Organiser Organiser { get; set; }
+    public Organiser? Organiser { get; set; }
 
     public void Persist()
     {
@@ -28,6 +28,13 @@ public class Location
         {
             throw new InvalidOperationException("City is required for location.");
         }
+
+        if (Organiser == null)
+        {
+            throw new InvalidOperationException("Organiser is required for location.");
+        }
+
+
         using (OracleConnection conn = DBManager.GetConnection())
         {
             conn.Open();
@@ -39,7 +46,7 @@ public class Location
             cmd.Parameters.Add("availability_start", new DateTime(2000,1,1) + AvailabilityStart.ToTimeSpan());
             cmd.Parameters.Add("availability_end", new DateTime(2000, 1, 1) + AvailabilityEnd.ToTimeSpan());
             cmd.Parameters.Add("id_city", City.Id);
-            cmd.Parameters.Add("id_organiser", 1); 
+            cmd.Parameters.Add("id_organiser", Organiser.Id);
             int rows = cmd.ExecuteNonQuery();
             if (rows == 0)
             {
@@ -54,7 +61,9 @@ public class Location
         {
             conn.Open();    
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = @"SELECT ID_LOCATION, ""name"", availability_start, availability_end, id_city FROM LOCATIONS_V WHERE ID_LOCATION = :id";
+            // OPRAVENO: Pøidán sloupec id_organizer
+            cmd.CommandText = @"SELECT ID_LOCATION, ""name"", availability_start, availability_end, id_city, id_organizer 
+                               FROM LOCATIONS_V WHERE ID_LOCATION = :id";
             cmd.Parameters.Add("id", Id);
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
@@ -70,6 +79,7 @@ public class Location
                     AvailabilityStart = TimeOnly.FromDateTime(reader.GetDateTime(2)),
                     AvailabilityEnd = TimeOnly.FromDateTime(reader.GetDateTime(3)),
                     City = City.GetCity(reader.GetInt32(4)),
+                    Organiser = Organiser.GetOrganiser(reader.GetInt32(5))
                 };
                 reader.Close();
                 conn.Close();
@@ -85,7 +95,8 @@ public class Location
         {
             conn.Open();
             OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = @"SELECT ID_LOCATION, ""name"", availability_start, availability_end, id_city FROM LOCATIONS_V";
+            cmd.CommandText = @"SELECT ID_LOCATION, ""name"", availability_start, availability_end, id_city, id_organizer 
+                               FROM LOCATIONS_V";
             cmd.CommandType = System.Data.CommandType.Text;
             using (OracleDataReader reader = cmd.ExecuteReader())
             {
@@ -98,13 +109,13 @@ public class Location
                         AvailabilityStart = TimeOnly.FromDateTime(reader.GetDateTime(2)),
                         AvailabilityEnd = TimeOnly.FromDateTime(reader.GetDateTime(3)),
                         City = City.GetCity(reader.GetInt32(4)),
+                        Organiser = Organiser.GetOrganiser(reader.GetInt32(5))
                     });
                 }
             }
         }
         return list;
     }
-
 
     public void Delete()
     {

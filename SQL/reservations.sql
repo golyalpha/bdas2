@@ -21,6 +21,17 @@ CREATE OR REPLACE PACKAGE reservations_pkg AS
         p_podium_size     IN NUMBER  DEFAULT NULL
     );
 
+    PROCEDURE batch_process_location_requests (
+        p_id_location IN locations.id_location%TYPE
+    );
+
+    -- NOVÁ PROCEDURA pro realokaci po smazání rezervace
+    PROCEDURE process_deleted_reservation (
+        p_id_room_request IN room_requests.id_room_request%TYPE,
+        p_id_location IN locations.id_location%TYPE
+    );
+
+
 END reservations_pkg;
 /
 
@@ -100,6 +111,7 @@ CREATE OR REPLACE PACKAGE BODY reservations_pkg AS
         v_rows NUMBER;
         v_success_type_id notification_types.id_notification_type%TYPE;
         v_fail_type_id notification_types.id_notification_type%TYPE;
+        v_existing_notification_count NUMBER;
     BEGIN
         -- Získej ID typů notifikací
         SELECT id_notification_type INTO v_success_type_id 
@@ -108,14 +120,12 @@ CREATE OR REPLACE PACKAGE BODY reservations_pkg AS
         SELECT id_notification_type INTO v_fail_type_id 
         FROM notification_types WHERE "code" = 'ALLOC_FAIL';
 
-
         -- kdo podal žádost
-        SELECT id_organizer
-        INTO v_organizer_id
+        SELECT id_organizer INTO v_organizer_id
         FROM room_requests
         WHERE id_room_request = p_id_room_request;
 
-        -- VLOŽ REZERVACI – bez čtení z mutující tabulky podtypu
+        -- VLOŽ REZERVACI
         INSERT INTO reservations ("start", "end", id_room, id_room_request, id_organizer)
         SELECT req.reservation_start,
             req.reservation_end,
@@ -160,14 +170,140 @@ CREATE OR REPLACE PACKAGE BODY reservations_pkg AS
 
         v_rows := SQL%ROWCOUNT;
 
-        IF v_rows > 0 THEN
-            INSERT INTO notifications (id_notification_type, delivered, id_organizer, id_room_request)
-            VALUES (v_success_type_id, 'N', v_organizer_id, p_id_room_request);
+        -- KONTROLA: Existuje už notifikace?
+        SELECT COUNT(*) INTO v_existing_notification_count
+        FROM notifications
+        WHERE id_room_request = p_id_room_request;
+
+        -- NOVÁ LOGIKA: Vytvoř nebo aktualizuj
+        IF v_existing_notification_count = 0 THEN
+            -- NOVÁ NOTIFIKACE
+            IF v_rows > 0 THEN
+                INSERT INTO notifications (id_notification_type, delivered, id_organizer, id_room_request)
+                VALUES (v_success_type_id, 'N', v_organizer_id, p_id_room_request);
+                DBMS_OUTPUT.PUT_LINE('✅ Vytvořena notifikace SUCCESS pro request ' || p_id_room_request);
+            ELSE
+                INSERT INTO notifications (id_notification_type, delivered, id_organizer, id_room_request)
+                VALUES (v_fail_type_id, 'N', v_organizer_id, p_id_room_request);
+                DBMS_OUTPUT.PUT_LINE('❌ Vytvořena notifikace FAIL pro request ' || p_id_room_request);
+            END IF;
         ELSE
-            INSERT INTO notifications (id_notification_type, delivered, id_organizer, id_room_request)
-            VALUES (v_fail_type_id, 'N', v_organizer_id, p_id_room_request);
+            -- AKTUALIZACE EXISTUJÍCÍ
+            IF v_rows > 0 THEN
+                UPDATE notifications
+                SET id_notification_type = v_success_type_id,
+                    delivered = 'N'  -- Resetuj delivered → uživatel musí vidět změnu
+                WHERE id_room_request = p_id_room_request;
+                
+                DBMS_OUTPUT.PUT_LINE('Notifikace změněna na SUCCESS (nepřečtená) pro request ' || p_id_room_request);
+            END IF;
         END IF;
     END process_request;
 
+    -- NOVÁ DÁVKOVÁ PROCEDURA
+    PROCEDURE batch_process_location_requests (
+        p_id_location IN locations.id_location%TYPE
+    ) IS
+        v_processed_count NUMBER := 0;
+        v_success_count NUMBER := 0;
+        v_fail_count NUMBER := 0;
+        
+        CURSOR unallocated_requests_cur IS
+            SELECT 
+                rr.id_room_request,
+                rr."type",
+                COALESCE(mr.vc_ready, 'N') AS vc_ready,
+                pr.podium_size
+            FROM room_requests rr
+            LEFT JOIN meeting_rrequests mr ON mr.id_room_request = rr.id_room_request
+            LEFT JOIN presentation_rrequests pr ON pr.id_room_request = rr.id_room_request
+            WHERE rr.id_location = p_id_location
+            AND NOT EXISTS (
+                SELECT 1 
+                FROM reservations res 
+                WHERE res.id_room_request = rr.id_room_request
+            )
+            ORDER BY rr.reservation_start;
+    BEGIN
+        DBMS_OUTPUT.PUT_LINE('=== DÁVKOVÉ ZPRACOVÁNÍ LOKACE ' || p_id_location || ' ===');
+        
+        FOR req IN unallocated_requests_cur LOOP
+            BEGIN
+                v_processed_count := v_processed_count + 1;
+                
+                -- Pokus o alokaci
+                process_request(
+                    p_id_room_request => req.id_room_request,
+                    p_type            => req."type",
+                    p_vc_ready        => req.vc_ready,
+                    p_podium_size     => req.podium_size
+                );
+                
+                -- Kontrola, zda byla vytvořena rezervace
+                DECLARE
+                    v_reservation_exists NUMBER;
+                BEGIN
+                    SELECT COUNT(*) INTO v_reservation_exists
+                    FROM reservations
+                    WHERE id_room_request = req.id_room_request;
+                    
+                    IF v_reservation_exists > 0 THEN
+                        v_success_count := v_success_count + 1;
+                        DBMS_OUTPUT.PUT_LINE('Request ' || req.id_room_request || ' úspěšně alokován');
+                    ELSE
+                        v_fail_count := v_fail_count + 1;
+                        DBMS_OUTPUT.PUT_LINE('Request ' || req.id_room_request || ' nelze alokovat');
+                    END IF;
+                END;
+                
+            EXCEPTION
+                WHEN OTHERS THEN
+                    v_fail_count := v_fail_count + 1;
+                    DBMS_OUTPUT.PUT_LINE('Chyba při zpracování requestu ' || req.id_room_request || ': ' || SQLERRM);
+                    -- Pokračujeme dále
+            END;
+        END LOOP;
+        
+        DBMS_OUTPUT.PUT_LINE('=== SOUHRN ===');
+        DBMS_OUTPUT.PUT_LINE('Zpracováno: ' || v_processed_count);
+        DBMS_OUTPUT.PUT_LINE('Úspěch: ' || v_success_count);
+        DBMS_OUTPUT.PUT_LINE('Selhání: ' || v_fail_count);
+        
+        -- ODSTRANĚNO: COMMIT; 
+        -- Commit provede trigger
+        
+    EXCEPTION
+        WHEN OTHERS THEN
+            -- ODSTRANĚNO: ROLLBACK;
+            DBMS_OUTPUT.PUT_LINE('KRITICKÁ CHYBA: ' || SQLERRM);
+            RAISE;
+    END batch_process_location_requests;
+
+    -- NOVÁ PROCEDURA s PRAGMA AUTONOMOUS_TRANSACTION
+    PROCEDURE process_deleted_reservation (
+        p_id_room_request IN room_requests.id_room_request%TYPE,
+        p_id_location IN locations.id_location%TYPE
+    ) IS
+        PRAGMA AUTONOMOUS_TRANSACTION; -- KLÍČOVÉ - izoluje transakci
+    BEGIN
+        DBMS_OUTPUT.PUT_LINE('Mažu room_request: ' || p_id_room_request);
+        
+        -- Smazání room_request (CASCADE smaže i podtřídy)
+        DELETE FROM room_requests WHERE id_room_request = p_id_room_request;
+        
+        COMMIT; -- Commit autonomní transakce
+        
+        -- Realokace
+        DBMS_OUTPUT.PUT_LINE('Realokace lokace ID: ' || p_id_location);
+        batch_process_location_requests(p_id_location => p_id_location);
+        
+        COMMIT; -- Commit po realokaci
+        
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            DBMS_OUTPUT.PUT_LINE('Chyba v process_deleted_reservation: ' || SQLERRM);
+            RAISE;
+    END process_deleted_reservation;
+
 END reservations_pkg;
-/

@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using WebApp.Models;
 
+namespace WebApp.Controllers;
+
 [Authorize]
 public class LocationController : Controller
 {
@@ -13,80 +15,208 @@ public class LocationController : Controller
         _logger = logger;
     }
 
+    // GET: Location/Index
     public IActionResult Index()
     {
-        var locations = WebApp.Models.Location.ListLocations();
-        var isGuest = User.IsInRole("Guest");
-        var isAdmin = User.IsInRole("Administrator");
-        var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-
-        ViewBag.IsGuest = isGuest;
-        ViewBag.IsAdmin = isAdmin;
-        ViewBag.CurrentUserId = currentUserId;
-
+        var locations = Location.ListLocations();
+        
+        // Přidáme informace o aktuálním uživateli pro UI
+        ViewBag.CurrentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        ViewBag.IsAdmin = User.IsInRole("Administrator");
+        ViewBag.IsManager = User.IsInRole("Manager");
+        
         return View(locations);
     }
 
     // GET: Location/Create
     [HttpGet]
+    [Authorize(Roles = "Administrator,Manager")]
     public IActionResult Create()
     {
-        return View(new LocationViewModel());
-    }
-
-    // POST: Location/Create
-    [HttpPost]
-    public IActionResult Create(LocationViewModel locationViewModel)
-    {
-            locationViewModel.Location.City = City.GetCity(locationViewModel.CityId);
-            locationViewModel.Location.Persist();
-            return RedirectToAction("Index");
-    }
-
-    // POST: Location/Create
-    [HttpPost]
-    public IActionResult Edit(LocationViewModel locationViewModel, int id)
-    {
-        if (User.IsInRole("Guest"))
+        var model = new LocationViewModel
         {
-            TempData["Error"] = "Uživatelé s rolí Guest nemohou upravovat lokace.";
-            return RedirectToAction("Index");
+            Location = new Location
+            {
+                Id = 0,
+                Name = "",
+                AvailabilityStart = new TimeOnly(8, 0),
+                AvailabilityEnd = new TimeOnly(17, 0)
+            },
+            CityId = 0,
+            Cities = City.ListCities()
+        };
+        
+        return View(model);
+    }
+
+    // POST: Location/Create
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Administrator,Manager")]
+    public IActionResult Create(LocationViewModel model)
+    {
+        // Validace času: Začátek musí být před koncem
+        if (model.Location.AvailabilityStart >= model.Location.AvailabilityEnd)
+        {
+            ModelState.AddModelError("Location.AvailabilityEnd", 
+                "Dostupnost do musí být později než dostupnost od.");
         }
 
-        locationViewModel.Location.Id = id;
-        System.Console.Out.WriteLine(locationViewModel.CityId);
-        locationViewModel.Location.City = City.GetCity(locationViewModel.CityId);
-        locationViewModel.Location.Persist();
-        return RedirectToAction("Index");
+        if (!ModelState.IsValid)
+        {
+            model.Cities = City.ListCities();
+            return View(model);
+        }
+
+        try
+        {
+            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var organiser = Organiser.GetOrganiser(currentUserId);
+            
+            model.Location.City = City.GetCity(model.CityId);
+            model.Location.Organiser = organiser;
+            model.Location.Persist();
+            
+            TempData["Success"] = "Budova byla úspěšně vytvořena.";
+            return RedirectToAction("Index");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Chyba při vytváření budovy");
+            ModelState.AddModelError("", $"Chyba při vytváření budovy: {ex.Message}");
+            model.Cities = City.ListCities();
+            return View(model);
+        }
     }
 
     // GET: Location/Edit/5
     [HttpGet]
+    [Authorize(Roles = "Administrator,Manager")]
     public IActionResult Edit(int id)
     {
-        var location = Location.GetLocation(id); // Získání konkrétní lokace podle ID
-        if (location == null)
+        Location location;
+        try
+        {
+            location = Location.GetLocation(id);
+        }
+        catch (KeyNotFoundException)
         {
             return NotFound();
         }
-        var model = new LocationViewModel
-        {
-            CityId = location.City.Id,
-            Location = location
-        };
-        return View("Create", model); // Zobrazí formulář Edit.cshtml s předvyplněnými hodnotami
-    }
 
-    [HttpPost]
-    public IActionResult Delete(int id) {
-        var location = Location.GetLocation(id);
-        if (location == null)
+        var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var isAdmin = User.IsInRole("Administrator");
+        var isManager = User.IsInRole("Manager");
+
+        // Kontrola oprávnění
+        if (!isAdmin && isManager && location.Organiser.Id != currentUserId)
         {
-            return NotFound();
-        }
-        else {
-            location.Delete();
+            TempData["Error"] = "Můžete upravovat pouze vlastní budovy.";
             return RedirectToAction("Index");
         }
+
+        var model = new LocationViewModel
+        {
+            Location = location,
+            CityId = location.City.Id,
+            Cities = City.ListCities()
+        };
+
+        return View("Create", model); // Používáme stejný formulář jako Create
+    }
+
+    // POST: Location/Edit/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Administrator,Manager")]
+    public IActionResult Edit(int id, LocationViewModel model)
+    {
+        Location existingLocation;
+        try
+        {
+            existingLocation = Location.GetLocation(id);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+
+        var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var isAdmin = User.IsInRole("Administrator");
+        var isManager = User.IsInRole("Manager");
+
+        // Kontrola oprávnění
+        if (!isAdmin && isManager && existingLocation.Organiser.Id != currentUserId)
+        {
+            return Unauthorized();
+        }
+
+        // Validace času: Začátek musí být před koncem
+        if (model.Location.AvailabilityStart >= model.Location.AvailabilityEnd)
+        {
+            ModelState.AddModelError("Location.AvailabilityEnd", 
+                "Dostupnost do musí být později než dostupnost od.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            model.Cities = City.ListCities();
+            return View("Create", model);
+        }
+
+        try
+        {
+            // Aktualizace existujících dat (zachováme původního organizátora)
+            existingLocation.Name = model.Location.Name;
+            existingLocation.AvailabilityStart = model.Location.AvailabilityStart;
+            existingLocation.AvailabilityEnd = model.Location.AvailabilityEnd;
+            existingLocation.City = City.GetCity(model.CityId);
+            existingLocation.Persist();
+            
+            TempData["Success"] = "Budova byla úspěšně upravena.";
+            return RedirectToAction("Index");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Chyba při úpravě budovy");
+            ModelState.AddModelError("", $"Chyba při úpravě budovy: {ex.Message}");
+            model.Cities = City.ListCities();
+            return View("Create", model);
+        }
+    }
+
+    // POST: Location/Delete/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Administrator,Manager")]
+    public IActionResult Delete(int id)
+    {
+        try
+        {
+            Location location = Location.GetLocation(id);
+            
+            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var isAdmin = User.IsInRole("Administrator");
+            var isManager = User.IsInRole("Manager");
+
+            // Kontrola oprávnění pro mazání
+            if (!isAdmin && isManager && location.Organiser.Id != currentUserId)
+            {
+                _logger.LogWarning("User {UserId} attempted to delete location {LocationId} owned by {OwnerId}", 
+                    currentUserId, id, location.Organiser.Id);
+                TempData["Error"] = "Můžete mazat pouze vlastní budovy.";
+                return RedirectToAction("Index");
+            }
+            
+            location.Delete();
+            TempData["Success"] = "Budova byla úspěšně smazána.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Chyba při mazání budovy");
+            TempData["Error"] = $"Chyba při mazání budovy: {ex.Message}";
+        }
+        
+        return RedirectToAction("Index");
     }
 }

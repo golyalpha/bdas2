@@ -1,66 +1,88 @@
 ﻿@model WebApp.Models.LocationViewModel
 
 @{
-    ViewData["Title"] = "Location Details";
+    var isEdit = Model.Location?.Id > 0;
+    ViewData["Title"] = isEdit ? "Upravit budovu" : "Přidat budovu";
 }
 
 <div class="container mt-5">
-    <h2>Location Details</h2>
-    @using (Html.BeginForm(FormMethod.Post, new { role = "form" }))
+    <h2>@ViewData["Title"]</h2>
+    
+    @if (!ViewData.ModelState.IsValid)
     {
-        @Html.AntiForgeryToken()
-        <div class="form-group">
-            @Html.LabelFor(m => m.Location.Name)
-            <div>
-                @Html.TextBoxFor(m => m.Location.Name)
-                @Html.ValidationMessageFor(m => m.Location.Name, "", new { @class = "text-danger" })
-            </div>
-        </div>
-        <div class="form-group">
-            @Html.LabelFor(m => m.Location.AvailabilityStart)
-            <div>
-                <input type="time"
-                       name="@Html.NameFor(m => m.Location.AvailabilityStart)"
-                       value="@Html.ValueFor(m => m.Location.AvailabilityStart)"
-                       id="@Html.IdFor(m => m.Location.AvailabilityStart)"/>
-                @Html.ValidationMessageFor(m => m.Location.AvailabilityStart, "", new { @class = "text-danger" })
-            </div>
-        </div>
-        <div class="form-group">
-            @Html.LabelFor(m => m.Location.AvailabilityEnd)
-            <div>
-                <input type="time"
-                       name="@Html.NameFor(m => m.Location.AvailabilityEnd)"
-                       value="@Html.ValueFor(m => m.Location.AvailabilityEnd)"
-                       id="@Html.IdFor(m => m.Location.AvailabilityEnd)" />
-                @Html.ValidationMessageFor(m => m.Location.AvailabilityEnd, "", new { @class = "text-danger" })
-            </div>
-        </div>
-        <div class="form-group">
-            @Html.LabelFor(m => m.CityId)
-            <div>
-                <select id="@Html.IdFor(m => m.CityId)" name="@Html.NameFor(m => m.CityId)">
-                    @foreach (var city in Model.Cities)
-                    {
-                        @if (city.Id == Model.CityId)
-                        {
-                            <option value="@city.Id.ToString()" selected>@city.Name, @city.Country.Name</option>
-                        }
-                        else
-                        {
-                            <option value="@city.Id.ToString()">@city.Name, @city.Country.Name</option>
-                        }
-                    }
-                </select>
-            </div>
-        </div>
-        <div class="form-group">
-            <div>
-                <input type="submit" value="Submit" />
-            </div>
+        <div class="alert alert-danger">
+            <ul>
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@error.ErrorMessage</li>
+                }
+            </ul>
         </div>
     }
-    <div>
-        <a href="/Location/Index" class="btn btn-link">Back to List</a>
-    </div>
+    
+    @using (Html.BeginForm(isEdit ? "Edit" : "Create", "Location", FormMethod.Post, new { role = "form" }))
+    {
+        @Html.AntiForgeryToken()
+        
+        @if (isEdit)
+        {
+            <input type="hidden" name="id" value="@Model.Location.Id" />
+        }
+        
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.Location.Name, "Název budovy", new { @class = "form-label" })
+            @Html.TextBoxFor(m => m.Location.Name, new { @class = "form-control", required = "required" })
+            @Html.ValidationMessageFor(m => m.Location.Name, "", new { @class = "text-danger" })
+        </div>
+        
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.Location.AvailabilityStart, "Dostupnost od", new { @class = "form-label" })
+            <input type="time"
+                   name="@Html.NameFor(m => m.Location.AvailabilityStart)"
+                   value="@Model.Location.AvailabilityStart.ToString("HH:mm")"
+                   class="form-control"
+                   required />
+            @Html.ValidationMessageFor(m => m.Location.AvailabilityStart, "", new { @class = "text-danger" })
+        </div>
+        
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.Location.AvailabilityEnd, "Dostupnost do", new { @class = "form-label" })
+            <input type="time"
+                   name="@Html.NameFor(m => m.Location.AvailabilityEnd)"
+                   value="@Model.Location.AvailabilityEnd.ToString("HH:mm")"
+                   class="form-control"
+                   required />
+            @Html.ValidationMessageFor(m => m.Location.AvailabilityEnd, "", new { @class = "text-danger" })
+        </div>
+        
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.CityId, "Město", new { @class = "form-label" })
+            <select id="@Html.IdFor(m => m.CityId)" 
+                    name="@Html.NameFor(m => m.CityId)" 
+                    class="form-control" 
+                    required>
+                <option value="">-- Vyberte město --</option>
+                @foreach (var city in Model.Cities)
+                {
+                    <option value="@city.Id" selected="@(city.Id == Model.CityId)">
+                        @city.Name, @city.Country.Name
+                    </option>
+                }
+            </select>
+            @Html.ValidationMessageFor(m => m.CityId, "", new { @class = "text-danger" })
+        </div>
+        
+        <div class="form-group mt-4">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-save"></i> @(isEdit ? "Uložit změny" : "Vytvořit budovu")
+            </button>
+            <a href="/Location/Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Zpět na seznam
+            </a>
+        </div>
+    }
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
