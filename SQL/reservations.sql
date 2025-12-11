@@ -25,13 +25,6 @@ CREATE OR REPLACE PACKAGE reservations_pkg AS
         p_id_location IN locations.id_location%TYPE
     );
 
-    -- NOVÁ PROCEDURA pro realokaci po smazání rezervace
-    PROCEDURE process_deleted_reservation (
-        p_id_room_request IN room_requests.id_room_request%TYPE,
-        p_id_location IN locations.id_location%TYPE
-    );
-
-
 END reservations_pkg;
 /
 
@@ -278,32 +271,5 @@ CREATE OR REPLACE PACKAGE BODY reservations_pkg AS
             DBMS_OUTPUT.PUT_LINE('KRITICKÁ CHYBA: ' || SQLERRM);
             RAISE;
     END batch_process_location_requests;
-
-    -- NOVÁ PROCEDURA s PRAGMA AUTONOMOUS_TRANSACTION
-    PROCEDURE process_deleted_reservation (
-        p_id_room_request IN room_requests.id_room_request%TYPE,
-        p_id_location IN locations.id_location%TYPE
-    ) IS
-        PRAGMA AUTONOMOUS_TRANSACTION; -- KLÍČOVÉ - izoluje transakci
-    BEGIN
-        DBMS_OUTPUT.PUT_LINE('Mažu room_request: ' || p_id_room_request);
-        
-        -- Smazání room_request (CASCADE smaže i podtřídy)
-        DELETE FROM room_requests WHERE id_room_request = p_id_room_request;
-        
-        COMMIT; -- Commit autonomní transakce
-        
-        -- Realokace
-        DBMS_OUTPUT.PUT_LINE('Realokace lokace ID: ' || p_id_location);
-        batch_process_location_requests(p_id_location => p_id_location);
-        
-        COMMIT; -- Commit po realokaci
-        
-    EXCEPTION
-        WHEN OTHERS THEN
-            ROLLBACK;
-            DBMS_OUTPUT.PUT_LINE('Chyba v process_deleted_reservation: ' || SQLERRM);
-            RAISE;
-    END process_deleted_reservation;
 
 END reservations_pkg;
