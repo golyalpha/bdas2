@@ -1,11 +1,11 @@
 @model List<WebApp.Models.OrganizerHierarchy>
 @{
-    ViewData["Title"] = "Hierarchie organizátorù";
+    ViewData["Title"] = "Hierarchie organizï¿½torï¿½";
 }
 
 <div class="container mt-4">
     <h2 class="text-light mb-4">
-        <i class="bi bi-diagram-3"></i> Hierarchie organizátorù
+        <i class="bi bi-diagram-3"></i> Hierarchie organizï¿½torï¿½
     </h2>
 
     @if (TempData["ErrorMessage"] != null)
@@ -20,17 +20,17 @@
         <div class="card-body">
             <p class="text-muted mb-3">
                 <i class="bi bi-info-circle"></i>
-                Hierarchická struktura organizátorù podle zastupování.
+                HierarchickÃ¡ struktura organizÃ¡torÅ¯ podle zastupovÃ¡nÃ­.
             </p>
 
             <table class="table table-dark table-striped table-hover">
                 <thead>
                     <tr>
-                        <th style="width: 80px;">Úroveò</th>
-                        <th>Jméno</th>
+                        <th style="width: 80px;">ÃšroveÅˆ</th>
+                        <th>JmÃ©no</th>
                         <th>Email</th>
-                        <th>Hierarchická cesta</th>
-                        <th>Hlavní organizátor</th>
+                        <th>HierarchickÃ¡ cesta</th>
+                        <th>HlavnÃ­ organizÃ¡tor</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -64,14 +64,14 @@
             @if (Model.Count == 0)
             {
                 <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> Žádná hierarchie nenalezena.
+                    <i class="bi bi-info-circle"></i> Å½Ã¡dnÃ¡ hierarchie nenalezena.
                 </div>
             }
             else
             {
                 <div class="mt-3">
                     <small class="text-muted">
-                        <i class="bi bi-graph-up"></i> Celkem organizátorù: <strong>@Model.Count</strong>
+                        <i class="bi bi-graph-up"></i> Celkem organizÃ¡torÅ¯: <strong>@Model.Count</strong>
                     </small>
                 </div>
             }
@@ -80,7 +80,7 @@
 
     <div class="mt-3">
         <a asp-controller="User" asp-action="Index" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Zpìt na seznam uživatelù
+            <i class="bi bi-arrow-left"></i> Zpï¿½t na seznam uï¿½ivatelï¿½
         </a>
     </div>
 </div>
