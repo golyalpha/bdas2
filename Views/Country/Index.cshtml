@@ -1,0 +1,87 @@
+@model IEnumerable<WebApp.Models.Country>
+
+@{
+    ViewData["Title"] = "Zem�";
+    var isAdmin = ViewBag.IsAdmin ?? false;
+}
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-globe"></i> @ViewData["Title"]
+        </h2>
+        @if (isAdmin)
+        {
+            <a asp-action="Create" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Přidat zemi
+            </a>
+        }
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="bi bi-check-circle"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="bi bi-exclamation-triangle"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle fs-3"></i>
+            <p class="mt-2 mb-0">Zatím nejsou přidány žádné země.</p>
+        </div>
+    }
+    else
+    {
+        <table class="table table-dark table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>N�zev zem�</th>
+                    @if (isAdmin)
+                    {
+                        <th class="text-center">Akce</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var country in Model)
+                {
+                    var citiesCount = WebApp.Models.City.ListCities().Count(c => c.Country.Id == country.Id);
+
+                    <tr>
+                        <td>
+                            <i class="bi bi-flag"></i> @country.Name
+                        </td>
+                        @if (isAdmin)
+                        {
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+                                    <form asp-action="Delete" 
+                                          asp-route-id="@country.Id" 
+                                          method="post" 
+                                          class="d-inline"
+                                          onsubmit="return confirm('@(citiesCount > 0 ? $"POZOR: Země obsahuje {citiesCount} měst! Smazáním země smažete i všechna města. Opravdu chcete pokračovat?" : $"Opravdu chcete smazat zemi {country.Name}?")');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-danger" title="Smazat">
+                                            <i class="bi bi-trash"></i> Smazat
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

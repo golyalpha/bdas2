@@ -43,6 +43,24 @@ public class RoomRequest
     }
 
     /// <summary>
+    /// Kontrola zda pro tuto žádost existuje rezervace
+    /// </summary>
+    public bool HasReservation()
+    {
+        using (OracleConnection conn = DBManager.GetConnection())
+        {
+            conn.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandType = System.Data.CommandType.Text;
+            cmd.CommandText = "SELECT COUNT(*) FROM reservations WHERE id_room_request = :id";
+            cmd.Parameters.Add("id", OracleDbType.Int32).Value = Id;
+            
+            int count = Convert.ToInt32(cmd.ExecuteScalar());
+            return count > 0;
+        }
+    }
+
+    /// <summary>
     /// Výpočet délky pomocí DB funkce - vrací TimeSpan
     /// </summary>
     public static TimeSpan CalculateLength(DateTime start, DateTime end)

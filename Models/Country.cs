@@ -61,7 +61,7 @@ namespace WebApp.Models
             {
                 conn.Open();
                 OracleCommand cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT id_country, name FROM COUNTRIES_V";
+                cmd.CommandText = @"SELECT id_country, ""name"" FROM COUNTRIES_V";
                 cmd.CommandType = System.Data.CommandType.Text;
                 using (OracleDataReader reader = cmd.ExecuteReader())
                 {
@@ -77,5 +77,20 @@ namespace WebApp.Models
             }
             return list;
         }
+
+        public void Delete()
+        {
+            using (OracleConnection conn = DBManager.GetConnection())
+            {
+                conn.Open();
+                OracleCommand cmd = conn.CreateCommand();
+                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                cmd.CommandText = "countries_pkg.delete_country";
+                cmd.Parameters.Add("p_id_country", Id);
+
+                cmd.ExecuteNonQuery();
+            }
+        }
     }
 }
+

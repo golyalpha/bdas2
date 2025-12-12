@@ -1,0 +1,61 @@
+@model WebApp.Models.Country
+
+@{
+    ViewData["Title"] = "Pøidat zemi";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h2>
+                <i class="bi bi-globe"></i> @ViewData["Title"]
+            </h2>
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                        {
+                            <li>@error.ErrorMessage</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            <form method="post" asp-action="Create" asp-controller="Country">
+                @Html.AntiForgeryToken()
+
+                <div class="form-group mb-3">
+                    <label asp-for="Name" class="form-label">
+                        Název zemì <span class="text-danger">*</span>
+                    </label>
+                    <input asp-for="Name" 
+                           class="form-control" 
+                           placeholder="napø. Czech Republic, Poland, Austria..."
+                           required 
+                           minlength="2" 
+                           maxlength="32"
+                           autofocus />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                    <small class="form-text text-muted">
+                        Minimálnì 2 znaky, maximálnì 32 znakù
+                    </small>
+                </div>
+
+                <div class="form-group mt-4">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-save"></i> Vytvoøit zemi
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Zpìt na seznam
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

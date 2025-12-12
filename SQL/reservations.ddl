@@ -1366,24 +1366,30 @@ BEGIN
 END;
 /
 
--- Audit trigger pro MEETING_ROOMS
+-- Oprava audit triggeru pro MEETING_ROOMS
 CREATE OR REPLACE TRIGGER trg_audit_meeting_rooms
 AFTER INSERT OR UPDATE OR DELETE ON meeting_rooms
 FOR EACH ROW
 DECLARE
+    PRAGMA AUTONOMOUS_TRANSACTION;  -- KLÍČ K ŘEŠENÍ
     v_operation VARCHAR2(10);
     v_old_values VARCHAR2(1000);
     v_new_values VARCHAR2(1000);
     v_organizer_id NUMBER;
 BEGIN
     -- Získání id_organizer z hlavní tabulky rooms
-    IF INSERTING OR UPDATING THEN
-        SELECT id_organizer INTO v_organizer_id 
-        FROM rooms WHERE id_room = :NEW.id_room;
-    ELSE
-        SELECT id_organizer INTO v_organizer_id 
-        FROM rooms WHERE id_room = :OLD.id_room;
-    END IF;
+    BEGIN
+        IF INSERTING OR UPDATING THEN
+            SELECT id_organizer INTO v_organizer_id 
+            FROM rooms WHERE id_room = :NEW.id_room;
+        ELSE
+            SELECT id_organizer INTO v_organizer_id 
+            FROM rooms WHERE id_room = :OLD.id_room;
+        END IF;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            v_organizer_id := NULL;
+    END;
     
     IF INSERTING THEN
         v_operation := 'INSERT';
@@ -1409,27 +1415,38 @@ BEGIN
         v_old_values,
         v_new_values
     );
+    
+    COMMIT;  -- Povinný pro autonomous transaction
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;  -- Rollback pouze audit logu
 END;
 /
 
--- Audit trigger pro PRESENTATION_ROOMS
+-- Oprava audit triggeru pro PRESENTATION_ROOMS
 CREATE OR REPLACE TRIGGER trg_audit_presentation_rooms
 AFTER INSERT OR UPDATE OR DELETE ON presentation_rooms
 FOR EACH ROW
 DECLARE
+    PRAGMA AUTONOMOUS_TRANSACTION;  -- KLÍČ K ŘEŠENÍ
     v_operation VARCHAR2(10);
     v_old_values VARCHAR2(1000);
     v_new_values VARCHAR2(1000);
     v_organizer_id NUMBER;
 BEGIN
-    -- Získání id_organizer z hlavní tabulky rooms
-    IF INSERTING OR UPDATING THEN
-        SELECT id_organizer INTO v_organizer_id 
-        FROM rooms WHERE id_room = :NEW.id_room;
-    ELSE
-        SELECT id_organizer INTO v_organizer_id 
-        FROM rooms WHERE id_room = :OLD.id_room;
-    END IF;
+    BEGIN
+        IF INSERTING OR UPDATING THEN
+            SELECT id_organizer INTO v_organizer_id 
+            FROM rooms WHERE id_room = :NEW.id_room;
+        ELSE
+            SELECT id_organizer INTO v_organizer_id 
+            FROM rooms WHERE id_room = :OLD.id_room;
+        END IF;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            v_organizer_id := NULL;
+    END;
     
     IF INSERTING THEN
         v_operation := 'INSERT';
@@ -1450,11 +1467,17 @@ BEGIN
         audit_log_seq.NEXTVAL,
         'PRESENTATION_ROOMS',
         v_operation,
-        COALESCE(:NEW.id_room, :OLD.id_ROOM),
+        COALESCE(:NEW.id_room, :OLD.id_room),
         v_organizer_id,
         v_old_values,
         v_new_values
     );
+    
+    COMMIT;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
 END;
 /
 
@@ -1698,75 +1721,87 @@ CREATE OR REPLACE TRIGGER trg_reservation_delete_realloc
 FOR DELETE ON reservations
 COMPOUND TRIGGER
 
-    -- Kolekce pro uložení dat během transakce
     TYPE t_deleted_reservations IS TABLE OF reservations%ROWTYPE INDEX BY PLS_INTEGER;
     g_deleted_reservations t_deleted_reservations;
     g_index PLS_INTEGER := 0;
 
-    -- FÁZE 1: Uložení informací o smazané rezervaci
     AFTER EACH ROW IS
     BEGIN
-        g_index := g_index + 1;
-        g_deleted_reservations(g_index).id_reservation := :OLD.id_reservation;
-        g_deleted_reservations(g_index).id_room := :OLD.id_room;
-        g_deleted_reservations(g_index).id_room_request := :OLD.id_room_request;
-        
-        DBMS_OUTPUT.PUT_LINE('📌 Uložena rezervace k realokaci: ' || :OLD.id_reservation);
+        -- ✅ KONTROLA: Pokud probíhá cancel, NEUKLÁDÁME (ale nepřerušujeme)
+        IF NOT locations_pkg.g_cancel_in_progress THEN
+            g_index := g_index + 1;
+            g_deleted_reservations(g_index).id_reservation := :OLD.id_reservation;
+            g_deleted_reservations(g_index).id_room := :OLD.id_room;
+            g_deleted_reservations(g_index).id_room_request := :OLD.id_room_request;
+            
+            DBMS_OUTPUT.PUT_LINE('📌 Uložena rezervace: ' || :OLD.id_reservation);
+        ELSE
+            DBMS_OUTPUT.PUT_LINE('⏸️  Trigger pozastaven (cancel probíhá)');
+        END IF;
     END AFTER EACH ROW;
 
-    -- FÁZE 2: Provedení mazání a realokace PO dokončení DELETE
     AFTER STATEMENT IS
         v_id_location locations.id_location%TYPE;
         v_processed_locations SYS.ODCINUMBERLIST := SYS.ODCINUMBERLIST();
         v_location_exists BOOLEAN;
     BEGIN
-        DBMS_OUTPUT.PUT_LINE('=== SPUŠTĚNA REALOKACE (' || g_deleted_reservations.COUNT || ' rezervací) ===');
-        
-        FOR i IN 1..g_deleted_reservations.COUNT LOOP
-            BEGIN
-                SELECT r.id_location INTO v_id_location
-                FROM rooms r
-                WHERE r.id_room = g_deleted_reservations(i).id_room;
-                
-                -- Smazání room_request (CASCADE se postará o podtřídné tabulky)
-                DELETE FROM room_requests
-                WHERE id_room_request = g_deleted_reservations(i).id_room_request;
-                
-                DBMS_OUTPUT.PUT_LINE('🗑️  Smazán room_request: ' || g_deleted_reservations(i).id_room_request);
-                
-                -- Kontrola, zda jsme už tuto lokaci nezpracovali
-                v_location_exists := FALSE;
-                FOR j IN 1..v_processed_locations.COUNT LOOP
-                    IF v_processed_locations(j) = v_id_location THEN
-                        v_location_exists := TRUE;
-                        EXIT;
-                    END IF;
-                END LOOP;
-                
-                -- Realokace pouze jednou pro každou lokaci
-                IF NOT v_location_exists THEN
-                    v_processed_locations.EXTEND;
-                    v_processed_locations(v_processed_locations.COUNT) := v_id_location;
+        -- ✅ KONTROLA: Pokud probíhá cancel NEBO není co zpracovat, UKONČÍME
+        IF locations_pkg.g_cancel_in_progress THEN
+            DBMS_OUTPUT.PUT_LINE('⏸️  Realokace přeskočena (cancel probíhá)');
+            g_deleted_reservations.DELETE;
+            g_index := 0;
+            -- Žádný RETURN, jen necháme proceduru skončit
+        ELSIF g_deleted_reservations.COUNT = 0 THEN
+            DBMS_OUTPUT.PUT_LINE('ℹ️  Žádné rezervace ke zpracování');
+            -- Žádný RETURN, jen necháme proceduru skončit
+        ELSE
+            -- ✅ NORMÁLNÍ ZPRACOVÁNÍ
+            DBMS_OUTPUT.PUT_LINE('=== SPUŠTĚNA REALOKACE (' || g_deleted_reservations.COUNT || ' rezervací) ===');
+            
+            FOR i IN 1..g_deleted_reservations.COUNT LOOP
+                BEGIN
+                    SELECT r.id_location INTO v_id_location
+                    FROM rooms r
+                    WHERE r.id_room = g_deleted_reservations(i).id_room;
                     
-                    DBMS_OUTPUT.PUT_LINE('🔄 Realokace lokace ID: ' || v_id_location);
-                    reservations_pkg.batch_process_location_requests(p_id_location => v_id_location);
-                END IF;
-                
-            EXCEPTION
-                WHEN NO_DATA_FOUND THEN
-                    DBMS_OUTPUT.PUT_LINE('Místnost neexistuje pro rezervaci: ' || g_deleted_reservations(i).id_reservation);
                     DELETE FROM room_requests
                     WHERE id_room_request = g_deleted_reservations(i).id_room_request;
                     
-                WHEN OTHERS THEN
-                    DBMS_OUTPUT.PUT_LINE('Chyba při zpracování: ' || SQLERRM);
-            END;
-        END LOOP;
+                    DBMS_OUTPUT.PUT_LINE('🗑️  Smazán request: ' || g_deleted_reservations(i).id_room_request);
+                    
+                    -- Realokace pouze jednou pro každou lokaci
+                    v_location_exists := FALSE;
+                    FOR j IN 1..v_processed_locations.COUNT LOOP
+                        IF v_processed_locations(j) = v_id_location THEN
+                            v_location_exists := TRUE;
+                            EXIT;
+                        END IF;
+                    END LOOP;
+                    
+                    IF NOT v_location_exists THEN
+                        v_processed_locations.EXTEND;
+                        v_processed_locations(v_processed_locations.COUNT) := v_id_location;
+                        
+                        DBMS_OUTPUT.PUT_LINE('🔄 Realokace lokace: ' || v_id_location);
+                        reservations_pkg.batch_process_location_requests(p_id_location => v_id_location);
+                    END IF;
+                    
+                EXCEPTION
+                    WHEN NO_DATA_FOUND THEN
+                        DBMS_OUTPUT.PUT_LINE('⚠️  Místnost nenalezena');
+                        DELETE FROM room_requests
+                        WHERE id_room_request = g_deleted_reservations(i).id_room_request;
+                    WHEN OTHERS THEN
+                        DBMS_OUTPUT.PUT_LINE('❌ Chyba: ' || SQLERRM);
+                END;
+            END LOOP;
+            
+            DBMS_OUTPUT.PUT_LINE('=== REALOKACE DOKONČENA ===');
+        END IF;
         
+        -- Vždy vyčistíme kolekci na konci
         g_deleted_reservations.DELETE;
         g_index := 0;
-        
-        DBMS_OUTPUT.PUT_LINE('=== REALOKACE DOKONČENA ===');
         
     EXCEPTION
         WHEN OTHERS THEN
@@ -1775,7 +1810,5 @@ COMPOUND TRIGGER
             g_index := 0;
             RAISE;
     END AFTER STATEMENT;
-    -- COMMIT se provede automaticky po skončení AFTER STATEMENT
 
 END trg_reservation_delete_realloc;
-/

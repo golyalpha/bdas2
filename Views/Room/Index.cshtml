@@ -1,16 +1,16 @@
 ﻿@model List<WebApp.Models.Room>
 
 @{
-    ViewData["Title"] = "Mistnosti";
+    ViewData["Title"] = "Místnosti";
 }
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="bi bi-door-open"></i> Mistnosti</h2>
+        <h2><i class="bi bi-door-open"></i> Místnosti</h2>
         @if (User.IsInRole("Administrator"))
         {
             <a asp-action="Create" class="btn btn-success">
-                <i class="bi bi-plus-circle"></i> Pridat mistnost
+                <i class="bi bi-plus-circle"></i> Přidat místnost
             </a>
         }
     </div>
@@ -62,7 +62,7 @@
                             <small>
                                 <i class="bi bi-people"></i> <strong>Kapacita:</strong> @room.Capacity<br />
                                 <i class="bi bi-tag"></i> <strong>Typ:</strong>
-                                @(room.Type == "MEETING_ROOM" ? "Jednaci mistnost" : "Prezentacni mistnost")<br />
+                                @(room.Type == "MEETING_ROOM" ? "Jednací místnost" : "Prezentační místnost")<br />
                                 <i class="bi bi-building"></i> <strong>Budova:</strong> @room.Location.Name<br />
                                 <i class="bi bi-geo-alt"></i> @room.Location.City.Name, @room.Location.City.Country.Name
                             </small>

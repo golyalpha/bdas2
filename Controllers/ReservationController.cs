@@ -24,103 +24,54 @@ public class ReservationController : Controller
             : Reservation.GetReservationsByOrganizerId(currentUserId);
             
         ViewBag.IsAdmin = isAdmin;
+        ViewBag.IsManager = User.IsInRole("Manager");
         ViewBag.CurrentUserId = currentUserId;
         return View(reservations);
     }
 
-    // GET: Room/Edit/{id}
+    // GET: Reservation/Detail/{id}
     [HttpGet]
-    [Route("Reservation/Edit/{id?}")]
-    [Route("Reservation/Create")]
-    public IActionResult Persist(int? id)
+    public IActionResult Detail(int id)
     {
-        // Připrav data pro dropdowny (PP19)
-        ViewBag.Rooms = Room.ListRooms();
-        ViewBag.Requests = RoomRequest.ListRequests();
-        ViewBag.Organisers = Organiser.ListOrganisers();
-        
-        if (id == null || id == 0)
+        try
         {
-            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-            var currentUser = Organiser.GetOrganiser(currentUserId);
-            
-            var newReservation = new Reservation
-            {
-                Id = 0,
-                Start = DateTime.Now,
-                End = DateTime.Now.AddHours(1),
-                Room = new Room { Id = 0 },
-                Request = new RoomRequest { Id = 0 },
-                Organiser = currentUser // Automaticky přiřazen
-            };
-            return View("Persist", newReservation); // Načte formulář Persist.cshtml
-        }
-        else
-        {
-            // Načítáme existující záznam
-            var reservation = Reservation.GetReservation(id.Value);
+            var reservation = Reservation.GetReservation(id);
             if (reservation == null)
             {
                 return NotFound();
             }
-            
+
             var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var isAdmin = User.IsInRole("Administrator");
-            
-            if (!isAdmin && reservation.Organiser.Id != currentUserId)
-            {
-                return Unauthorized();
-            }
-            
-            return View("Persist", reservation); // Načte formulář Persist.cshtml
-        }
-    }
+            var isManager = User.IsInRole("Manager");
+            var isOwner = reservation.Organiser.Id == currentUserId;
+            var isBuildingManager = isManager && reservation.Room?.Location?.Organiser?.Id == currentUserId;
 
-    // POST: Reservation/Persist
-    [HttpPost]
-    public IActionResult Persist(Reservation reservation)
-    {
-        // SP5: Server-side validace
-        if (reservation.End <= reservation.Start)
-        {
-            ModelState.AddModelError("End", "Konec rezervace musí být po začátku (SP5)");
-            
-            // Obnov dropdowny
-            ViewBag.Rooms = Room.ListRooms();
-            ViewBag.Requests = RoomRequest.ListRequests();
-            ViewBag.Organisers = Organiser.ListOrganisers();
-            
+            // Každý může vidět detail (admin, manager své budovy, owner své rezervace)
+            // Pokud chcete omezit přístup, můžete přidat:
+            // if (!isAdmin && !isOwner && !isBuildingManager)
+            // {
+            //     return Unauthorized();
+            // }
+
+            ViewBag.IsAdmin = isAdmin;
+            ViewBag.IsManager = isManager;
+            ViewBag.IsOwner = isOwner;
+            ViewBag.IsBuildingManager = isBuildingManager;
+            ViewBag.CurrentUserId = currentUserId;
+            ViewBag.CanDelete = isAdmin || isOwner || isBuildingManager;
+
             return View(reservation);
         }
-        
-        if (reservation.Id != 0)
+        catch (KeyNotFoundException)
         {
-            var existing = Reservation.GetReservation(reservation.Id);
-            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-            var isAdmin = User.IsInRole("Administrator");
-            
-            if (!isAdmin && existing.Organiser.Id != currentUserId)
-            {
-                return Unauthorized();
-            }
-        }
-        
-        try
-        {
-            reservation.Persist();
-            TempData["Success"] = "Rezervace byla úspěšně uložena";
-            return RedirectToAction("Index");
+            return NotFound();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Chyba při ukládání rezervace");
-            ModelState.AddModelError("", $"Chyba: {ex.Message}");
-            
-            ViewBag.Rooms = Room.ListRooms();
-            ViewBag.Requests = RoomRequest.ListRequests();
-            ViewBag.Organisers = Organiser.ListOrganisers();
-            
-            return View(reservation);
+            _logger.LogError(ex, "Chyba při načítání detailu rezervace {ReservationId}", id);
+            TempData["Error"] = "Chyba při načítání detailu rezervace";
+            return RedirectToAction("Index");
         }
     }
 
@@ -133,20 +84,53 @@ public class ReservationController : Controller
             
             var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var isAdmin = User.IsInRole("Administrator");
+            var isManager = User.IsInRole("Manager");
             
-            if (!isAdmin && reservation.Organiser.Id != currentUserId)
+            // Admin může mazat vše
+            if (isAdmin)
             {
-                _logger.LogWarning("User {UserId} attempted to delete reservation {ReservationId} owned by {OwnerId}", 
-                    currentUserId, id, reservation.Organiser.Id);
-                return Unauthorized();
+                reservation.Delete();
+                TempData["Success"] = "Rezervace byla úspěšně smazána";
+                return RedirectToAction("Index");
             }
             
-            reservation.Delete();
+            // Manager může mazat rezervace v místnostech ve svých budovách
+            if (isManager)
+            {
+                var roomLocation = reservation.Room.Location;
+                if (roomLocation.Organiser.Id == currentUserId)
+                {
+                    reservation.Delete();
+                    TempData["Success"] = "Rezervace byla úspěšně smazána";
+                    return RedirectToAction("Index");
+                }
+                else
+                {
+                    _logger.LogWarning("Manager {UserId} attempted to delete reservation {ReservationId} in building owned by {BuildingOwnerId}", 
+                        currentUserId, id, roomLocation.Organiser.Id);
+                    TempData["Error"] = "Nemáte oprávnění smazat tuto rezervaci. Můžete mazat pouze rezervace ve vašich budovách.";
+                    return RedirectToAction("Index");
+                }
+            }
+            
+            // Běžný uživatel může mazat pouze své rezervace
+            if (reservation.Organiser.Id == currentUserId)
+            {
+                reservation.Delete();
+                TempData["Success"] = "Rezervace byla úspěšně smazána";
+                return RedirectToAction("Index");
+            }
+            
+            _logger.LogWarning("User {UserId} attempted to delete reservation {ReservationId} owned by {OwnerId}", 
+                currentUserId, id, reservation.Organiser.Id);
+            TempData["Error"] = "Nemáte oprávnění smazat tuto rezervaci";
+            return RedirectToAction("Index");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting reservation.");
+            TempData["Error"] = $"Chyba při mazání rezervace: {ex.Message}";
+            return RedirectToAction("Index");
         }
-        return RedirectToAction("Index");
     }
 }

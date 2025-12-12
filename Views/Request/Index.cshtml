@@ -58,6 +58,7 @@
                     <th><i class="bi bi-clock"></i> Délka</th>
                     <th><i class="bi bi-person"></i> Organizátor</th>
                     <th><i class="bi bi-door-open"></i> Typ</th>
+                    <th><i class="bi bi-check-circle"></i> Stav</th>
                     <th class="text-center"><i class="bi bi-gear"></i> Akce</th>
                 </tr>
             </thead>
@@ -65,6 +66,8 @@
                 @foreach (var request in Model)
                 {
                     var canEdit = isAdmin || request.Organiser.Id == currentUserId;
+                    var hasReservation = request.HasReservation();
+                    
                     <tr>
                         <td>@request.Start.ToString("dd.MM.yyyy HH:mm")</td>
                         <td>@request.End.ToString("dd.MM.yyyy HH:mm")</td>
@@ -89,16 +92,42 @@
                                 <span class="badge bg-info"><i class="bi bi-projector"></i> Prezentační místnost</span>
                             }
                         </td>
+                        <td>
+                            @if (hasReservation)
+                            {
+                                <span class="badge bg-success" title="Rezervace přiřazena">
+                                    <i class="bi bi-check-circle-fill"></i> Alokováno
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark" title="Čeká na alokaci">
+                                    <i class="bi bi-hourglass-split"></i> Nealokováno
+                                </span>
+                            }
+                        </td>
                         <td class="text-center">
                             @if (canEdit)
                             {
-                                <a href="/Request/Edit?id=@request.Id" class="btn btn-warning btn-sm" title="Upravit">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
+                                @* Tlačítko Edit se zobrazí POUZE pokud žádost NEMÁ rezervaci *@
+                                @if (!hasReservation)
+                                {
+                                    <a href="/Request/Edit?id=@request.Id" class="btn btn-warning btn-sm" title="Upravit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-secondary btn-sm" disabled title="Nelze upravit - rezervace již přiřazena">
+                                        <i class="bi bi-lock"></i>
+                                    </button>
+                                }
+                                
                                 <form asp-action="Delete" asp-controller="Request" method="post" style="display:inline;">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@request.Id" />
-                                    <button type="submit" class="btn btn-danger btn-sm" title="Smazat" onclick="return confirm('Opravdu chcete smazat tuto žádost?');">
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Smazat" 
+                                            onclick="return confirm('@(hasReservation ? "POZOR: Tato žádost má přiřazenou rezervaci! Opravdu chcete smazat tuto žádost i s rezervací?" : "Opravdu chcete smazat tuto žádost?")');">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>

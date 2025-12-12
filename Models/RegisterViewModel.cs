@@ -4,13 +4,20 @@ namespace WebApp.Models;
 
 public class RegisterViewModel
 {
-    [Required]
+    [Required(ErrorMessage = "Jméno je povinné")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "Jméno musí mít 2-100 znaků")]
+    [Display(Name = "Jméno")]
     public required string Name { get; set; }
 
-    [Required]
+    [Required(ErrorMessage = "Email je povinné")]
+    [EmailAddress(ErrorMessage = "Neplatný formát emailu")]
+    [StringLength(100, ErrorMessage = "Email může mít maximálně 100 znaků")]
+    [Display(Name = "Email")]
     public required string Email { get; set; }
 
-    [Required]
+    [Required(ErrorMessage = "Heslo je povinné")]
+    [StringLength(100, MinimumLength = 6, ErrorMessage = "Heslo musí mít minimálně 6 znaků")]
+    [DataType(DataType.Password)]
+    [Display(Name = "Heslo")]
     public required string Password { get; set; }
-    
 }

@@ -1,0 +1,206 @@
+﻿@model WebApp.Models.Reservation
+
+@{
+    ViewData["Title"] = "Detail rezervace";
+    var canDelete = ViewBag.CanDelete ?? false;
+    var isOwner = ViewBag.IsOwner ?? false;
+    var isBuildingManager = ViewBag.IsBuildingManager ?? false;
+    var isAdmin = ViewBag.IsAdmin ?? false;
+}
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-info-circle"></i> @ViewData["Title"]</h2>
+        <div>
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Zpět na seznam
+            </a>
+            @if (canDelete)
+            {
+                <form asp-action="Delete" asp-controller="Reservation" method="post" style="display:inline;">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit" class="btn btn-danger" 
+                            onclick="return confirm('Opravdu chcete smazat tuto rezervaci?');">
+                        <i class="bi bi-trash"></i> Smazat rezervaci
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Základní informace o rezervaci -->
+        <div class="col-md-6 mb-4">
+            <div class="card bg-dark text-light">
+                <div class="card-header bg-primary">
+                    <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Informace o rezervaci</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-dark table-borderless mb-0">
+                        <tr>
+                            <th width="40%"><i class="bi bi-hash"></i> ID rezervace:</th>
+                            <td><span class="badge bg-secondary">@Model.Id</span></td>
+                        </tr>
+                        <tr>
+                            <th><i class="bi bi-calendar-event"></i> Začátek:</th>
+                            <td>@Model.Start.ToString("dd.MM.yyyy HH:mm")</td>
+                        </tr>
+                        <tr>
+                            <th><i class="bi bi-calendar-event"></i> Konec:</th>
+                            <td>@Model.End.ToString("dd.MM.yyyy HH:mm")</td>
+                        </tr>
+                        <tr>
+                            <th><i class="bi bi-clock"></i> Délka:</th>
+                            <td>
+                                @{
+                                    var duration = Model.End - Model.Start;
+                                    var hours = (int)duration.TotalHours;
+                                    var minutes = duration.Minutes;
+                                }
+                                @hours h @minutes min
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><i class="bi bi-person"></i> Organizátor:</th>
+                            <td>
+                                @Model.Organiser?.Name
+                                @if (isOwner)
+                                {
+                                    <span class="badge bg-success ms-2">Vaše</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><i class="bi bi-envelope"></i> Email:</th>
+                            <td>@Model.Organiser?.Email</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informace o místnosti -->
+        <div class="col-md-6 mb-4">
+            <div class="card bg-dark text-light">
+                <div class="card-header bg-info">
+                    <h5 class="mb-0"><i class="bi bi-door-open"></i> Místnost</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-dark table-borderless mb-0">
+                        <tr>
+                            <th width="40%"><i class="bi bi-tag"></i> Název:</th>
+                            <td>@Model.Room?.Name</td>
+                        </tr>
+                        <tr>
+                            <th><i class="bi bi-diagram-2"></i> Typ místnosti:</th>
+                            <td>
+                                @if (Model.Room?.Type == "MEETING_ROOM")
+                                {
+                                    <span class="badge bg-primary"><i class="bi bi-people"></i> Meetingová místnost</span>
+                                }
+                                else if (Model.Room?.Type == "PRESENTATION_ROOM")
+                                {
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-projector"></i> Prezentační místnost</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><i class="bi bi-people"></i> Kapacita:</th>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    @Model.Request?.MinimumCapacity / @Model.Room?.Capacity osob
+                                </span>
+                            </td>
+                        </tr>
+                        
+                        @* Specifické vlastnosti podle typu místnosti *@
+                        @if (Model.Room is WebApp.Models.MeetingRoom meetingRoom)
+                        {
+                            <tr>
+                                <th><i class="bi bi-camera-video"></i> Video konference:</th>
+                                <td>
+                                    @if (meetingRoom.VideoCallReady)
+                                    {
+                                        <span class="badge bg-info text-dark">
+                                            <i class="bi bi-camera-video"></i> Ano
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">
+                                            <i class="bi bi-camera-video-off"></i> Ne
+                                        </span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        else if (Model.Room is WebApp.Models.PresentationRoom presentationRoom && Model.Request is WebApp.Models.PresentationRequest presentationRequest)
+                        {
+                            <tr>
+                                <th><i class="bi bi-columns-gap"></i> Velikost pódia:</th>
+                                <td>
+                                    <span class="badge bg-warning text-dark">
+                                        @presentationRequest.PodiumSize / @presentationRoom.PodiumSize m²
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                        
+                        <tr>
+                            <th><i class="bi bi-building"></i> Budova:</th>
+                            <td>
+                                @Model.Room?.Location?.Name
+                                @if (isBuildingManager && !isOwner)
+                                {
+                                    <span class="badge bg-primary ms-2">Vaše budova</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><i class="bi bi-geo-alt"></i> Město:</th>
+                            <td>@Model.Room?.Location?.City?.Name</td>
+                        </tr>
+                        <tr>
+                            <th><i class="bi bi-clock"></i> Dostupnost budovy:</th>
+                            <td>
+                                @Model.Room?.Location?.AvailabilityStart.ToString("HH:mm") - 
+                                @Model.Room?.Location?.AvailabilityEnd.ToString("HH:mm")
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tlačítka akce -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Zpět na seznam
+                </a>
+                @if (canDelete)
+                {
+                    <form asp-action="Delete" asp-controller="Reservation" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-danger" 
+                                onclick="return confirm('Opravdu chcete smazat tuto rezervaci?');">
+                            <i class="bi bi-trash"></i> Smazat rezervaci
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>

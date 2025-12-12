@@ -1,51 +1,112 @@
 ﻿@model IEnumerable<WebApp.Models.Reservation>
 
 @{
-    ViewData["Title"] = "Reservations List";
+    ViewData["Title"] = "Seznam rezervací";
     var isAdmin = ViewBag.IsAdmin ?? false;
+    var isManager = ViewBag.IsManager ?? false;
     var currentUserId = ViewBag.CurrentUserId ?? 0;
 }
 
 <div class="container mt-5">
-    <h2>@ViewData["Title"]</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-calendar-check"></i> @ViewData["Title"]</h2>
+    </div>
 
-    <table class="table table-dark table-striped">
-        <thead>
-            <tr>
-                <th>Start Time</th>
-                <th>End Time</th>
-                <th>Room</th>
-                <th>Organiser</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var reservation in Model)
-            {
-                var canDelete = isAdmin || reservation.Organiser.Id == currentUserId;
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle fs-3"></i>
+            <p class="mt-2 mb-0">
+                @if (isAdmin)
+                {
+                    <text>V systému zatím nejsou žádné rezervace.</text>
+                }
+                else
+                {
+                    <text>Zatím nemáte žádné rezervace.</text>
+                }
+            </p>
+        </div>
+    }
+    else
+    {
+        <table class="table table-dark table-striped table-hover">
+            <thead>
                 <tr>
-                    <td>@reservation.Start.ToString("yyyy-MM-dd HH:mm")</td>
-                    <td>@reservation.End.ToString("yyyy-MM-dd HH:mm")</td>
-                    <td>@reservation.Room?.Name</td>
-                    <td>@reservation.Organiser?.Name (@reservation.Organiser?.Email)</td>
-                    <td>
-                        @if (canDelete)
-                        {
-                            <form asp-action="Delete" asp-controller="Reservation" method="post" style="display:inline;">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@reservation.Id" />
-                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this reservation?');">
-                                    Delete
-                                </button>
-                            </form>
-                        }
-                        else
-                        {
-                            <span class="text-muted">-</span>
-                        }
-                    </td>
+                    <th><i class="bi bi-calendar-event"></i> Začátek</th>
+                    <th><i class="bi bi-calendar-event"></i> Konec</th>
+                    <th><i class="bi bi-door-open"></i> Místnost</th>
+                    <th><i class="bi bi-building"></i> Budova</th>
+                    <th><i class="bi bi-person"></i> Organizátor</th>
+                    <th class="text-center"><i class="bi bi-gear"></i> Akce</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var reservation in Model)
+                {
+                    // Admin může mazat vše
+                    // Manager může mazat rezervace ve svých budovách
+                    // Vlastník může mazat své rezervace
+                    var isOwner = reservation.Organiser.Id == currentUserId;
+                    var isBuildingManager = isManager && reservation.Room?.Location?.Organiser?.Id == currentUserId;
+                    var canDelete = isAdmin || isOwner || isBuildingManager;
+                    
+                    <tr>
+                        <td>@reservation.Start.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>@reservation.End.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>@reservation.Room?.Name</td>
+                        <td>
+                            @reservation.Room?.Location?.Name
+                            @if (isBuildingManager && !isOwner)
+                            {
+                                <span class="badge bg-primary ms-2">Vaše budova</span>
+                            }
+                        </td>
+                        <td>
+                            @reservation.Organiser?.Name
+                            @if (isOwner)
+                            {
+                                <span class="badge bg-success ms-2">Vaše</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="@Url.Action("Detail", new { id = reservation.Id })" class="btn btn-info" title="Zobrazit detail">
+                                    <i class="bi bi-eye"></i> Detail
+                                </a>
+                                @if (canDelete)
+                                {
+                                    <form asp-action="Delete" asp-controller="Reservation" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@reservation.Id" />
+                                        <button type="submit" class="btn btn-danger btn-sm" 
+                                                onclick="return confirm('Opravdu chcete smazat tuto rezervaci?');" 
+                                                title="@(isBuildingManager && !isOwner ? "Smazat jako správce budovy" : "Smazat")">
+                                            <i class="bi bi-trash"></i> Smazat
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
