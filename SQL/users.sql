@@ -36,7 +36,7 @@ CREATE OR REPLACE PACKAGE user_management_pkg AS
         p_name IN VARCHAR2,
         p_email IN VARCHAR2,
         p_password IN VARCHAR2,
-        p_id_role IN NUMBER DEFAULT 3,  -- Default = Guest
+        p_id_role IN NUMBER DEFAULT 4,  -- Default = Guest
         o_organizer_id OUT NUMBER
     );
 

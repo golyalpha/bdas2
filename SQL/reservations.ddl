@@ -1475,8 +1475,6 @@ BEGIN
 END;
 /
 
-DROP TRIGGER trg_audit_presentation_rrequests;
-
 -- OPRAVA: Audit trigger pro MEETING_RREQUESTS s detekcí MERGE
 CREATE OR REPLACE TRIGGER trg_audit_meeting_rrequests
 AFTER INSERT OR UPDATE OR DELETE ON meeting_rrequests
@@ -1827,13 +1825,13 @@ COMPOUND TRIGGER
     END AFTER STATEMENT;
 
 END trg_reservation_delete_realloc;
-
+/
 
 -- =====================================================
 -- NOVÉ POHLEDY PRO ODSTRANĚNÍ CYKLICKÝCH DOTAZŮ
 -- =====================================================
 
--- ✅ 1. POHLED PRO ROOM_REQUESTS S PLNÝMI DETAILY
+-- 1. POHLED PRO ROOM_REQUESTS S PLNÝMI DETAILY
 -- Nahrazuje opakované volání Location.GetLocation() a Organiser.GetOrganiser()
 CREATE OR REPLACE VIEW ROOM_REQUESTS_WITH_DETAILS_V AS
 SELECT 
@@ -1881,7 +1879,7 @@ LEFT JOIN meeting_rrequests mr ON mr.id_room_request = rr.id_room_request
 LEFT JOIN presentation_rrequests pr ON pr.id_room_request = rr.id_room_request
     AND rr."type" = 'PRESENTATION_RREQUEST';
 
--- ✅ 2. POHLED PRO ORGANIZERS S PLNÝMI DETAILY (včetně role a náhradníka)
+-- 2. POHLED PRO ORGANIZERS S PLNÝMI DETAILY (včetně role a náhradníka)
 CREATE OR REPLACE VIEW ORGANIZERS_WITH_DETAILS_V AS
 SELECT 
     o.id_organizer,
@@ -1907,7 +1905,7 @@ INNER JOIN roles r ON o.id_role = r.id_role
 LEFT JOIN organizers s ON o.id_organizer_substitute = s.id_organizer
 LEFT JOIN roles sr ON s.id_role = sr.id_role;
 
--- ✅ 3. POHLED PRO CITIES S COUNTRY DETAILY
+--3. POHLED PRO CITIES S COUNTRY DETAILY
 CREATE OR REPLACE VIEW CITIES_WITH_COUNTRY_V AS
 SELECT 
     c.id_city,
