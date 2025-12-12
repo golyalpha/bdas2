@@ -30,8 +30,6 @@ public class RoomRequest
 
     public Organiser Organiser { get; set; }
 
-
-   
     /// <summary>
     /// Formátované zobrazení délky jako "HH:MMh" (např. "2:30h")
     /// </summary>
@@ -95,7 +93,6 @@ public class RoomRequest
             cmd.Parameters.Add("p_reservation_start", OracleDbType.Date).Value = Start;
             cmd.Parameters.Add("p_reservation_end", OracleDbType.Date).Value = End;
             
-            //  OPRAVA: Správná konverze TimeSpan na OracleIntervalDS
             if (Length != TimeSpan.Zero)
             {
                 cmd.Parameters.Add("p_reservation_length", OracleDbType.IntervalDS).Value = 
@@ -130,128 +127,230 @@ public class RoomRequest
         }
     }
 
+    // OPRAVENO: GetRequest() - použití nového VIEW
     public static RoomRequest GetRequest(int Id)
     {
         using (OracleConnection conn = DBManager.GetConnection())
         {
             conn.Open();
-            OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = @"SELECT id_organizer, id_location, id_room_request, min_capacity, reservation_start, reservation_length, reservation_end, ""type"", vc_ready, podium_size FROM ROOM_REQUESTS_V WHERE id_room_request = :id";
-            cmd.Parameters.Add("id", Id);
-            cmd.CommandType = System.Data.CommandType.Text;
-            using (OracleDataReader reader = cmd.ExecuteReader())
+            using (OracleCommand cmd = conn.CreateCommand())
             {
-                RoomRequest? request = null;
-
-                if (!reader.Read())
-                {
-                    throw new KeyNotFoundException();
-                }
+                // Používáme nový VIEW s JOINy
+                cmd.CommandText = @"
+                    SELECT 
+                        id_room_request, min_capacity, reservation_start, reservation_end, 
+                        reservation_length, ""type"", vc_ready, podium_size,
+                        id_location, location_name, availability_start, availability_end,
+                        id_city, city_name, id_country, country_name,
+                        id_organizer, organizer_name, organizer_email, id_role, role_name
+                    FROM ROOM_REQUESTS_WITH_DETAILS_V 
+                    WHERE id_room_request = :id";
+                cmd.Parameters.Add("id", Id);
+                cmd.CommandType = System.Data.CommandType.Text;
                 
-                TimeSpan length = TimeSpan.Zero;
-                if (!reader.IsDBNull(5))
+                using (OracleDataReader reader = cmd.ExecuteReader())
                 {
-                    OracleIntervalDS intervalValue = reader.GetOracleIntervalDS(5);
-                    length = intervalValue.Value;
-                }
-                
-                if (reader.GetString(7) == "PRESENTATION_RREQUEST")
-                {
-                    request = new PresentationRequest
+                    if (!reader.Read())
                     {
-                        Id = reader.GetInt32(2),
-                        MinimumCapacity = reader.GetInt32(3),
-                        Start = reader.GetDateTime(4),
-                        Length = length,
-                        End = reader.GetDateTime(6),
-                        Type = reader.GetString(7),
-                        PodiumSize = reader.GetInt32(9),
-                        Location = Location.GetLocation(reader.GetInt32(1)),
-                        Organiser = Organiser.GetOrganiser(reader.GetInt32(0))
-                    };
-                }
-                else if (reader.GetString(7) == "MEETING_RREQUEST")
-                {
-                    request = new MeetingRequest
+                        throw new KeyNotFoundException();
+                    }
+                    
+                    TimeSpan length = TimeSpan.Zero;
+                    if (!reader.IsDBNull(4))
                     {
-                        Id = reader.GetInt32(2),
-                        MinimumCapacity = reader.GetInt32(3),
-                        Start = reader.GetDateTime(4),
-                        Length = length,
-                        End = reader.GetDateTime(6),
-                        Type = reader.GetString(7),
-                        VideoCallReady = reader.GetString(8) == "Y",
-                        Location = Location.GetLocation(reader.GetInt32(1)),
-                        Organiser = Organiser.GetOrganiser(reader.GetInt32(0))
+                        OracleIntervalDS intervalValue = reader.GetOracleIntervalDS(4);
+                        length = intervalValue.Value;
+                    }
+                    
+                    // Vytvoříme objekty bez dalších DB dotazů
+                    var country = new Country
+                    {
+                        Id = reader.GetInt32(14),
+                        Name = reader.GetString(15)
                     };
+                    
+                    var city = new City
+                    {
+                        Id = reader.GetInt32(12),
+                        Name = reader.GetString(13),
+                        Country = country
+                    };
+                    
+                    var role = new Role
+                    {
+                        Id = reader.GetInt32(19),
+                        Name = reader.GetString(20)
+                    };
+                    
+                    var organiser = new Organiser
+                    {
+                        Id = reader.GetInt32(16),
+                        Name = reader.GetString(17),
+                        Email = reader.GetString(18),
+                        Role = role
+                    };
+                    
+                    var location = new Location
+                    {
+                        Id = reader.GetInt32(8),
+                        Name = reader.GetString(9),
+                        AvailabilityStart = TimeOnly.FromDateTime(reader.GetDateTime(10)),
+                        AvailabilityEnd = TimeOnly.FromDateTime(reader.GetDateTime(11)),
+                        City = city,
+                        Organiser = organiser
+                    };
+                    
+                    string type = reader.GetString(5);
+                    RoomRequest? request = null;
+                    
+                    if (type == "PRESENTATION_RREQUEST")
+                    {
+                        request = new PresentationRequest
+                        {
+                            Id = reader.GetInt32(0),
+                            MinimumCapacity = reader.GetInt32(1),
+                            Start = reader.GetDateTime(2),
+                            End = reader.GetDateTime(3),
+                            Length = length,
+                            Type = type,
+                            PodiumSize = reader.GetInt32(7),
+                            Location = location,
+                            Organiser = organiser
+                        };
+                    }
+                    else if (type == "MEETING_RREQUEST")
+                    {
+                        request = new MeetingRequest
+                        {
+                            Id = reader.GetInt32(0),
+                            MinimumCapacity = reader.GetInt32(1),
+                            Start = reader.GetDateTime(2),
+                            End = reader.GetDateTime(3),
+                            Length = length,
+                            Type = type,
+                            VideoCallReady = reader.GetString(6) == "Y",
+                            Location = location,
+                            Organiser = organiser
+                        };
+                    }
+                    
+                    if (request == null)
+                    {
+                        throw new InvalidDataException();
+                    }
+                    
+                    return request;
                 }
-                if (request == null)
-                {
-                    throw new InvalidDataException();
-                }
-                reader.Close();
-                conn.Close();
-                return request;
             }
         }
     }
 
+    //OPRAVENO: ListRequests() - použití nového VIEW
     public static List<RoomRequest> ListRequests()
     {
         List<RoomRequest> list = new List<RoomRequest>();
         using (OracleConnection conn = DBManager.GetConnection())
         {
             conn.Open();
-            OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT * FROM ROOM_REQUESTS_V";
-            cmd.CommandType = System.Data.CommandType.Text;
-            using (OracleDataReader reader = cmd.ExecuteReader())
+            using (OracleCommand cmd = conn.CreateCommand())
             {
-                while (reader.Read())
+                cmd.CommandText = @"
+                    SELECT 
+                        id_room_request, min_capacity, reservation_start, reservation_end, 
+                        reservation_length, ""type"", vc_ready, podium_size,
+                        id_location, location_name, availability_start, availability_end,
+                        id_city, city_name, id_country, country_name,
+                        id_organizer, organizer_name, organizer_email, id_role, role_name
+                    FROM ROOM_REQUESTS_WITH_DETAILS_V";
+                cmd.CommandType = System.Data.CommandType.Text;
+                
+                using (OracleDataReader reader = cmd.ExecuteReader())
                 {
-                    RoomRequest? request = null;
-                    
-                    // ZMĚNA: Načtení INTERVAL jako TimeSpan
-                    TimeSpan length = TimeSpan.Zero;
-                    if (!reader.IsDBNull(6))
+                    while (reader.Read())
                     {
-                        OracleIntervalDS intervalValue = reader.GetOracleIntervalDS(6);
-                        length = intervalValue.Value;
-                    }
-
-                    if (reader.GetString(7) == "PRESENTATION_RREQUEST")
-                    {
-                        request = new PresentationRequest
+                        TimeSpan length = TimeSpan.Zero;
+                        if (!reader.IsDBNull(4))
                         {
-                            Id = reader.GetInt32(2),
-                            MinimumCapacity = reader.GetInt32(3),
-                            Start = reader.GetDateTime(4),
-                            End = reader.GetDateTime(5),
-                            Length = length,
-                            Type = reader.GetString(7),
-                            PodiumSize = reader.GetInt32(9),
-                            Location = Location.GetLocation(reader.GetInt32(1)),
-                            Organiser = Organiser.GetOrganiser(reader.GetInt32(0))
-                        };
-                    }
-                    else if (reader.GetString(7) == "MEETING_RREQUEST")
-                    {
-                        request = new MeetingRequest
+                            OracleIntervalDS intervalValue = reader.GetOracleIntervalDS(4);
+                            length = intervalValue.Value;
+                        }
+                        
+                        //Vytvoříme objekty bez dalších DB dotazů
+                        var country = new Country
                         {
-                            Id = reader.GetInt32(2),
-                            MinimumCapacity = reader.GetInt32(3),
-                            Start = reader.GetDateTime(4),
-                            End = reader.GetDateTime(5),
-                            Length = length,
-                            Type = reader.GetString(7),
-                            VideoCallReady = !reader.IsDBNull(8) && reader.GetString(8) == "Y",
-                            Location = Location.GetLocation(reader.GetInt32(1)),
-                            Organiser = Organiser.GetOrganiser(reader.GetInt32(0))
+                            Id = reader.GetInt32(14),
+                            Name = reader.GetString(15)
                         };
-                    }
-                    if (request != null)
-                    {
-                        list.Add(request);
+                        
+                        var city = new City
+                        {
+                            Id = reader.GetInt32(12),
+                            Name = reader.GetString(13),
+                            Country = country
+                        };
+                        
+                        var role = new Role
+                        {
+                            Id = reader.GetInt32(19),
+                            Name = reader.GetString(20)
+                        };
+                        
+                        var organiser = new Organiser
+                        {
+                            Id = reader.GetInt32(16),
+                            Name = reader.GetString(17),
+                            Email = reader.GetString(18),
+                            Role = role
+                        };
+                        
+                        var location = new Location
+                        {
+                            Id = reader.GetInt32(8),
+                            Name = reader.GetString(9),
+                            AvailabilityStart = TimeOnly.FromDateTime(reader.GetDateTime(10)),
+                            AvailabilityEnd = TimeOnly.FromDateTime(reader.GetDateTime(11)),
+                            City = city,
+                            Organiser = organiser
+                        };
+                        
+                        string type = reader.GetString(5);
+                        RoomRequest? request = null;
+                        
+                        if (type == "PRESENTATION_RREQUEST")
+                        {
+                            request = new PresentationRequest
+                            {
+                                Id = reader.GetInt32(0),
+                                MinimumCapacity = reader.GetInt32(1),
+                                Start = reader.GetDateTime(2),
+                                End = reader.GetDateTime(3),
+                                Length = length,
+                                Type = type,
+                                PodiumSize = reader.GetInt32(7),
+                                Location = location,
+                                Organiser = organiser
+                            };
+                        }
+                        else if (type == "MEETING_RREQUEST")
+                        {
+                            request = new MeetingRequest
+                            {
+                                Id = reader.GetInt32(0),
+                                MinimumCapacity = reader.GetInt32(1),
+                                Start = reader.GetDateTime(2),
+                                End = reader.GetDateTime(3),
+                                Length = length,
+                                Type = type,
+                                VideoCallReady = !reader.IsDBNull(6) && reader.GetString(6) == "Y",
+                                Location = location,
+                                Organiser = organiser
+                            };
+                        }
+                        
+                        if (request != null)
+                        {
+                            list.Add(request);
+                        }
                     }
                 }
             }
@@ -264,71 +363,124 @@ public class RoomRequest
         using (OracleConnection conn = DBManager.GetConnection())
         {
             conn.Open();
-            OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.CommandText = "requests_pkg.delete_request";
-            cmd.Parameters.Add("p_id_request", Id);
-
-            cmd.ExecuteNonQuery();
+            using (OracleCommand cmd = conn.CreateCommand())
+            {
+                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                cmd.CommandText = "requests_pkg.delete_request";
+                cmd.Parameters.Add("p_id_request", Id);
+                cmd.ExecuteNonQuery();
+            }
         }
     }
 
+    // OPRAVENO: GetRequestsByOrganiserId() - použití nového VIEW
     public static List<RoomRequest> GetRequestsByOrganiserId(int organiserId)
     {
         List<RoomRequest> list = new List<RoomRequest>();
         using (OracleConnection conn = DBManager.GetConnection())
         {
             conn.Open();
-            OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT * FROM ROOM_REQUESTS_V WHERE id_organizer = :id";
-            cmd.Parameters.Add("id", organiserId);
-            cmd.CommandType = System.Data.CommandType.Text;
-            using (OracleDataReader reader = cmd.ExecuteReader())
+            using (OracleCommand cmd = conn.CreateCommand())
             {
-                while (reader.Read())
+                cmd.CommandText = @"
+                    SELECT 
+                        id_room_request, min_capacity, reservation_start, reservation_end, 
+                        reservation_length, ""type"", vc_ready, podium_size,
+                        id_location, location_name, availability_start, availability_end,
+                        id_city, city_name, id_country, country_name,
+                        id_organizer, organizer_name, organizer_email, id_role, role_name
+                    FROM ROOM_REQUESTS_WITH_DETAILS_V
+                    WHERE id_organizer = :id";
+                cmd.Parameters.Add("id", organiserId);
+                cmd.CommandType = System.Data.CommandType.Text;
+                
+                using (OracleDataReader reader = cmd.ExecuteReader())
                 {
-                    RoomRequest? request = null;
-                    
-                    TimeSpan length = TimeSpan.Zero;
-                    if (!reader.IsDBNull(6))
+                    while (reader.Read())
                     {
-                        OracleIntervalDS intervalValue = reader.GetOracleIntervalDS(6);
-                        length = intervalValue.Value;
-                    }
-
-                    if (reader.GetString(7) == "PRESENTATION_RREQUEST")
-                    {
-                        request = new PresentationRequest
+                        TimeSpan length = TimeSpan.Zero;
+                        if (!reader.IsDBNull(4))
                         {
-                            Id = reader.GetInt32(2),
-                            MinimumCapacity = reader.GetInt32(3),
-                            Start = reader.GetDateTime(4),
-                            End = reader.GetDateTime(5),
-                            Length = length,
-                            Type = reader.GetString(7),
-                            PodiumSize = reader.GetInt32(9),
-                            Location = Location.GetLocation(reader.GetInt32(1)),
-                            Organiser = Organiser.GetOrganiser(reader.GetInt32(0))
-                        };
-                    }
-                    else if (reader.GetString(7) == "MEETING_RREQUEST")
-                    {
-                        request = new MeetingRequest
+                            OracleIntervalDS intervalValue = reader.GetOracleIntervalDS(4);
+                            length = intervalValue.Value;
+                        }
+                        
+                        // Vytvoříme objekty bez dalších DB dotazů (stejný kód jako výše)
+                        var country = new Country
                         {
-                            Id = reader.GetInt32(2),
-                            MinimumCapacity = reader.GetInt32(3),
-                            Start = reader.GetDateTime(4),
-                            End = reader.GetDateTime(5),
-                            Length = length,
-                            Type = reader.GetString(7),
-                            VideoCallReady = reader.GetString(8) == "Y",
-                            Location = Location.GetLocation(reader.GetInt32(1)),
-                            Organiser = Organiser.GetOrganiser(reader.GetInt32(0))
+                            Id = reader.GetInt32(14),
+                            Name = reader.GetString(15)
                         };
-                    }
-                    if (request != null)
-                    {
-                        list.Add(request);
+                        
+                        var city = new City
+                        {
+                            Id = reader.GetInt32(12),
+                            Name = reader.GetString(13),
+                            Country = country
+                        };
+                        
+                        var role = new Role
+                        {
+                            Id = reader.GetInt32(19),
+                            Name = reader.GetString(20)
+                        };
+                        
+                        var organiser = new Organiser
+                        {
+                            Id = reader.GetInt32(16),
+                            Name = reader.GetString(17),
+                            Email = reader.GetString(18),
+                            Role = role
+                        };
+                        
+                        var location = new Location
+                        {
+                            Id = reader.GetInt32(8),
+                            Name = reader.GetString(9),
+                            AvailabilityStart = TimeOnly.FromDateTime(reader.GetDateTime(10)),
+                            AvailabilityEnd = TimeOnly.FromDateTime(reader.GetDateTime(11)),
+                            City = city,
+                            Organiser = organiser
+                        };
+                        
+                        string type = reader.GetString(5);
+                        RoomRequest? request = null;
+                        
+                        if (type == "PRESENTATION_RREQUEST")
+                        {
+                            request = new PresentationRequest
+                            {
+                                Id = reader.GetInt32(0),
+                                MinimumCapacity = reader.GetInt32(1),
+                                Start = reader.GetDateTime(2),
+                                End = reader.GetDateTime(3),
+                                Length = length,
+                                Type = type,
+                                PodiumSize = reader.GetInt32(7),
+                                Location = location,
+                                Organiser = organiser
+                            };
+                        }
+                        else if (type == "MEETING_RREQUEST")
+                        {
+                            request = new MeetingRequest
+                            {
+                                Id = reader.GetInt32(0),
+                                MinimumCapacity = reader.GetInt32(1),
+                                Start = reader.GetDateTime(2),
+                                End = reader.GetDateTime(3),
+                                Length = length,
+                                Type = type,
+                                VideoCallReady = reader.GetString(6) == "Y",
+                                Location = location,
+                                Organiser = organiser
+                            };
+                        }
+                        
+                        if (request != null)
+                        {
+                            list.Add(request);
+                        }
                     }
                 }
             }

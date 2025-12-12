@@ -1371,13 +1371,12 @@ CREATE OR REPLACE TRIGGER trg_audit_meeting_rooms
 AFTER INSERT OR UPDATE OR DELETE ON meeting_rooms
 FOR EACH ROW
 DECLARE
-    PRAGMA AUTONOMOUS_TRANSACTION;  -- KLÍČ K ŘEŠENÍ
     v_operation VARCHAR2(10);
     v_old_values VARCHAR2(1000);
     v_new_values VARCHAR2(1000);
     v_organizer_id NUMBER;
 BEGIN
-    -- Získání id_organizer z hlavní tabulky rooms
+    -- Získání id_organizer
     BEGIN
         IF INSERTING OR UPDATING THEN
             SELECT id_organizer INTO v_organizer_id 
@@ -1416,11 +1415,13 @@ BEGIN
         v_new_values
     );
     
-    COMMIT;  -- Povinný pro autonomous transaction
+
     
 EXCEPTION
     WHEN OTHERS THEN
-        ROLLBACK;  -- Rollback pouze audit logu
+        --zalogujte chybu, necommitujte
+        DBMS_OUTPUT.PUT_LINE('Audit error: ' || SQLERRM);
+        -- Nechte hlavní transakci rozhodnout o rollbacku
 END;
 /
 
@@ -1429,7 +1430,6 @@ CREATE OR REPLACE TRIGGER trg_audit_presentation_rooms
 AFTER INSERT OR UPDATE OR DELETE ON presentation_rooms
 FOR EACH ROW
 DECLARE
-    PRAGMA AUTONOMOUS_TRANSACTION;  -- KLÍČ K ŘEŠENÍ
     v_operation VARCHAR2(10);
     v_old_values VARCHAR2(1000);
     v_new_values VARCHAR2(1000);
@@ -1472,12 +1472,6 @@ BEGIN
         v_old_values,
         v_new_values
     );
-    
-    COMMIT;
-    
-EXCEPTION
-    WHEN OTHERS THEN
-        ROLLBACK;
 END;
 /
 
@@ -1833,3 +1827,97 @@ COMPOUND TRIGGER
     END AFTER STATEMENT;
 
 END trg_reservation_delete_realloc;
+
+
+-- =====================================================
+-- NOVÉ POHLEDY PRO ODSTRANĚNÍ CYKLICKÝCH DOTAZŮ
+-- =====================================================
+
+-- ✅ 1. POHLED PRO ROOM_REQUESTS S PLNÝMI DETAILY
+-- Nahrazuje opakované volání Location.GetLocation() a Organiser.GetOrganiser()
+CREATE OR REPLACE VIEW ROOM_REQUESTS_WITH_DETAILS_V AS
+SELECT 
+    -- Room Request údaje
+    rr.id_room_request,
+    rr.min_capacity,
+    rr.reservation_start,
+    rr.reservation_end,
+    rr.reservation_length,
+    rr."type",
+    mr.vc_ready,
+    pr.podium_size,
+    
+    -- Location údaje
+    l.id_location,
+    l."name" AS location_name,
+    l.availability_start,
+    l.availability_end,
+    
+    -- City údaje
+    c.id_city,
+    c."name" AS city_name,
+    
+    -- Country údaje
+    co.id_country,
+    co."name" AS country_name,
+    
+    -- Organizer údaje
+    o.id_organizer,
+    o."name" AS organizer_name,
+    o.email AS organizer_email,
+    
+    -- Organizer Role údaje
+    r.id_role,
+    r."name" AS role_name
+    
+FROM room_requests rr
+INNER JOIN locations l ON rr.id_location = l.id_location
+INNER JOIN cities c ON l.id_city = c.id_city
+INNER JOIN countries co ON c.id_country = co.id_country
+INNER JOIN organizers o ON rr.id_organizer = o.id_organizer
+INNER JOIN roles r ON o.id_role = r.id_role
+LEFT JOIN meeting_rrequests mr ON mr.id_room_request = rr.id_room_request
+    AND rr."type" = 'MEETING_RREQUEST'
+LEFT JOIN presentation_rrequests pr ON pr.id_room_request = rr.id_room_request
+    AND rr."type" = 'PRESENTATION_RREQUEST';
+
+-- ✅ 2. POHLED PRO ORGANIZERS S PLNÝMI DETAILY (včetně role a náhradníka)
+CREATE OR REPLACE VIEW ORGANIZERS_WITH_DETAILS_V AS
+SELECT 
+    o.id_organizer,
+    o."name",
+    o.email,
+    o.id_organizer_substitute,
+    
+    -- Role údaje
+    r.id_role,
+    r."name" AS role_name,
+    
+    -- Substitute údaje (pokud existuje)
+    s.id_organizer AS substitute_id,
+    s."name" AS substitute_name,
+    s.email AS substitute_email,
+    
+    -- Substitute Role údaje
+    sr.id_role AS substitute_role_id,
+    sr."name" AS substitute_role_name
+    
+FROM organizers o
+INNER JOIN roles r ON o.id_role = r.id_role
+LEFT JOIN organizers s ON o.id_organizer_substitute = s.id_organizer
+LEFT JOIN roles sr ON s.id_role = sr.id_role;
+
+-- ✅ 3. POHLED PRO CITIES S COUNTRY DETAILY
+CREATE OR REPLACE VIEW CITIES_WITH_COUNTRY_V AS
+SELECT 
+    c.id_city,
+    c."name" AS city_name,
+    
+    -- Country údaje
+    co.id_country,
+    co."name" AS country_name
+    
+FROM cities c
+INNER JOIN countries co ON c.id_country = co.id_country;
+
+COMMIT;

@@ -98,24 +98,28 @@ public class Organiser
         using (OracleConnection conn = DBManager.GetConnection())
         {
             conn.Open();
-            OracleCommand cmd = conn.CreateCommand();
-            cmd.CommandText = @"SELECT id_organizer, ""name"", email, id_role 
-                               FROM ORGANIZERS_V WHERE id_organizer = :id";
-            cmd.Parameters.Add("id", Id);
-            cmd.CommandType = System.Data.CommandType.Text;
-            using (OracleDataReader reader = cmd.ExecuteReader())
+            using (OracleCommand cmd = conn.CreateCommand())
             {
-                if (!reader.Read())
+                cmd.CommandText = @"SELECT id_organizer, ""name"", email, id_role 
+                               FROM ORGANIZERS_V WHERE id_organizer = :id";
+                cmd.Parameters.Add("id", Id);
+                cmd.CommandType = System.Data.CommandType.Text;
+                
+                using (OracleDataReader reader = cmd.ExecuteReader())
                 {
-                    return null;
+                    if (!reader.Read())
+                    {
+                        return null;  //reader se automaticky zavře
+                    }
+                    
+                    return new Organiser
+                    {
+                        Id = reader.GetInt32(0),
+                        Name = reader.GetString(1),
+                        Email = reader.GetString(2),
+                        Role = new Role { Id = reader.GetInt32(3)}  // Nebo načtěte přes JOIN
+                    };
                 }
-                return new Organiser
-                {
-                    Id = reader.GetInt32(0),
-                    Name = reader.GetString(1),
-                    Email = reader.GetString(2),
-                    Role = Role.GetRole(reader.GetInt32(3))
-                };
             }
         }
     }
