@@ -16,7 +16,7 @@ public class RegisterViewModel
     public required string Email { get; set; }
 
     [Required(ErrorMessage = "Heslo je povinné")]
-    [StringLength(100, MinimumLength = 6, ErrorMessage = "Heslo musí mít minimálně 6 znaků")]
+    [PasswordValidation]
     [DataType(DataType.Password)]
     [Display(Name = "Heslo")]
     public required string Password { get; set; }

@@ -1481,12 +1481,14 @@ EXCEPTION
 END;
 /
 
--- OPRAVA: Audit trigger pro MEETING_RREQUESTS s AUTONOMOUS_TRANSACTION
+DROP TRIGGER trg_audit_presentation_rrequests;
+
+-- OPRAVA: Audit trigger pro MEETING_RREQUESTS s detekcí MERGE
 CREATE OR REPLACE TRIGGER trg_audit_meeting_rrequests
 AFTER INSERT OR UPDATE OR DELETE ON meeting_rrequests
 FOR EACH ROW
 DECLARE
-    PRAGMA AUTONOMOUS_TRANSACTION;  -- KLÍČOVÁ ZMĚNA
+    PRAGMA AUTONOMOUS_TRANSACTION;
     v_operation VARCHAR2(10);
     v_old_values VARCHAR2(1000);
     v_new_values VARCHAR2(1000);
@@ -1503,13 +1505,22 @@ BEGIN
         END IF;
     EXCEPTION
         WHEN NO_DATA_FOUND THEN
-            -- Pokud room_request už neexistuje, použijeme NULL
             v_organizer_id := NULL;
     END;
     
+    -- KLÍČOVÁ OPRAVA: Rozlišení mezi INSERT a UPDATE při MERGE
     IF INSERTING THEN
-        v_operation := 'INSERT';
-        v_new_values := 'VCReady:' || :NEW.vc_ready;
+        -- Kontrola, zda záznam již existoval (znamená UPDATE přes MERGE)
+        IF :OLD.id_room_request IS NOT NULL THEN
+            -- Toto je UPDATE přes MERGE, nikoliv INSERT
+            v_operation := 'UPDATE';
+            v_old_values := 'VCReady:' || :OLD.vc_ready;
+            v_new_values := 'VCReady:' || :NEW.vc_ready;
+        ELSE
+            -- Toto je skutečný INSERT
+            v_operation := 'INSERT';
+            v_new_values := 'VCReady:' || :NEW.vc_ready;
+        END IF;
     ELSIF UPDATING THEN
         v_operation := 'UPDATE';
         v_old_values := 'VCReady:' || :OLD.vc_ready;
@@ -1532,7 +1543,7 @@ BEGIN
         v_new_values
     );
     
-    COMMIT; -- Povinný COMMIT pro autonomní transakci
+    COMMIT;
     
 EXCEPTION
     WHEN OTHERS THEN
@@ -1541,12 +1552,12 @@ EXCEPTION
 END;
 /
 
--- OPRAVA: Audit trigger pro PRESENTATION_RREQUESTS s AUTONOMOUS_TRANSACTION
+-- OPRAVA: Audit trigger pro PRESENTATION_RREQUESTS s detekcí MERGE
 CREATE OR REPLACE TRIGGER trg_audit_presentation_rrequests
 AFTER INSERT OR UPDATE OR DELETE ON presentation_rrequests
 FOR EACH ROW
 DECLARE
-    PRAGMA AUTONOMOUS_TRANSACTION;  -- KLÍČOVÁ ZMĚNA
+    PRAGMA AUTONOMOUS_TRANSACTION;
     v_operation VARCHAR2(10);
     v_old_values VARCHAR2(1000);
     v_new_values VARCHAR2(1000);
@@ -1566,9 +1577,19 @@ BEGIN
             v_organizer_id := NULL;
     END;
     
+    -- KLÍČOVÁ OPRAVA: Rozlišení mezi INSERT a UPDATE při MERGE
     IF INSERTING THEN
-        v_operation := 'INSERT';
-        v_new_values := 'PodiumSize:' || :NEW.podium_size;
+        -- Kontrola, zda záznam již existoval (znamená UPDATE přes MERGE)
+        IF :OLD.id_room_request IS NOT NULL THEN
+            -- Toto je UPDATE přes MERGE, nikoliv INSERT
+            v_operation := 'UPDATE';
+            v_old_values := 'PodiumSize:' || :OLD.podium_size;
+            v_new_values := 'PodiumSize:' || :NEW.podium_size;
+        ELSE
+            -- Toto je skutečný INSERT
+            v_operation := 'INSERT';
+            v_new_values := 'PodiumSize:' || :NEW.podium_size;
+        END IF;
     ELSIF UPDATING THEN
         v_operation := 'UPDATE';
         v_old_values := 'PodiumSize:' || :OLD.podium_size;
@@ -1591,7 +1612,7 @@ BEGIN
         v_new_values
     );
     
-    COMMIT; -- Povinný COMMIT pro autonomní transakci
+    COMMIT;
     
 EXCEPTION
     WHEN OTHERS THEN
@@ -1727,16 +1748,16 @@ COMPOUND TRIGGER
 
     AFTER EACH ROW IS
     BEGIN
-        -- ✅ KONTROLA: Pokud probíhá cancel, NEUKLÁDÁME (ale nepřerušujeme)
+        --KONTROLA: Pokud probíhá cancel, NEUKLÁDÁME (ale nepřerušujeme)
         IF NOT locations_pkg.g_cancel_in_progress THEN
             g_index := g_index + 1;
             g_deleted_reservations(g_index).id_reservation := :OLD.id_reservation;
             g_deleted_reservations(g_index).id_room := :OLD.id_room;
             g_deleted_reservations(g_index).id_room_request := :OLD.id_room_request;
             
-            DBMS_OUTPUT.PUT_LINE('📌 Uložena rezervace: ' || :OLD.id_reservation);
+            DBMS_OUTPUT.PUT_LINE('Uložena rezervace: ' || :OLD.id_reservation);
         ELSE
-            DBMS_OUTPUT.PUT_LINE('⏸️  Trigger pozastaven (cancel probíhá)');
+            DBMS_OUTPUT.PUT_LINE('Trigger pozastaven (cancel probíhá)');
         END IF;
     END AFTER EACH ROW;
 
@@ -1745,17 +1766,17 @@ COMPOUND TRIGGER
         v_processed_locations SYS.ODCINUMBERLIST := SYS.ODCINUMBERLIST();
         v_location_exists BOOLEAN;
     BEGIN
-        -- ✅ KONTROLA: Pokud probíhá cancel NEBO není co zpracovat, UKONČÍME
+        --KONTROLA: Pokud probíhá cancel NEBO není co zpracovat, UKONČÍME
         IF locations_pkg.g_cancel_in_progress THEN
-            DBMS_OUTPUT.PUT_LINE('⏸️  Realokace přeskočena (cancel probíhá)');
+            DBMS_OUTPUT.PUT_LINE('Realokace přeskočena (cancel probíhá)');
             g_deleted_reservations.DELETE;
             g_index := 0;
             -- Žádný RETURN, jen necháme proceduru skončit
         ELSIF g_deleted_reservations.COUNT = 0 THEN
-            DBMS_OUTPUT.PUT_LINE('ℹ️  Žádné rezervace ke zpracování');
+            DBMS_OUTPUT.PUT_LINE('Žádné rezervace ke zpracování');
             -- Žádný RETURN, jen necháme proceduru skončit
         ELSE
-            -- ✅ NORMÁLNÍ ZPRACOVÁNÍ
+            --NORMÁLNÍ ZPRACOVÁNÍ
             DBMS_OUTPUT.PUT_LINE('=== SPUŠTĚNA REALOKACE (' || g_deleted_reservations.COUNT || ' rezervací) ===');
             
             FOR i IN 1..g_deleted_reservations.COUNT LOOP
@@ -1767,7 +1788,7 @@ COMPOUND TRIGGER
                     DELETE FROM room_requests
                     WHERE id_room_request = g_deleted_reservations(i).id_room_request;
                     
-                    DBMS_OUTPUT.PUT_LINE('🗑️  Smazán request: ' || g_deleted_reservations(i).id_room_request);
+                    DBMS_OUTPUT.PUT_LINE('Smazán request: ' || g_deleted_reservations(i).id_room_request);
                     
                     -- Realokace pouze jednou pro každou lokaci
                     v_location_exists := FALSE;
@@ -1782,17 +1803,17 @@ COMPOUND TRIGGER
                         v_processed_locations.EXTEND;
                         v_processed_locations(v_processed_locations.COUNT) := v_id_location;
                         
-                        DBMS_OUTPUT.PUT_LINE('🔄 Realokace lokace: ' || v_id_location);
+                        DBMS_OUTPUT.PUT_LINE('Realokace lokace: ' || v_id_location);
                         reservations_pkg.batch_process_location_requests(p_id_location => v_id_location);
                     END IF;
                     
                 EXCEPTION
                     WHEN NO_DATA_FOUND THEN
-                        DBMS_OUTPUT.PUT_LINE('⚠️  Místnost nenalezena');
+                        DBMS_OUTPUT.PUT_LINE('Místnost nenalezena');
                         DELETE FROM room_requests
                         WHERE id_room_request = g_deleted_reservations(i).id_room_request;
                     WHEN OTHERS THEN
-                        DBMS_OUTPUT.PUT_LINE('❌ Chyba: ' || SQLERRM);
+                        DBMS_OUTPUT.PUT_LINE('Chyba: ' || SQLERRM);
                 END;
             END LOOP;
             
@@ -1805,7 +1826,7 @@ COMPOUND TRIGGER
         
     EXCEPTION
         WHEN OTHERS THEN
-            DBMS_OUTPUT.PUT_LINE('❌ KRITICKÁ CHYBA v realokaci: ' || SQLERRM);
+            DBMS_OUTPUT.PUT_LINE('KRITICKÁ CHYBA v realokaci: ' || SQLERRM);
             g_deleted_reservations.DELETE;
             g_index := 0;
             RAISE;

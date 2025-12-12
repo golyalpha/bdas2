@@ -20,8 +20,8 @@ CREATE OR REPLACE PACKAGE user_management_pkg AS
     );
 
     PROCEDURE set_organizer_substitute(
-    p_id_organizer IN NUMBER,
-    p_id_organizer_substitute IN NUMBER DEFAULT NULL
+        p_id_organizer IN NUMBER,
+        p_id_organizer_substitute IN NUMBER DEFAULT NULL
     );
 
     PROCEDURE get_non_admin_organizers(
@@ -45,17 +45,24 @@ CREATE OR REPLACE PACKAGE user_management_pkg AS
         p_password IN VARCHAR2
     ) RETURN NUMBER;
     
+    -- Reset hesla bez ověření (pro zapomenuté heslo)
+    PROCEDURE reset_password(
+        p_email IN VARCHAR2,
+        p_new_password IN VARCHAR2
+    );
+    
 END user_management_pkg;
 /
+
 
 CREATE OR REPLACE PACKAGE BODY user_management_pkg AS
 
     PROCEDURE persist_organizer (
-    p_id_organizer IN NUMBER DEFAULT NULL,
-    p_name IN VARCHAR2,
-    p_email IN VARCHAR2,
-    p_id_role IN NUMBER DEFAULT NULL,
-    p_id_organizer_substitute IN NUMBER DEFAULT NULL    
+        p_id_organizer IN NUMBER DEFAULT NULL,
+        p_name IN VARCHAR2,
+        p_email IN VARCHAR2,
+        p_id_role IN NUMBER DEFAULT NULL,
+        p_id_organizer_substitute IN NUMBER DEFAULT NULL    
     ) IS
         v_new_id NUMBER;
     BEGIN
@@ -119,13 +126,11 @@ CREATE OR REPLACE PACKAGE BODY user_management_pkg AS
         ORDER SIBLINGS BY "name";
     END get_organizers_hierarchy;
 
-
     PROCEDURE set_organizer_substitute(
-    p_id_organizer IN NUMBER,
-    p_id_organizer_substitute IN NUMBER DEFAULT NULL
+        p_id_organizer IN NUMBER,
+        p_id_organizer_substitute IN NUMBER DEFAULT NULL
     ) IS
     BEGIN
-        -- Validace: nelze být sám sobě náhradníkem
         IF p_id_organizer = p_id_organizer_substitute THEN
             RAISE_APPLICATION_ERROR(-20010, 'Uživatel nemůže být sám sobě náhradníkem.');
         END IF;
@@ -239,10 +244,11 @@ CREATE OR REPLACE PACKAGE BODY user_management_pkg AS
         v_stored_hash VARCHAR2(256);
         v_computed_hash VARCHAR2(256);
         v_organizer_id NUMBER;
+        v_credential_id NUMBER;
     BEGIN
-        -- Načtení hashe z databáze
-        SELECT c."data", o.id_organizer
-        INTO v_stored_hash, v_organizer_id
+        -- Načtení nejnovějšího hesla (ORDER BY created_at DESC + ROWNUM = 1)
+        SELECT c."data", o.id_organizer, c.id_credential
+        INTO v_stored_hash, v_organizer_id, v_credential_id
         FROM credentials c
         JOIN organizers o ON c.id_organizer = o.id_organizer
         WHERE o.email = p_email
@@ -264,8 +270,48 @@ CREATE OR REPLACE PACKAGE BODY user_management_pkg AS
             RAISE;
     END verify_password;
 
+    PROCEDURE reset_password(
+        p_email IN VARCHAR2,
+        p_new_password IN VARCHAR2
+    )
+    IS
+        v_new_hash VARCHAR2(256);
+        v_credential_id NUMBER;
+    BEGIN
+        -- Najít uživatele podle emailu
+        BEGIN
+            SELECT c.id_credential
+            INTO v_credential_id
+            FROM organizers o
+            JOIN credentials c ON o.id_organizer = c.id_organizer
+            WHERE o.email = p_email
+            AND c.credential_type = 'PASSWORD';
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                RAISE_APPLICATION_ERROR(-20104, 'Uživatel s tímto emailem nebyl nalezen');
+        END;
+        
+        -- Zahashovat nové heslo
+        v_new_hash := hash_password(p_new_password);
+        
+        --OPRAVA: AKTUALIZACE hesla místo INSERT
+        UPDATE credentials
+        SET "data" = v_new_hash,
+            created_at = SYSTIMESTAMP
+        WHERE id_credential = v_credential_id;
+        
+        COMMIT;
+        
+        DBMS_OUTPUT.PUT_LINE('Heslo pro email ' || p_email || ' bylo úspěšně resetováno');
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END reset_password;
 
 END user_management_pkg;
+
+
 
 
 

@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Uživatelé";
     var isAdmin = User.IsInRole("Administrator");
+    var isGuest = ViewBag.IsGuest ?? false;
     var allUsers = ViewBag.AllUsers as List<WebApp.Models.Organiser> ?? Model.ToList();
 }
 
@@ -34,7 +35,7 @@
                     <input type="text" id="searchString" name="searchString" 
                            value="@ViewData["CurrentFilter"]" 
                            class="form-control" 
-                           placeholder="Hledat podle jm�na..." />
+                           placeholder="Hledat podle jména..." />
                     <button type="submit" class="btn btn-primary">Hledat</button>
                     @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"] as string))
                     {
@@ -49,7 +50,11 @@
         <thead>
             <tr>
                 <th>Jméno</th>
-                <th>Email</th>
+                @* Guest nemá vidět emaily *@
+                @if (!isGuest)
+                {
+                    <th>Email</th>
+                }
                 <th>Role</th>
                 <th>Náhradník</th>
                 @if (isAdmin)
@@ -63,11 +68,22 @@
             {
                 <tr>
                     <td>
-                        <a href="/User/Details/@organiser.Id" class="text-light">
+                        @if (isAdmin)
+                        {
+                            <a href="/User/Details/@organiser.Id" class="text-light">
+                                @organiser.Name
+                            </a>
+                        }
+                        else
+                        {
                             @organiser.Name
-                        </a>
+                        }
                     </td>
-                    <td>@organiser.Email</td>
+                    @* Guest nemá vidět emaily *@
+                    @if (!isGuest)
+                    {
+                        <td>@organiser.Email</td>
+                    }
                     <td>
                         @if (organiser.Role.Name == "Administrator")
                         {

@@ -27,7 +27,10 @@ public class UserController : Controller
         {
             users = users.Where(u => u.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase)).ToList();
         }
+        
         ViewData["CurrentFilter"] = searchString;
+        ViewBag.IsGuest = User.IsInRole("Guest");  // PŘIDÁNO
+        
         return View(users);
     }
 
@@ -235,6 +238,17 @@ public class UserController : Controller
         {
             return NotFound();
         }
+        
+        // POUZE ADMIN MŮŽE VIDĚT DETAILY JINÝCH UŽIVATELŮ
+        var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var isAdmin = User.IsInRole("Administrator");
+        
+        if (!isAdmin && currentUserId != id)
+        {
+            _logger.LogWarning("User {UserId} attempted to access details of user {TargetId}", currentUserId, id);
+            return Forbid();
+        }
+        
         var reservations = Reservation.GetReservationsByOrganizerId(id);
         var requests = RoomRequest.GetRequestsByOrganiserId(id);
         var model = new UserDetailsViewModel
@@ -456,6 +470,47 @@ public class UserController : Controller
             _logger.LogError(ex, "Chyba při změně náhradníka");
             TempData["Error"] = "Chyba při ukládání náhradníka: " + ex.Message;
             return RedirectToAction("EditSubstitute", new { id });
+        }
+    }
+
+    [HttpGet]
+    [AllowAnonymous]
+    public IActionResult ForgotPassword()
+    {
+        return View(new ForgotPasswordViewModel 
+        { 
+            Email = string.Empty,
+            NewPassword = string.Empty, 
+            ConfirmPassword = string.Empty 
+        });
+    }
+
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [AllowAnonymous]
+    public IActionResult ForgotPassword(ForgotPasswordViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        try
+        {
+            // Volání DB procedury pro reset hesla
+            Credential.ResetPassword(model.Email, model.NewPassword);
+
+            _logger.LogInformation("Heslo pro email {Email} bylo úspěšně resetováno", model.Email);
+
+            TempData["Success"] = "Heslo bylo úspěšně změněno. Můžete se přihlásit.";
+            return RedirectToAction("Login");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Chyba při resetování hesla");
+            ModelState.AddModelError("", ex.Message);
+            return View(model);
         }
     }
 }
